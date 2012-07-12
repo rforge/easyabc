@@ -1,0 +1,11 @@
+J	500
+nb_simul	100
+Imin	3
+Imax	5
+SSmin	0.1
+SSmax	5
+ntrait	1
+hmin	-0.25
+hmax	1.25
+sigmin	0.005
+sigmax	0.25
