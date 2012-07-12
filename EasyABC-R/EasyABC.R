@@ -259,10 +259,14 @@ tab_weight_new/sum(tab_weight_new)
 		tab_weight2=.compute_weight(simul_below_tol2[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight)
 		# update of the set of particles and of the associated weights for the next ABC sequence
 		tab_weight=tab_weight2
-		simul_below_tol=simul_below_tol2
+		simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
+		for (i1 in 1:nb_simul){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+			}
+		}
 		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		print(paste("step ",it," completed",sep=""))
-
 	}
 cbind(tab_weight,simul_below_tol)
 }
