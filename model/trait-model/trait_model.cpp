@@ -230,8 +230,6 @@ int main(){
     sgenrand2(seed1*100000);
     sgenrand2i(1027+seed1*10000);
 	//in >> buffer; 
-	int Starget; in >> Starget;
-    //in >> buffer; 
 	int J; in >> J;
     //in >> buffer; int nbsimul; in >> nbsimul;
     //in >> buffer; 
@@ -338,11 +336,11 @@ int main(){
 
 		//OUTPUT
 		//if ((stat[1]>Starget-11)&&(stat[1]<Starget+11)){
-        		out<<I<<" "<<SS<<" "<<maxSS<<" ";
-				for (int k=0;k<ntrait;k++){
-					out<<h[k]<<" "<<sig[k]<<" ";
-				}
-        		for (int j=0;j<nstat;j++){
+        		//out<<I<<" "<<SS<<" "<<maxSS<<" ";
+				//for (int k=0;k<ntrait;k++){
+					//out<<h[k]<<" "<<sig[k]<<" ";
+				//}
+        		for (int j=1;j<nstat;j++){
 				    out<<stat[j]<<"\t";
 			    }
 			    out<<endl;
