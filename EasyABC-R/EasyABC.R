@@ -192,9 +192,9 @@ res
 tab_weight_new/sum(tab_weight_new)
 }
 
-## PMC ABC algorithm: Beaumont et al. Biometrika 2009
-#####################################################
-.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE){
+## PMC ABC algorithm with multivariate normal jumps
+###################################################
+.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE){
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -247,7 +247,7 @@ tab_weight_new/sum(tab_weight_new)
 				}
 			}
 			else{
-				tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+				tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
 				seed_count=seed_count+nb_simul_step
 				if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
 					simul_below_tol2=rbind(simul_below_tol2,tab_ini)
@@ -273,9 +273,168 @@ cbind(tab_weight,simul_below_tol)
 
 ## test
 # linux
+# .ABC_PMC2(binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE)
+# windows
+# .ABC_PMC2(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE)
+
+## function to move a particle with a unidimensional normal jump
+################################################################
+.move_particle_uni<-function(param_picked,sd_array,prior_matrix){
+	test=FALSE
+	res=param_picked
+	while (!test){
+		for (i in 1:length(param_picked)){
+			res[i]=rnorm(n = 1, mean = param_picked[i], sd_array[i])
+		}
+		test=.is_included(res,prior_matrix)
+	}
+res
+}
+
+## function to compute particle weights with unidimensional jumps
+#################################################################
+.compute_weight_uni<-function(param_simulated,param_previous_step,tab_weight){
+	l=dim(param_previous_step)[2]
+	sd_array=array(1,l)
+	for (j in 1:l){
+		sd_array[j]=sqrt(2*var(param_previous_step[,j]))
+	}
+	sd_array=as.numeric(sd_array)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+	for (i in 1:n_particle){
+		for (j in 1:n_new_particle){
+			tab_temp=tab_weight[i]
+			for (k in 1:l){
+				tab_temp=tab_temp*dnorm(as.numeric(param_simulated[j,k]),as.numeric(param_previous_step[i,k]),sd_array[k])
+			}
+			tab_weight_new[j]=tab_weight_new[j]+tab_temp
+		}
+	}
+	tab_weight_new=1/tab_weight_new
+tab_weight_new/sum(tab_weight_new)
+}
+
+## function to perform ABC simulations from a non-uniform prior and with unidimensional jumps
+#############################################################################################
+.ABC_launcher_not_uniform_uni<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count){
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	
+	for (i in 1:nb_simul){
+		l=dim(param_previous_step)[2]
+		# pick a particle
+		param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+		# move it
+		l_array=dim(param_previous_step[,tab_unfixed_param])[2]
+		sd_array=array(1,l_array)
+		for (j in 1:l_array){
+			sd_array[j]=sqrt(2*var(param_previous_step[,tab_unfixed_param][,j]))
+		}
+		param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+		param=param_previous_step[1,]
+		param[tab_unfixed_param]=param_moved
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summarystat=model(param)
+		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+		if (use_seed) {
+			tab_param=rbind(tab_param,param[2:(l+1)])
+		}
+		else{
+			tab_param=rbind(tab_param,param)
+		}
+	}
+	cbind(tab_param,tab_simul_summarystat)
+}
+
+## PMC ABC algorithm: Beaumont et al. Biometrika 2009
+#####################################################
+.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE){
+	T=length(tolerance_tab)
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_target)
+	seed_count=0
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+
+## step 1
+	nb_simul_step=nb_simul
+	simul_below_tol=NULL
+	while (nb_simul_step>0){
+		if (nb_simul_step>1){
+			# classic ABC step
+			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			seed_count=seed_count+nb_simul_step
+			# selection of simulations below the first tolerance level
+			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
+			if (length(simul_below_tol)>0){
+				nb_simul_step=nb_simul-dim(simul_below_tol)[1]
+			}
+		}
+		else{
+			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			seed_count=seed_count+nb_simul_step
+			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
+				simul_below_tol=rbind(simul_below_tol,tab_ini)
+				nb_simul_step=0
+			}
+		}
+	} # until we get nb_simul simulations below the first tolerance threshold
+	# initially, weights are equal
+	tab_weight=array(1/nb_simul,nb_simul)
+	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	print("step 1 completed")
+## steps 2 to T
+	for (it in 2:T){
+		nb_simul_step=nb_simul
+		simul_below_tol2=NULL
+		while (nb_simul_step>0){
+			if (nb_simul_step>1){
+				# Sampling of parameters around the previous particles
+				tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
+				seed_count=seed_count+nb_simul_step
+				simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[it]))
+				if (length(simul_below_tol2)>0){
+					nb_simul_step=nb_simul-dim(simul_below_tol2)[1]
+				}
+			}
+			else{
+				tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
+				seed_count=seed_count+nb_simul_step
+				if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
+					simul_below_tol2=rbind(simul_below_tol2,tab_ini)
+					nb_simul_step=0
+				}
+			}
+		} # until we get nb_simul simulations below the it-th tolerance threshold
+		# update of particle weights
+		tab_weight2=.compute_weight_uni(simul_below_tol2[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight)
+		# update of the set of particles and of the associated weights for the next ABC sequence
+		tab_weight=tab_weight2
+		simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
+		for (i1 in 1:nb_simul){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+			}
+		}
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		print(paste("step ",it," completed",sep=""))
+	}
+cbind(tab_weight,simul_below_tol)
+}
+
+## test
+# linux
 # .ABC_PMC(binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE)
 # windows
 # .ABC_PMC(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE)
+
 
 
 ## Algo de Marjoram
