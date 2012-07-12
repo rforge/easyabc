@@ -124,15 +124,32 @@ param[p,]
 # with package mnormt
 library(mnormt)
 
+## function to check whether moved parameters are still in the prior distribution
+#################################################################################
+.is_included<-function(res,prior_matrix){
+	test=TRUE
+	for (i in 1:length(res)){
+		if ((res[i]<prior_matrix[i,1])||(res[i]>prior_matrix[i,2])){
+			test=FALSE
+		}
+	}
+test	
+}
+
 ## function to move a particle
 ##############################
-.move_particle<-function(param_picked,varcov_matrix){
-rmnorm(n = 1, mean = param_picked, varcov_matrix)
+.move_particle<-function(param_picked,varcov_matrix,prior_matrix){
+	test=FALSE
+	while (!test){
+		res=rmnorm(n = 1, mean = param_picked, varcov_matrix)
+		test=.is_included(res,prior_matrix)
+	}
+res
 }
 
 ## function to perform ABC simulations from a non-uniform prior (derived from a set of particles)
 #################################################################################################
-.ABC_launcher_not_uniform<-function(model,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count){
+.ABC_launcher_not_uniform<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count){
 	tab_simul_summarystat=NULL
 	tab_param=NULL
 	
@@ -141,7 +158,7 @@ rmnorm(n = 1, mean = param_picked, varcov_matrix)
 		# pick a particle
 		param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 		# move it
-		param_moved=.move_particle(param_picked,2*var(param_previous_step[,tab_unfixed_param])) # only variable parameters are moved
+		param_moved=.move_particle(param_picked,2*var(param_previous_step[,tab_unfixed_param]),prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
 		param=param_previous_step[1,]
 		param[tab_unfixed_param]=param_moved
 		if (use_seed) {
@@ -214,7 +231,7 @@ tab_weight_new/sum(tab_weight_new)
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
 	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-
+	print("step 1 completed")
 ## steps 2 to T
 	for (it in 2:T){
 		nb_simul_step=nb_simul
@@ -222,7 +239,7 @@ tab_weight_new/sum(tab_weight_new)
 		while (nb_simul_step>0){
 			if (nb_simul_step>1){
 				# Sampling of parameters around the previous particles
-				tab_ini=.ABC_launcher_not_uniform(model,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
+				tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
 				seed_count=seed_count+nb_simul_step
 				simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[it]))
 				if (length(simul_below_tol2)>0){
@@ -233,17 +250,18 @@ tab_weight_new/sum(tab_weight_new)
 				tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 				seed_count=seed_count+nb_simul_step
 				if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
-					simul_below_tol=rbind(simul_below_tol,tab_ini)
+					simul_below_tol2=rbind(simul_below_tol2,tab_ini)
 					nb_simul_step=0
 				}
 			}
 		} # until we get nb_simul simulations below the it-th tolerance threshold
 		# update of particle weights
-		tab_weight2=.compute_weight(simul_below_tol2[,1:nparam],simul_below_tol[,1:nparam],tab_weight)
+		tab_weight2=.compute_weight(simul_below_tol2[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight)
 		# update of the set of particles and of the associated weights for the next ABC sequence
 		tab_weight=tab_weight2
 		simul_below_tol=simul_below_tol2
-		write.table(cbind(tab_weight,simul_below_tol),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		print(paste("step ",it," completed",sep=""))
 
 	}
 cbind(tab_weight,simul_below_tol)
@@ -253,7 +271,7 @@ cbind(tab_weight,simul_below_tol)
 # linux
 # .ABC_PMC(binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE)
 # windows
-# .ABC_PMC(binary_model("./parthy_test.exe"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE)
+# .ABC_PMC(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE)
 
 
 ## Algo de Marjoram
