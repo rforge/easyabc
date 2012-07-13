@@ -436,6 +436,182 @@ cbind(tab_weight,simul_below_tol)
 # .ABC_PMC(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE)
 
 
+## function to select the alpha quantile closest simulations
+############################################################
+.selec_simul_alpha<-function(summary_stat_target,param,simul,sd_simul,alpha){
+	dist=.compute_dist(summary_stat_target,simul,sd_simul)
+	n_alpha=ceiling(alpha*length(dist))
+	tol=sort(dist)[n_alpha]
+	res=cbind(param[dist<=tol,],simul[dist<=tol,])
+	if (dim(res)[1]==0){
+		res=NULL
+	}
+res
+}
+
+## function to select the simulations that are at a distance smaller are equal to tol from the data
+###################################################################################################
+.selec_simulb<-function(summary_stat_target,param,simul,sd_simul,tol){
+	dist=.compute_dist(summary_stat_target,simul,sd_simul)
+	res=cbind(param[dist<=tol,],simul[dist<=tol,])
+	if (dim(res)[1]==0){
+		res=NULL
+	}
+res
+}
+
+## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal
+###############################################################################################
+.ABC_Drovandi<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE){
+	n_alpha=ceiling(nb_simul*alpha)
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_target)
+	seed_count=0
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+	if (first_tolerance_level_auto){
+		tol_end=tolerance_tab
+	}
+	else{
+		tol_end=tolerance_tab[2]
+	}
+
+## step 1
+	nb_simul_step=nb_simul
+	simul_below_tol=NULL
+	if (first_tolerance_level_auto){
+		# classic ABC step
+		tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+		sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+		seed_count=seed_count+nb_simul_step
+		# selection of simulations below the first tolerance level
+		simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,alpha))
+		simul_below_tol=simul_below_tol[1:n_alpha,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
+	}
+	else{
+	   nb_simul_step=n_alpha
+	   while (nb_simul_step>0){
+		if (nb_simul_step>1){
+			# classic ABC step
+			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			seed_count=seed_count+nb_simul_step
+			# selection of simulations below the first tolerance level
+			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
+			if (length(simul_below_tol)>0){
+				nb_simul_step=n_alpha-dim(simul_below_tol)[1]
+			}
+		}
+		else{
+			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			seed_count=seed_count+nb_simul_step
+			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
+				simul_below_tol=rbind(simul_below_tol,tab_ini)
+				nb_simul_step=0
+			}
+		}
+	  } # until we get n_alpha simulations below the first tolerance threshold
+	}
+	# initially, weights are equal
+	tab_weight=array(1/n_alpha,n_alpha)
+	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	print("step 1 completed")
+
+## following steps until tol_end is reached
+	tol_next=tolerance_tab[1]
+	if (first_tolerance_level_auto){
+		tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+	}
+	R=1
+	l=dim(simul_below_tol)[2]
+	while (tol_next>tol_end){
+		i_acc=0
+		nb_simul_step=nb_simul-n_alpha
+		simul_below_tol2=NULL
+		for (i in 1:nb_simul_step){
+			# pick a particle
+			simul_picked=.particle_pick(simul_below_tol,tab_weight)
+			for (j in 1:R){
+				# move it
+				param_moved=.move_particle(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+				param=simul_picked[1:nparam]
+				param[tab_unfixed_param]=param_moved
+				if (use_seed) {
+					param=c((seed_count+i),param)
+				}
+				# perform a simulation
+				new_simul=c(param,model(param))
+				seed_count=seed_count+1
+				if (use_seed) {
+					new_simul=new_simul[2:(l+1)]
+				}
+				# check whether it is below tol_next and undo the move if it is not
+				if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+					simul_picked=new_simul
+					i_acc=i_acc+1
+				}
+			}
+			simul_below_tol2=rbind(simul_below_tol2,simul_picked)
+		}
+		simul_below_tol2=rbind(simul_below_tol,simul_below_tol2)
+		simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
+		for (i1 in 1:nb_simul){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+			}
+		}
+		tol_next=sort(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))[n_alpha]
+		simul_below_tol2=.selec_simulb(summary_stat_target,simul_below_tol[,1:nparam],simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul,tol_next) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+		simul_below_tol=matrix(0,n_alpha,(nparam+nstat))
+		for (i1 in 1:n_alpha){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+			}
+		}
+		p_acc=i_acc/(nb_simul_step*R)
+		R=log(c)/log(1-p_acc)
+	}
+
+## final step to diversify the n_alpha particles
+	simul_below_tol2=NULL
+	for (i in 1:n_alpha){
+		simul_picked=simul_below_tol[i,]
+		for (j in 1:R){
+			# move it
+			param_moved=.move_particle(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+			param=simul_picked[1:nparam]
+			param[tab_unfixed_param]=param_moved
+			if (use_seed) {
+				param=c((seed_count+i),param)
+			}
+			# perform a simulation
+			new_simul=c(param,model(param))
+			seed_count=seed_count+1
+			if (use_seed) {
+				new_simul=new_simul[2:(l+1)]
+				}
+			# check whether it is below tol_next and undo the move if it is not
+			if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+				simul_picked=as.numeric(new_simul)
+			}
+		}
+		simul_below_tol2=rbind(simul_below_tol2,simul_picked)
+	}
+cbind(tab_weight,simul_below_tol2)
+}
+
+
+## test
+# linux
+# .ABC_Drovandi(binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5))
+# .ABC_Drovandi(binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
+# windows
+# .ABC_Drovandi(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5))
+# .ABC_Drovandi(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
+
+
 
 ## Algo de Marjoram
 
