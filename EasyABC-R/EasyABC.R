@@ -158,7 +158,7 @@ res
 		# pick a particle
 		param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 		# move it
-		param_moved=.move_particle(param_picked,2*var(param_previous_step[,tab_unfixed_param]),prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+		param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
 		param=param_previous_step[1,]
 		param[tab_unfixed_param]=param_moved
 		if (use_seed) {
@@ -194,11 +194,10 @@ tab_weight_new/sum(tab_weight_new)
 
 ## PMC ABC algorithm with multivariate normal jumps
 ###################################################
-.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE){
+.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0){
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
-	seed_count=0
 	tab_unfixed_param=array(TRUE,nparam)
 	for (i in 1:nparam){
 		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
@@ -329,8 +328,10 @@ tab_weight_new/sum(tab_weight_new)
 		# move it
 		l_array=dim(param_previous_step[,tab_unfixed_param])[2]
 		sd_array=array(1,l_array)
+		covmat=2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov # computation of a WEIGHTED variance
 		for (j in 1:l_array){
-			sd_array[j]=sqrt(2*var(param_previous_step[,tab_unfixed_param][,j]))
+			sd_array[j]=sqrt(covmat[j,j])
+
 		}
 		param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
 		param=param_previous_step[1,]
@@ -352,11 +353,10 @@ tab_weight_new/sum(tab_weight_new)
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE){
+.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0){
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
-	seed_count=0
 	tab_unfixed_param=array(TRUE,nparam)
 	for (i in 1:nparam){
 		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
@@ -462,11 +462,10 @@ res
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal
 ###############################################################################################
-.ABC_Drovandi<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE){
+.ABC_Drovandi<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE,seed_count=0){
 	n_alpha=ceiling(nb_simul*alpha)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
-	seed_count=0
 	tab_unfixed_param=array(TRUE,nparam)
 	for (i in 1:nparam){
 		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
