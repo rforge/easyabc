@@ -904,6 +904,129 @@ cbind(tab_weight2,simul_below_tol)
 # .ABC_Delmoral(binary_model("./parthy_test.exe"),prior_matrix,10,0.5,1,3,0.8,c(50,2.5))
 # .ABC_Delmoral(binary_model("./parthy_test.exe"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
 
+library(lhs)
+
+## function to sample in the prior distributions using a Latin Hypercube sample
+###############################################################################
+.ABC_rejection_lhs<-function(model,prior_matrix,nb_simul,tab_unfixed_param,use_seed=TRUE,seed_count=0){
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	l=dim(prior_matrix)[1]
+	nparam=length(tab_unfixed_param[tab_unfixed_param])
+	random_tab=randomLHS(nb_simul,nparam)
+
+	for (i in 1:nb_simul){
+		param=prior_matrix[,1]
+		for (j in 1:nparam){
+			param[tab_unfixed_param][j]=prior_matrix[tab_unfixed_param,][j,1]+(prior_matrix[tab_unfixed_param,][j,2]-prior_matrix[tab_unfixed_param,][j,1])*random_tab[i,j]
+		}
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summarystat=model(param)
+		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+		if (use_seed) {
+			tab_param=rbind(tab_param,param[2:(l+1)])
+		}
+		else{
+			tab_param=rbind(tab_param,param)
+		}
+	}
+	cbind(tab_param,tab_simul_summarystat)
+}
+
+## function to compute particle weights without normalizing to 1
+################################################################
+.compute_weightb<-function(param_simulated,param_previous_step,tab_weight,prior_density){
+	vmat=2*var(param_previous_step)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+	for (i in 1:n_particle){
+		for (j in 1:n_new_particle){
+			tab_weight_new[j]=tab_weight_new[j]+tab_weight[i]*dmnorm(param_simulated[j,],param_previous_step[i,],vmat)
+		}
+	}
+	tab_weight_new=prior_density/tab_weight_new
+tab_weight_new
+}
+
+
+## sequential algorithm of Lenormand et al. 2012 
+################################################
+.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0){
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_target)
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+	n_alpha=ceiling(nb_simul*alpha)
+	prior_density=1
+	for (i in 1:nparam){
+		if (tab_unfixed_param[i]){
+			prior_density=prior_density/(prior_matrix[i,2]-prior_matrix[i,1])
+		}
+	}
+
+## step 1
+	# ABC rejection step with LHS
+	tab_ini=.ABC_rejection_lhs(model,prior_matrix,nb_simul,tab_unfixed_param,use_seed,seed_count)
+	seed_count=seed_count+nb_simul
+	sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+
+	# selection of the alpha quantile closest simulations
+	simul_below_tol=NULL
+	simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,alpha))
+	simul_below_tol=simul_below_tol[1:n_alpha,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
+
+	# initially, weights are equal
+	tab_weight=array(1,n_alpha)
+
+	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	print("step 1 completed")
+	tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+	tol_next=max(tab_dist)
+
+## following steps
+	p_acc=p_acc_min+1
+	nb_simul_step=nb_simul-n_alpha
+	it=1
+	while (p_acc>p_acc_min){
+		it=it+1
+		simul_below_tol2=NULL
+		tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count)
+		seed_count=seed_count+nb_simul_step
+		tab_weight2=.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density)
+		simul_below_tol2=rbind(simul_below_tol,as.matrix(tab_ini))
+		tab_weight=c(tab_weight,tab_weight2)
+		tab_dist2=.compute_dist(summary_stat_target,tab_ini[,(nparam+1):(nparam+nstat)],sd_simul)
+		p_acc=length(tab_dist2[tab_dist2<=tol_next])/nb_simul_step
+		tab_dist=c(tab_dist,tab_dist2)
+		tol_next=sort(tab_dist)[n_alpha]
+		simul_below_tol2=simul_below_tol2[tab_dist<=tol_next,]
+		tab_weight=tab_weight[tab_dist<=tol_next]
+		tab_weight=tab_weight[1:n_alpha]
+		tab_dist=tab_dist[tab_dist<=tol_next]
+		tab_dist=tab_dist[1:n_alpha]
+		simul_below_tol=matrix(0,n_alpha,(nparam+nstat))
+		for (i1 in 1:n_alpha){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+			}
+		}
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		print(paste("step ",it," completed",sep=""))
+	}
+cbind(tab_weight,simul_below_tol)
+}
+
+
+## test
+# linux
+# .ABC_Lenormand(binary_model("./parthy"),prior_matrix,20,c(50,2.5))
+# windows
+# .ABC_Lenormand(binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5))
 
 
 ## Algo de Marjoram
