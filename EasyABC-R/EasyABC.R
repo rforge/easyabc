@@ -733,14 +733,17 @@ tab_weight2
 	uu=(1:nb_simul)*M  # to compute sd_simul with only one simulation per parameter set
 	sd_simul=sd(simul_below_tol[uu,(nparam+1):(nparam+nstat)])  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 	l=dim(simul_below_tol)[2]
-	new_tolerance=0
 	if (M>1){
-		new_tolerance=max(.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+		particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
 	}
 	else{
-		new_tolerance=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+		particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
 	}
-	write.table(simul_below_tol,file="output_step1",row.names=F,col.names=F,quote=F)
+	dim(particle_dist_mat)<-c(nb_simul,M)
+	new_tolerance=max(particle_dist_mat)
+
+	tab_weight2=.replicate_tab(tab_weight,M)
+	write.table(cbind(tab_weight2,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
 
 # following steps
@@ -749,14 +752,6 @@ tab_weight2
 	kstep=kstep+1
 	# determination of the new tolerance
 	ESS_target=alpha*ESS
-
-	if (M>1){
-		particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
-	}
-	else{
-		particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
-	}
-	dim(particle_dist_mat)<-c(nb_simul,M)
 
 	tolerance_list=sort(as.numeric(names(table(particle_dist_mat))),dec=TRUE)
 	i=1
@@ -778,7 +773,6 @@ tab_weight2
 	tab_below=.compute_below(particle_dist_mat,new_tolerance)
 	particles=matrix(0,(nb_simul*M),(nparam+nstat))
 	if (ESS<nb_threshold){
-		print("ESS<nb_threshold")
 		# sample nb_simul particles 
 		for (i in 1:nb_simul){
 			particles[((1:M)+(i-1)*M),]=as.matrix(.particle_pick_delmoral(simul_below_tol,tab_weight,M))
@@ -803,15 +797,10 @@ tab_weight2
 		ESS=nb_simul
 	}
 	else{
-		print("ESS>=nb_threshold")
 		particles=simul_below_tol[uu,1:nparam]
 	}
 
 	# MCMC move
-	print("particles")
-	print(particles)
-	print("weight")
-	print(tab_weight)
 	covmat=2*cov.wt(particles[,tab_unfixed_param][tab_weight>0,],as.vector(tab_weight[tab_weight>0]))$cov
 	l_array=dim(particles[,tab_unfixed_param])[2]
 	sd_array=array(1,l_array)
@@ -889,10 +878,7 @@ tab_weight2
 				}
 			}
 		}
-	}
-	print(paste("step ",kstep,sep=""))
-
-   }
+	}	
 	if (M>1){
 		particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
 	}
@@ -902,7 +888,10 @@ tab_weight2
 	dim(particle_dist_mat)<-c(nb_simul,M)
 	tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
 	tab_weight2=.replicate_tab(tab_weight,M)
-
+	write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+	print(paste("step ",kstep," completed",sep=""))
+   }
+	
 cbind(tab_weight2,simul_below_tol)
 }
 
