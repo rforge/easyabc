@@ -610,6 +610,311 @@ cbind(tab_weight,simul_below_tol2)
 # .ABC_Drovandi(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5))
 # .ABC_Drovandi(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
 
+## rejection algorithm with M simulations per parameter set
+############################################################
+.ABC_rejection_M<-function(model,prior_matrix,nb_simul,M,use_seed,seed_count){
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	
+	for (i in 1:nb_simul){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		for (k in 1:M){
+			if (use_seed) {
+				param=c((seed_count+i),param)
+				seed_count=seed_count+1
+			}
+			simul_summarystat=model(param)
+			tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+			if (use_seed) {
+				param=param[2:(l+1)]
+			}
+			tab_param=rbind(tab_param,param)
+		}
+	}
+	cbind(tab_param,tab_simul_summarystat)
+}
+
+## function to compute a distance between a matrix of simulated statistics and the array of data summary statistics - for M replicates simulations
+##################################################################################################################################################
+.compute_dist_M<-function(M,summary_stat_target,simul,sd_simul){
+	l=length(summary_stat_target)
+	nsimul=dim(simul)[1]
+	vartab=array(1,l)
+	dist=array(0,nsimul)
+	for (i in 1:l){
+		vartab[i]=min(1,1/(sd_simul[i]*sd_simul[i])) ## differences between simul and data are normalized in each dimension by the empirical variances in each dimension
+		dist=dist+vartab[i]*(simul[,i]-summary_stat_target[i])*(simul[,i]-summary_stat_target[i]) ## an euclidean distance is used
+	}
+	distb=matrix(0,nsimul/M,M)
+	for (i in 1:(nsimul/M)){
+		for (j in 1:M){
+			distb[i,j]=dist[((i-1)*M+j)]
+		}
+	}
+distb
+}
+
+## function to compute the updated weights, given a new tolerance value
+#######################################################################
+.compute_weight_delmoral<-function(particle_dist_mat,tolerance){
+	n_particle=dim(particle_dist_mat)[1]
+	new_weight=array(0,n_particle)
+	for (i in 1:n_particle){
+		new_weight[i]=length(particle_dist_mat[i,][particle_dist_mat[i,]<tolerance])
+	}
+new_weight/sum(new_weight)
+}
+
+## function to compute the updated ESS, given a new tolerance value
+###################################################################
+.compute_ESS<-function(particle_dist_mat,tolerance){
+	n_particle=dim(particle_dist_mat)[1]
+	new_weight=array(0,n_particle)
+	for (i in 1:n_particle){
+		new_weight[i]=length(particle_dist_mat[i,][particle_dist_mat[i,]<tolerance])
+	}
+	new_weight=new_weight/sum(new_weight)
+1/(sum(new_weight*new_weight))
+}
+
+## function to compute the number of simul below a new tolerance value
+######################################################################
+.compute_below<-function(particle_dist_mat,tolerance){
+	n_particle=dim(particle_dist_mat)[1]
+	new_weight=array(0,n_particle)
+	for (i in 1:n_particle){
+		new_weight[i]=length(particle_dist_mat[i,][particle_dist_mat[i,]<tolerance])
+	}
+new_weight
+}
+
+## function to randomly pick a particle from a weighted array (of sum=1) for the Del Moral algorithm
+####################################################################################################
+.particle_pick_delmoral<-function(simul_below_tol,tab_weight,M){
+	u=runif(1)
+	weight_cum=cumsum(tab_weight)
+	pos=1:length(tab_weight)
+	p=min(pos[weight_cum>u])
+	simul_below_tol[((1:M)+(p-1)*M),]
+}
+
+## function to replicate each cell of tab_weight M times
+########################################################
+.replicate_tab<-function(tab_weight,M){
+	l=length(tab_weight)
+	tab_weight2=array(0,M*l)
+	for (i in 1:l){
+		tab_weight2[((i-1)*M+(1:M))]=tab_weight[i]
+	}
+tab_weight2
+}
+
+
+## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
+##############################################################################################################################################
+.ABC_Delmoral<-function(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target,summary_stat_target,use_seed=TRUE,seed_count=0){
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_target)
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+
+# step 1
+	# classic ABC step
+	simul_below_tol=.ABC_rejection_M(model,prior_matrix,nb_simul,M,use_seed,seed_count)
+	seed_count=seed_count+M*nb_simul
+	tab_weight=rep(1/nb_simul,nb_simul)
+	ESS=nb_simul
+	uu=(1:nb_simul)*M  # to compute sd_simul with only one simulation per parameter set
+	sd_simul=sd(simul_below_tol[uu,(nparam+1):(nparam+nstat)])  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+	l=dim(simul_below_tol)[2]
+	new_tolerance=0
+	if (M>1){
+		new_tolerance=max(.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+	}
+	else{
+		new_tolerance=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+	}
+	write.table(simul_below_tol,file="output_step1",row.names=F,col.names=F,quote=F)
+	print("step 1 completed")
+
+# following steps
+	kstep=1
+   while(new_tolerance>tolerance_target){	
+	kstep=kstep+1
+	# determination of the new tolerance
+	ESS_target=alpha*ESS
+
+	if (M>1){
+		particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+	}
+	else{
+		particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+	}
+	dim(particle_dist_mat)<-c(nb_simul,M)
+
+	tolerance_list=sort(as.numeric(names(table(particle_dist_mat))),dec=TRUE)
+	i=1
+	test=FALSE
+	while((!test)&&(i<length(tolerance_list))){
+		i=i+1
+		# computation of new ESS with the new tolerance value
+		new_ESS=.compute_ESS(particle_dist_mat,tolerance_list[i])
+		# check whether this value is below ESS_targ
+		if (new_ESS<ESS_target){
+			new_tolerance=tolerance_list[(i-1)]
+			test=TRUE
+		}
+	}
+
+	# if effective sample size is too small, resampling of particles
+	ESS=.compute_ESS(particle_dist_mat,new_tolerance)
+	tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
+	tab_below=.compute_below(particle_dist_mat,new_tolerance)
+	particles=matrix(0,(nb_simul*M),(nparam+nstat))
+	if (ESS<nb_threshold){
+		print("ESS<nb_threshold")
+		# sample nb_simul particles 
+		for (i in 1:nb_simul){
+			particles[((1:M)+(i-1)*M),]=as.matrix(.particle_pick_delmoral(simul_below_tol,tab_weight,M))
+		}
+		simul_below_tol=matrix(0,nb_simul*M,(nparam+nstat))
+		for (i1 in 1:(nb_simul*M)){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(particles[i1,i2])
+			}
+		}
+		particles=particles[uu,1:nparam]
+		if (M>1){
+			particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+		}
+		else{
+			particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+		}
+		dim(particle_dist_mat)<-c(nb_simul,M)
+		tab_below=.compute_below(particle_dist_mat,new_tolerance)
+		# reset their weight to 1/nb_simul
+		tab_weight=rep(1/nb_simul,nb_simul)
+		ESS=nb_simul
+	}
+	else{
+		print("ESS>=nb_threshold")
+		particles=simul_below_tol[uu,1:nparam]
+	}
+
+	# MCMC move
+	print("particles")
+	print(particles)
+	print("weight")
+	print(tab_weight)
+	covmat=2*cov.wt(particles[,tab_unfixed_param][tab_weight>0,],as.vector(tab_weight[tab_weight>0]))$cov
+	l_array=dim(particles[,tab_unfixed_param])[2]
+	sd_array=array(1,l_array)
+	for (j in 1:l_array){
+		sd_array[j]=sqrt(covmat[j,j])
+
+	}
+	simul_below_tol2=simul_below_tol
+	simul_below_tol=matrix(0,nb_simul*M,(nparam+nstat))
+	for (i in 1:nb_simul){
+		if (tab_weight[i]>0){
+			tab_new_simul=NULL
+			# move it
+			param_moved=.move_particle_uni(as.numeric(particles[i,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+			param=particles[i,]
+			param[tab_unfixed_param]=param_moved
+			if (use_seed) {
+				param=c((seed_count+i),param)
+			}
+			# perform M simulations
+			for (j in 1:M){
+				new_simul=c(param,model(param))
+				seed_count=seed_count+1
+				if (use_seed) {
+					new_simul=new_simul[2:(l+1)]
+				}
+				tab_new_simul=rbind(tab_new_simul,new_simul)
+			}
+			if (M>1){
+				tab_new_simul2=matrix(0,M,(nparam+nstat))
+				for (i1 in 1:M){
+					for (i2 in 1:(nparam+nstat)){
+						tab_new_simul2[i1,i2]=as.numeric(tab_new_simul[i1,i2])
+					}
+				}
+			}
+			else{
+				tab_new_simul2=as.numeric(tab_new_simul)
+			}
+			dim(tab_new_simul2)<-c(M,(nparam+nstat))
+			# check whether the move is accepted
+			n_acc=1
+			if (M>1){
+				new_dist=.compute_dist_M(M,summary_stat_target,tab_new_simul2[,(nparam+1):(nparam+nstat)],sd_simul)
+				n_acc=length(new_dist[new_dist<new_tolerance])
+			}
+			else{
+				new_dist=.compute_dist(summary_stat_target,rbind(tab_new_simul2[(nparam+1):(nparam+nstat)],tab_new_simul2[(nparam+1):(nparam+nstat)]),sd_simul)
+				if (new_dist[1]>new_tolerance){
+					n_acc=0
+				}
+			}
+			MH=min(1,(n_acc/tab_below[i]))
+			uuu=runif(1)
+			if (uuu<=MH){
+				for (i1 in 1:M){
+					for (i2 in 1:(nparam+nstat)){
+						simul_below_tol[((i1)+(i-1)*M),i2]=as.numeric(tab_new_simul2[i1,i2])
+					}
+				}
+
+			}
+			else{
+				for (i1 in 1:M){
+					for (i2 in 1:(nparam+nstat)){
+						simul_below_tol[((i1)+(i-1)*M),i2]=as.numeric(simul_below_tol2[((i1)+(i-1)*M),i2])
+					}
+				}
+			}
+		}
+		else{
+			for (i1 in 1:M){
+				for (i2 in 1:(nparam+nstat)){
+					simul_below_tol[((i1)+(i-1)*M),i2]=as.numeric(simul_below_tol2[((i1)+(i-1)*M),i2])
+				}
+			}
+		}
+	}
+	print(paste("step ",kstep,sep=""))
+
+   }
+	if (M>1){
+		particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+	}
+	else{
+		particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+	}
+	dim(particle_dist_mat)<-c(nb_simul,M)
+	tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
+	tab_weight2=.replicate_tab(tab_weight,M)
+
+cbind(tab_weight2,simul_below_tol)
+}
+
+
+## test
+# linux
+# .ABC_Delmoral(binary_model("./parthy"),prior_matrix,20,0.5,1,5,0.8,c(50,2.5))
+# .ABC_Delmoral(binary_model("./parthy"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
+# windows
+# .ABC_Delmoral(binary_model("./parthy_test.exe"),prior_matrix,10,0.5,1,3,0.8,c(50,2.5))
+# .ABC_Delmoral(binary_model("./parthy_test.exe"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
+
 
 
 ## Algo de Marjoram
