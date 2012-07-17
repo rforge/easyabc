@@ -1286,3 +1286,169 @@ cbind(tab_param,tab_simul_summary_stat)
 # .ABC_MCMC2(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
 # windows
 # .ABC_MCMC2(.binary_model("./parthy_test.exe"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
+
+library(pls)
+library(MASS)
+
+## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
+#################################################################################################################################################################################################
+.ABC_MCMC3<-function(model,prior_matrix,n_obs,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,n_between_sampling=1,numcomp=0,use_seed=TRUE,seed_count=0){
+##AM1
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_targ)
+	if (numcomp==0){
+		numcomp=nstat
+	}
+	tab_simul_summary_stat=NULL
+	tab_param=NULL
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+
+	# initial draw of a particle
+	for (i in 1:(n_calibration)){
+		param=array(0,nparam)
+		for (j in 1:nparam){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summary_stat=model(param)
+		tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summary_stat)
+		tab_param=rbind(tab_param,param)
+	}
+	if (use_seed) {
+			tab_param=tab_param[,2:(nparam+1)]
+	}
+
+## AM2: PLS step
+	print("AM2 ")
+	#standardize the params
+	sparam=tab_param[,tab_unfixed_param]
+	ls=dim(sparam)[2]
+	for(i in 1:ls){
+		sparam[,i]=(sparam[,i]-mean(sparam[,i]))/sd(sparam[,i])
+	}
+	#force stat in [1,2]
+	myMax<-c()
+	myMin<-c()
+	lambda<-c()
+	myGM<-c()
+	stat=tab_simul_summary_stat
+	print("stat 1 ")
+	print(stat)
+	summary_stat_target=summary_stat_targ
+	for (i in 1:nstat){
+		myMax<-c(myMax,max(stat[,i]))
+		myMin<-c(myMin,min(stat[,i]))
+		stat[,i]=1+(stat[,i]-myMin[i])/(myMax[i]-myMin[i])
+		summary_stat_target[i]=1+(summary_stat_target[i]-myMin[i])/(myMax[i]-myMin[i])
+	}
+	print("stat 2 ")
+	print(stat)
+	#transform statistics via boxcox
+	dmat=matrix(0,n_calibration,(ls+1))
+	for(i in 1:nstat){
+		d=cbind(as.vector(as.numeric(stat[,i])),as.matrix(sparam))
+		for (i1 in 1:n_calibration){
+			for (i2 in 1:(ls+1)){
+				dmat[i1,i2]=as.numeric(d[i1,i2])
+			}
+		}
+		mylm<-lm(as.formula(as.data.frame(dmat)),data=as.data.frame(dmat))
+		#mylm<-lm(stat[,i]~as.matrix(sparam))
+		myboxcox<-boxcox(mylm,lambda=seq(-20,100,1/10),interp=T,eps=1/50)
+		lambda<-c(lambda,myboxcox$x[myboxcox$y==max(myboxcox$y)])
+		myGM<-c(myGM, exp(mean(log(stat[,i]))))
+	}
+	#standardize the BC-stat
+	myBCMeans<-c()
+	myBCSDs<-c()
+	for(i in 1:nstat){
+		stat[,i]<-((stat[,i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)));
+		summary_stat_target[i]<-((summary_stat_target[i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)));
+		myBCSDs<-c(myBCSDs, sd(stat[,i]))
+		myBCMeans<-c(myBCMeans, mean(stat[,i]))
+		stat[,i]<-(stat[,i]-myBCMeans[i])/myBCSDs[i]
+		summary_stat_target[i]<-(summary_stat_target[i]-myBCMeans[i])/myBCSDs[i]
+	}
+	#perform pls
+	myPlsr<-plsr(as.matrix(sparam)~as.matrix(stat), scale=F,ncomp=numcomp,validation='LOO')
+	pls_transformation=matrix(0,numcomp,nstat)
+	for (i in 1:numcomp){
+		pls_transformation[i,]=as.numeric(myPlsr$loadings[,i])
+	}
+
+## AM3
+	print("AM3 ")
+	summary_stat_target=t(pls_transformation %*% t(summary_stat_target))
+	stat_pls=t(pls_transformation %*% t(stat))
+	simuldist=.compute_dist(summary_stat_target,stat_pls,rep(1,numcomp))
+
+## AM4
+	print("AM4 ")
+	ord_sim=order(simuldist,decreasing=F)
+	nmax=ceiling(tolerance_quantile*n_calibration)
+	dist_max=simuldist[(ord_sim[nmax])]
+
+	proposal_range=array(0,nparam)
+	for (i in 1:nparam){
+		proposal_range[i]=sd(tab_param[,i])*proposal_phi
+	}
+	tab_param=tab_param[(ord_sim[1:nmax]),]
+	print("initial calibration performed ")
+
+## AM5: chain run
+	print("AM5 ")
+	n_ini=sample(nmax,1)
+	tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
+	param_ini=tab_param[n_ini,]
+	tab_param=param_ini
+	tab_simul_summary_stat=tab_simul_ini
+	seed_count=seed_count+n_calibration+1
+	for (is in 2:n_obs){
+		for (i in 1:n_between_sampling){
+## AM6
+	print("AM6 ")
+			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
+			if (use_seed) {
+				param=c(seed_count,param)
+			}
+## AM7	
+	print("AM7 ")
+			simul_summary_stat=model(param)
+			if (use_seed) {
+				param=param[2:(nparam+1)]
+			}
+			for (ii in 1:nstat){
+				simul_summary_stat[ii]=1+(simul_summary_stat[ii]-myMin[ii])/(myMax[ii]-myMin[ii])
+			}
+			for(ii in 1:nstat){
+				simul_summary_stat[ii]<-(simul_summary_stat[ii]-myBCMeans[ii])/myBCSDs[ii]
+			}
+			simul_summary_stat=t(pls_transformation %*% t(simul_summary_stat))
+			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),rep(1,numcomp))
+## AM8-9
+	print("AM8-9 ")
+			if (dist_simul<dist_max){
+				param_ini=param
+				tab_simul_ini=as.numeric(simul_summary_stat)
+			}
+			seed_count=seed_count+1
+		}
+		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
+		tab_param=rbind(tab_param,as.numeric(param_ini))
+		if (is%%100==0){
+			print(paste(is," ",sep=""))
+		}
+	}	
+cbind(tab_param,tab_simul_summary_stat)	
+}
+
+## test
+# linux
+# .ABC_MCMC3(.binary_model("./parthy"),prior_matrix,22,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
+# windows
+# .ABC_MCMC3(.binary_model("./parthy_test.exe"),prior_matrix,22,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
