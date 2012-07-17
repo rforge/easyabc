@@ -1115,3 +1115,101 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 cbind(tab_weight,simul_below_tol)
 }
 
+## test
+# linux
+# .ABC_Lenormand(.binary_model("./parthy"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
+# windows
+# .ABC_Lenormand(.binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
+
+## function to move a particle with a unidimensional uniform jump
+#################################################################
+.move_particle_uni_uniform<-function(param_picked,sd_array,prior_matrix){
+	test=FALSE
+	res=param_picked
+	while (!test){
+		for (i in 1:length(param_picked)){
+			res[i]=runif(n = 1, min = param_picked[i]-sd_array[i],max=param_picked[i]+sd_array[i])
+		}
+		test=.is_included(res,prior_matrix)
+	}
+res
+}
+
+## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
+############################################################################################################################################
+.ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,use_seed=TRUE,seed_count=0){
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_target)
+	tab_simul_summary_stat=NULL
+	tab_param=NULL
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+
+	# initial draw of a particle
+	for (i in 1:(n_calibration)){
+		param=array(0,nparam)
+		for (j in 1:nparam){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summarystat=model(param)
+		tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summarystat)
+		tab_param=rbind(tab_param,param)
+	}
+	if (use_seed) {
+			tab_param=tab_param[,2:(nparam+1)]
+	}
+	proposal_range=array(0,nparam)
+	for (i in 1:nparam){
+		proposal_range[i]=sd(tab_param[,i])*proposal_phi
+	}
+	simuldist=.compute_dist(summary_stat_target,tab_simul_summary_stat,proposal_range/proposal_phi)
+	ord_sim=order(simuldist,decreasing=F)
+	nmax=ceiling(tolerance_quantile*n_calibration)
+	dist_max=simuldist[(ord_sim[nmax])]
+	tab_param=tab_param[(ord_sim[1:nmax]),]
+	n_ini=sample(nmax,1)
+	tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
+	param_ini=tab_param[n_ini,]
+	print("initial calibration performed ")
+
+	# chain run
+	tab_param=param_ini
+	tab_simul_summary_stat=tab_simul_ini
+	seed_count=seed_count+n_calibration+1
+	for (is in 2:n_obs){
+		for (i in 1:n_between_sampling){
+			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
+			if (use_seed) {
+				param=c(seed_count,param)
+			}	
+			simul_summary_stat=model(param)
+			if (use_seed) {
+				param=param[2:(nparam+1)]
+			}
+			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),proposal_range/proposal_phi)
+			if (dist_simul<dist_max){
+				param_ini=param
+				tab_simul_ini=as.numeric(simul_summary_stat)
+			}
+			seed_count=seed_count+1
+		}
+		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
+		tab_param=rbind(tab_param,as.numeric(param_ini))
+		if (is%%100==0){
+			print(paste(is," ",sep=""))
+		}
+	}	
+cbind(tab_param,tab_simul_summary_stat)	
+}
+
+## test
+# linux
+# .ABC_MCMC2(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
+# windows
+# .ABC_MCMC2(.binary_model("./parthy_test.exe"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
+
