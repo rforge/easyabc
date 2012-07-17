@@ -139,6 +139,12 @@ test
 ## function to move a particle
 ##############################
 .move_particle<-function(param_picked,varcov_matrix,prior_matrix){
+	rmnorm(n = 1, mean = param_picked, varcov_matrix)
+}
+
+## function to move a particle
+##############################
+.move_particleb<-function(param_picked,varcov_matrix,prior_matrix){
 	test=FALSE
 	while (!test){
 		res=rmnorm(n = 1, mean = param_picked, varcov_matrix)
@@ -147,18 +153,32 @@ test
 res
 }
 
+
 ## function to perform ABC simulations from a non-uniform prior (derived from a set of particles)
 #################################################################################################
-.ABC_launcher_not_uniform<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count){
+.ABC_launcher_not_uniform<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior){
 	tab_simul_summarystat=NULL
 	tab_param=NULL
 	
 	for (i in 1:nb_simul){
 		l=dim(param_previous_step)[2]
-		# pick a particle
-		param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
-		# move it
-		param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+		if (!inside_prior){
+			# pick a particle
+			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+			# move it
+			param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+		}
+		else{
+			test=FALSE
+			while (!test){
+				# pick a particle
+				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+				# move it
+				param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+				test=.is_included(param_moved,prior_matrix)
+			}
+
+		}
 		param=param_previous_step[1,]
 		param[tab_unfixed_param]=param_moved
 		if (use_seed) {
@@ -194,7 +214,7 @@ tab_weight_new/sum(tab_weight_new)
 
 ## PMC ABC algorithm with multivariate normal jumps
 ###################################################
-.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0){
+.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -238,7 +258,7 @@ tab_weight_new/sum(tab_weight_new)
 		while (nb_simul_step>0){
 			if (nb_simul_step>1){
 				# Sampling of parameters around the previous particles
-				tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
+				tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
 				seed_count=seed_count+nb_simul_step
 				simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[it]))
 				if (length(simul_below_tol2)>0){
@@ -246,7 +266,7 @@ tab_weight_new/sum(tab_weight_new)
 				}
 			}
 			else{
-				tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
+				tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
 				seed_count=seed_count+nb_simul_step
 				if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
 					simul_below_tol2=rbind(simul_below_tol2,tab_ini)
@@ -272,13 +292,23 @@ cbind(tab_weight,simul_below_tol)
 
 ## test
 # linux
-# .ABC_PMC2(binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE)
+# .ABC_PMC2(.binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
 # windows
-# .ABC_PMC2(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE)
+# .ABC_PMC2(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
 
 ## function to move a particle with a unidimensional normal jump
 ################################################################
 .move_particle_uni<-function(param_picked,sd_array,prior_matrix){
+	res=param_picked
+	for (i in 1:length(param_picked)){
+		res[i]=rnorm(n = 1, mean = param_picked[i], sd_array[i])
+	}
+res
+}
+
+## function to move a particle with a unidimensional normal jump
+################################################################
+.move_particleb_uni<-function(param_picked,sd_array,prior_matrix){
 	test=FALSE
 	res=param_picked
 	while (!test){
@@ -289,6 +319,7 @@ cbind(tab_weight,simul_below_tol)
 	}
 res
 }
+
 
 ## function to compute particle weights with unidimensional jumps
 #################################################################
@@ -317,15 +348,12 @@ tab_weight_new/sum(tab_weight_new)
 
 ## function to perform ABC simulations from a non-uniform prior and with unidimensional jumps
 #############################################################################################
-.ABC_launcher_not_uniform_uni<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count){
+.ABC_launcher_not_uniform_uni<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior){
 	tab_simul_summarystat=NULL
 	tab_param=NULL
 	
 	for (i in 1:nb_simul){
 		l=dim(param_previous_step)[2]
-		# pick a particle
-		param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
-		# move it
 		l_array=dim(param_previous_step[,tab_unfixed_param])[2]
 		sd_array=array(1,l_array)
 		covmat=2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov # computation of a WEIGHTED variance
@@ -333,7 +361,23 @@ tab_weight_new/sum(tab_weight_new)
 			sd_array[j]=sqrt(covmat[j,j])
 
 		}
-		param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+		if (!inside_prior){
+			# pick a particle
+			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+			# move it
+			param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+		}
+		else{
+			test=FALSE
+			while (!test){
+				# pick a particle
+				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+				# move it
+				param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+				test=.is_included(param_moved,prior_matrix)
+			}
+
+		}
 		param=param_previous_step[1,]
 		param[tab_unfixed_param]=param_moved
 		if (use_seed) {
@@ -353,7 +397,7 @@ tab_weight_new/sum(tab_weight_new)
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0){
+.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -397,7 +441,7 @@ tab_weight_new/sum(tab_weight_new)
 		while (nb_simul_step>0){
 			if (nb_simul_step>1){
 				# Sampling of parameters around the previous particles
-				tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
+				tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
 				seed_count=seed_count+nb_simul_step
 				simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[it]))
 				if (length(simul_below_tol2)>0){
@@ -405,7 +449,7 @@ tab_weight_new/sum(tab_weight_new)
 				}
 			}
 			else{
-				tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count)
+				tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
 				seed_count=seed_count+nb_simul_step
 				if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
 					simul_below_tol2=rbind(simul_below_tol2,tab_ini)
@@ -431,9 +475,9 @@ cbind(tab_weight,simul_below_tol)
 
 ## test
 # linux
-# .ABC_PMC(binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE)
+# .ABC_PMC(.binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
 # windows
-# .ABC_PMC(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE)
+# .ABC_PMC(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
 
 
 ## function to select the alpha quantile closest simulations
@@ -460,8 +504,8 @@ res
 res
 }
 
-## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal
-###############################################################################################
+## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
+######################################################################################################################################################
 .ABC_Drovandi<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE,seed_count=0){
 	n_alpha=ceiling(nb_simul*alpha)
 	nparam=dim(prior_matrix)[1]
@@ -604,11 +648,11 @@ cbind(tab_weight,simul_below_tol2)
 
 ## test
 # linux
-# .ABC_Drovandi(binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5))
-# .ABC_Drovandi(binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
+# .ABC_Drovandi(.binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5))
+# .ABC_Drovandi(.binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
 # windows
-# .ABC_Drovandi(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5))
-# .ABC_Drovandi(binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
+# .ABC_Drovandi(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5))
+# .ABC_Drovandi(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
 
 ## rejection algorithm with M simulations per parameter set
 ############################################################
@@ -898,11 +942,12 @@ cbind(tab_weight2,simul_below_tol)
 
 ## test
 # linux
-# .ABC_Delmoral(binary_model("./parthy"),prior_matrix,20,0.5,1,5,0.8,c(50,2.5))
-# .ABC_Delmoral(binary_model("./parthy"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
+# .ABC_Delmoral(.binary_model("./parthy"),prior_matrix,20,0.5,1,5,0.8,c(50,2.5))
+# .ABC_Delmoral(.binary_model("./parthy"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
 # windows
-# .ABC_Delmoral(binary_model("./parthy_test.exe"),prior_matrix,10,0.5,1,3,0.8,c(50,2.5))
-# .ABC_Delmoral(binary_model("./parthy_test.exe"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
+# .ABC_Delmoral(.binary_model("./parthy_test.exe"),prior_matrix,10,0.5,1,3,0.8,c(50,2.5))
+# .ABC_Delmoral(.binary_model("./parthy_test.exe"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
+
 
 library(lhs)
 
@@ -951,10 +996,53 @@ library(lhs)
 tab_weight_new
 }
 
+## function to perform ABC simulations from a non-uniform prior (derived from a set of particles)
+#################################################################################################
+.ABC_launcher_not_uniformc<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior){
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	k_acc=0
+	for (i in 1:nb_simul){
+		l=dim(param_previous_step)[2]
+		if (!inside_prior){
+			k_acc=k_acc+1
+			# pick a particle
+			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+			# move it
+			param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+		}
+		else{
+			test=FALSE
+			while (!test){
+				k_acc=k_acc+1
+				# pick a particle
+				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+				# move it
+				param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+				test=.is_included(param_moved,prior_matrix)
+			}
+
+		}
+		param=param_previous_step[1,]
+		param[tab_unfixed_param]=param_moved
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summarystat=model(param)
+		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+		if (use_seed) {
+			tab_param=rbind(tab_param,param[2:(l+1)])
+		}
+		else{
+			tab_param=rbind(tab_param,param)
+		}
+	}
+list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
+}
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0){
+.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
 	tab_unfixed_param=array(TRUE,nparam)
@@ -995,9 +1083,15 @@ tab_weight_new
 	while (p_acc>p_acc_min){
 		it=it+1
 		simul_below_tol2=NULL
-		tab_ini=.ABC_launcher_not_uniform(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count)
+		tab_inic=.ABC_launcher_not_uniformc(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior)
+		tab_ini=tab_inic[[1]]
 		seed_count=seed_count+nb_simul_step
-		tab_weight2=.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density)
+		if (!inside_prior){
+			tab_weight2=.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density)
+		}
+		else{
+			tab_weight2=tab_inic[[2]]*(.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density))
+		}
 		simul_below_tol2=rbind(simul_below_tol,as.matrix(tab_ini))
 		tab_weight=c(tab_weight,tab_weight2)
 		tab_dist2=.compute_dist(summary_stat_target,tab_ini[,(nparam+1):(nparam+nstat)],sd_simul)
@@ -1019,71 +1113,5 @@ tab_weight_new
 		print(paste("step ",it," completed",sep=""))
 	}
 cbind(tab_weight,simul_below_tol)
-}
-
-
-## test
-# linux
-# .ABC_Lenormand(binary_model("./parthy"),prior_matrix,20,c(50,2.5))
-# windows
-# .ABC_Lenormand(binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5))
-
-
-## Algo de Marjoram
-
-## Algo de Marjoram avec détermination de epsilon et proposal_range de Wegmann et al. 2009
-.ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,proposal_method="unif",burn_in_length=0,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,use_seed=FALSE){
-	tab_simul_summarystat=NULL
-	tab_param=NULL
-	
-	# initial draw of a particle
-	for (i in 1:(n_calibration)){
-		l=dim(prior_matrix)[1]
-		param=array(0,l)
-		for (j in 1:l){
-			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
-		}
-		if (use_seed) {
-			param=c(i,param)
-		}
-		simul_summarystat=model(param)
-		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
-		tab_param=rbind(tab_param,param)
-	}
-	simuldist=.compute_dist(summary_stat_target,tab_simul_summarystat,sd_simul)
-	ord_sim=order(simuldist,decreasing=F)
-	nmax=ceiling(tolerance_quantile*n_calibration)
-	dist_max=simuldist[(ord_sim[nmax])]
-	proposal_range=array(0,l)
-	tab_param=tab_param[(ord_sim[1:nmax]),]
-	n_ini=sample(nmax,1)
-	param_ini=tab_param[n_ini,]
-	tab_simul_ini=tab_simul_summarystat[(ord_sim[n_ini]),]
-	if (use_seed) {
-			tab_param=tab_param[,2:(l+1)]
-	}
-	for (i in 1:l){
-		proposal_range[l]=sd(tab_param[,l])*proposal_phi
-	}
-
-	# chain run
-	tab_param=param_ini
-	tab_simul_summarystat=tab_simul_ini
-	seed_compt=n_calibration+1
-	for (is in 2:n_obs){
-		for (i in 1:n_between_sampling){
-			param=.move_particle(param_ini,proposal_method,proposal_range,use_seed,seed_compt)
-			simul_summarystat=model(param)
-			dist_simul=.compute_dist_single(summary_stat_target,simul_summary_stat,proposal_range/phi)
-			if (dist_simul<dist_max){
-				param_ini=param
-				tab_simul_ini=simul_summarystat
-			}
-			seed_compt=seed_compt+1
-		}
-		tab_simul_summarystat=rbind(tab_simul_summarystat,tab_simul_ini)
-		tab_param=rbind(tab_param,param_ini)
-	}	
-cbind(tab_param,tab_simul_summarystat)	
 }
 
