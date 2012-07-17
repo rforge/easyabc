@@ -1121,6 +1121,7 @@ cbind(tab_weight,simul_below_tol)
 # windows
 # .ABC_Lenormand(.binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
 
+
 ## function to move a particle with a unidimensional uniform jump
 #################################################################
 .move_particle_uni_uniform<-function(param_picked,sd_array,prior_matrix){
@@ -1134,6 +1135,79 @@ cbind(tab_weight,simul_below_tol)
 	}
 res
 }
+
+## ABC-MCMC algorithm of Marjoram et al. 2003
+#############################################
+.ABC_MCMC<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,dist_max,tab_normalization,proposal_range,use_seed=TRUE,seed_count=0){
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_target)
+	tab_simul_summary_stat=NULL
+	tab_param=NULL
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+
+	# initial draw of a particle below the tolerance dist_max
+	test=FALSE
+	while (!test){
+		param=array(0,nparam)
+		for (j in 1:nparam){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summary_stat=model(param)
+		dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
+		if (dist_simul<dist_max){
+			test=TRUE
+		}
+		seed_count=seed_count+1
+	}
+	tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summary_stat)
+	tab_param=rbind(tab_param,param)
+	if (use_seed) {
+			tab_param=tab_param[,2:(nparam+1)]
+	}
+	tab_simul_ini=as.numeric(simul_summary_stat)
+	param_ini=tab_param
+	print("initial draw performed ")
+
+	# chain run
+	tab_param=param_ini
+	tab_simul_summary_stat=tab_simul_ini
+	for (is in 2:n_obs){
+		for (i in 1:n_between_sampling){
+			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
+			if (use_seed) {
+				param=c(seed_count,param)
+			}	
+			simul_summary_stat=model(param)
+			if (use_seed) {
+				param=param[2:(nparam+1)]
+			}
+			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
+			if (dist_simul<dist_max){
+				param_ini=param
+				tab_simul_ini=as.numeric(simul_summary_stat)
+			}
+			seed_count=seed_count+1
+		}
+		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
+		tab_param=rbind(tab_param,as.numeric(param_ini))
+		if (is%%100==0){
+			print(paste(is," ",sep=""))
+		}
+	}	
+cbind(tab_param,tab_simul_summary_stat)	
+}
+
+## test
+# linux
+# .ABC_MCMC(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),1,c(33,1),c(25,25,1,0,0))
+# windows
+# .ABC_MCMC(.binary_model("./parthy_test.exe"),prior_matrix,22,10,c(50,2.5),1,c(33,1),c(25,25,1,0,0))
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
@@ -1156,8 +1230,8 @@ res
 		if (use_seed) {
 			param=c((seed_count+i),param)
 		}
-		simul_summarystat=model(param)
-		tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summarystat)
+		simul_summary_stat=model(param)
+		tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summary_stat)
 		tab_param=rbind(tab_param,param)
 	}
 	if (use_seed) {
@@ -1212,4 +1286,3 @@ cbind(tab_param,tab_simul_summary_stat)
 # .ABC_MCMC2(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
 # windows
 # .ABC_MCMC2(.binary_model("./parthy_test.exe"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
-
