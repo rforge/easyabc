@@ -144,18 +144,18 @@ void forwarddynamics(int *abondloc,double *tabfitness,double *abondreg,int S,int
 
 void calculstat(double *stat,int *abondloc, int l, double **trait,double ntrait){
     //STATISTIQUES CALCULEES:
-    //J
+    //J 
     //S
-    //Shan
-    //Var(Ni)
+    //Shan 
+    //Var(Ni) - deleted
     //Mean(trait)
-    //Var(trait)
+    //Var(trait) - deleted
     //Skewness(trait)
-    //Mean(trait)_espece
-    //Var(trait)_espece
-    //Skewness(trait)_espece
-    //Fourth Moment
-    //Fourth Moment espece
+    //Mean(trait)_espece - deleted
+    //Var(trait)_espece - deleted
+    //Skewness(trait)_espece - deleted
+    //Fourth Moment - deleted
+    //Fourth Moment espece - deleted
     
     for (int i=0;i<(4+ntrait);i++){
         stat[i]=0;
@@ -170,7 +170,7 @@ void calculstat(double *stat,int *abondloc, int l, double **trait,double ntrait)
     }
     stat[2]+=stat[0]*log(stat[0]);
     stat[2]/=stat[0];
-    double meanN=stat[0]/stat[1];
+    /*double meanN=stat[0]/stat[1];
     for (int i=0;i<l;i++){
         if (abondloc[i]>0){
             stat[3]+=(abondloc[i]-meanN)*(abondloc[i]-meanN);
@@ -179,47 +179,47 @@ void calculstat(double *stat,int *abondloc, int l, double **trait,double ntrait)
     stat[3]/=stat[1];
     if (stat[1]>1){
         stat[3]*=(stat[1]/(stat[1]-1));
-    }
+    }*/
 
  for (int k=0;k<ntrait;k++){
 
     for (int i=0;i<l;i++){
         if (abondloc[i]>0){
-            stat[(4+8*k)]+=abondloc[i]*trait[i][k];
-            stat[(7+8*k)]+=trait[i][k];
+            stat[(3+2*k)]+=abondloc[i]*trait[i][k];
+            //stat[(7+8*k)]+=trait[i][k];
         }
     }
-    stat[(4+8*k)]/=stat[0];
-    stat[(7+8*k)]/=stat[1];
+    stat[(3+2*k)]/=stat[0];
+    //stat[(7+8*k)]/=stat[1];
     
     for (int i=0;i<l;i++){
         if (abondloc[i]>0){
-            stat[(5+8*k)]+=abondloc[i]*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)]);
-            stat[(8+8*k)]+=(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)]);
-            stat[(6+8*k)]+=abondloc[i]*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)]);
-            stat[(9+8*k)]+=(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)]);
-	    stat[(10+8*k)]+=abondloc[i]*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)]);
-	    stat[(11+8*k)]+=(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)]);
+            //stat[(4+2*k)]+=abondloc[i]*(trait[i][k]-stat[(3+2*k)])*(trait[i][k]-stat[(3+2*k)]);
+            //stat[(8+8*k)]+=(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)]);
+            stat[(4+2*k)]+=abondloc[i]*(trait[i][k]-stat[(3+2*k)])*(trait[i][k]-stat[(3+2*k)])*(trait[i][k]-stat[(3+2*k)]);
+            //stat[(9+8*k)]+=(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)]);
+	    //stat[(10+8*k)]+=abondloc[i]*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)])*(trait[i][k]-stat[(4+8*k)]);
+	    //stat[(11+8*k)]+=(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)])*(trait[i][k]-stat[(7+8*k)]);
         }
     }
-    stat[(5+8*k)]/=stat[0];
-    stat[(6+8*k)]/=stat[0];
-    stat[(8+8*k)]/=stat[1];
-    stat[(9+8*k)]/=stat[1];
-    stat[(10+8*k)]/=stat[0];
-    stat[(11+8*k)]/=stat[1];
+    stat[(4+2*k)]/=stat[0];
+    //stat[(6+8*k)]/=stat[0];
+    //stat[(8+8*k)]/=stat[1];
+    //stat[(9+8*k)]/=stat[1];
+    //stat[(10+8*k)]/=stat[0];
+    //stat[(11+8*k)]/=stat[1];
     
     //rendre les estimateurs non biaisés :
-    if (stat[1]>1){
-        stat[(8+8*k)]*=(stat[1]/(stat[1]-1));
-    }
-    stat[(5+8*k)]*=(stat[0]/(stat[0]-1));
+    //if (stat[1]>1){
+    //    stat[(8+8*k)]*=(stat[1]/(stat[1]-1));
+    //}
+    //stat[(4+8*k)]*=(stat[0]/(stat[0]-1));
   }
 }
 
 
 
-int main(){
+int main(int argc,char **argv){
 
 
 //LECTURE DES FICHIERS D'ENTREE 
@@ -312,7 +312,7 @@ int main(){
 		abondloc[i]=0;
 	}
 	double *stat;
-    int nstat=4+ntrait*8;
+    int nstat=3+ntrait*2;
 	stat= new double[nstat];
 
     int i=0;
@@ -344,13 +344,15 @@ int main(){
 				    out<<stat[j]<<"\t";
 			    }
 			    out<<endl;
+				out.flush();
                 //i++;
 		//}
 		//if ((i%50)==49)	{
 			//cerr<<(i+1)<<" ";
 		//}
 	//}
-	return 1;
+	out.close();
+	return 0;
 }
 
 
