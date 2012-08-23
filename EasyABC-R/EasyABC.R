@@ -59,6 +59,14 @@ prior_matrix
 # ABC_rejection(.binary_model("./parthy_test.exe"),prior_matrix,10,TRUE)
 
 
+prior_matrix=c(500,3,-2.3,1,-0.25,-0.7,500,5,1.6,1,1.25,3.2)
+dim(prior_matrix)<-c(6,2)
+prior_matrix
+# linux
+# ABC_rejection(.binary_model("./trait_model"),prior_matrix,10,TRUE)
+# windows
+# ABC_rejection(.binary_model("./trait_model.exe"),prior_matrix,10,TRUE)
+
 #######################
 ## INTERNAL FUNCTIONS
 #######################
