@@ -6,6 +6,7 @@
 ######################################################
 
 ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
+	options(scipen=50)
 	tab_simul_summarystat=NULL
 	tab_param=NULL
 	
@@ -28,6 +29,7 @@ ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
 		}
 	}
 	cbind(tab_param,tab_simul_summarystat)
+	options(scipen=0)
 }
 
 ## FUNCTION 2: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
