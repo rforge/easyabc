@@ -225,6 +225,7 @@ tab_weight_new/sum(tab_weight_new)
 ## PMC ABC algorithm with multivariate normal jumps
 ###################################################
 .ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
+	seed_count_ini=seed_count
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -259,6 +260,7 @@ tab_weight_new/sum(tab_weight_new)
 	} # until we get nb_simul simulations below the first tolerance threshold
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
 ## steps 2 to T
@@ -295,6 +297,7 @@ tab_weight_new/sum(tab_weight_new)
 			}
 		}
 		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		print(paste("step ",it," completed",sep=""))
 	}
 cbind(tab_weight,simul_below_tol)
@@ -408,6 +411,7 @@ tab_weight_new/sum(tab_weight_new)
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
 .ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
+	seed_count_ini=seed_count
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -443,6 +447,7 @@ tab_weight_new/sum(tab_weight_new)
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
 	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
 ## steps 2 to T
 	for (it in 2:T){
@@ -478,6 +483,7 @@ tab_weight_new/sum(tab_weight_new)
 			}
 		}
 		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		print(paste("step ",it," completed",sep=""))
 	}
 cbind(tab_weight,simul_below_tol)
@@ -517,6 +523,7 @@ res
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
 ######################################################################################################################################################
 .ABC_Drovandi<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE,seed_count=0){
+	seed_count_ini=seed_count
 	n_alpha=ceiling(nb_simul*alpha)
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -570,6 +577,7 @@ res
 	# initially, weights are equal
 	tab_weight=array(1/n_alpha,n_alpha)
 	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
 
 ## following steps until tol_end is reached
@@ -579,7 +587,9 @@ res
 	}
 	R=1
 	l=dim(simul_below_tol)[2]
+	it=1
 	while (tol_next>tol_end){
+		it=it+1
 		i_acc=0
 		nb_simul_step=nb_simul-n_alpha
 		simul_below_tol2=NULL
@@ -623,6 +633,8 @@ res
 				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
 			}
 		}
+		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		write.table(cbind(tab_weight,simul_below_tol),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		p_acc=i_acc/(nb_simul_step*R)
 		R=log(c)/log(1-p_acc)
 	}
@@ -652,6 +664,8 @@ res
 		}
 		simul_below_tol2=rbind(simul_below_tol2,simul_picked)
 	}
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_end",row.names=F,col.names=F,quote=F)
+
 cbind(tab_weight,simul_below_tol2)
 }
 
