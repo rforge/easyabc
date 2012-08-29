@@ -313,6 +313,9 @@ int main(){
 	double maxSS;
     	double *tabfitness;
     	tabfitness=new double[S];
+	for (int i=0;i<S;i++){
+        	tabfitness[i]=1;
+    }
 	
 	int *abondloc;
 	abondloc= new int[S];

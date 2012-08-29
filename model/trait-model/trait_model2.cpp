@@ -333,6 +333,9 @@ for (int is=0;is<nb_simul;is++){
 	double maxSS;
 	double *tabfitness;
 	tabfitness=new double[S];
+	for (int i=0;i<S;i++){
+        	tabfitness[i]=1;
+    }
 	ntrait=ntraittab[0];
 	double *stat;
 	int nstat=4+ntrait*8;

@@ -3,7 +3,7 @@
     Franck Jabot, 2nd September 2008.
 
 Last modified on 31th december 2008.
-
+	windows-compatible compilation: g++-3 -O3 trait_model.cpp -lm -lgsl -o trait_model -L/usr/bin -mno-cygwin
 *************************************************************************************/
 
 // Libraries
@@ -226,9 +226,18 @@ int main(int argc,char **argv){
     char buffer[256];
     ifstream in("input");
 	//in >> buffer; 
-	unsigned long seed1; in >> seed1;
-    sgenrand2(seed1*100000);
-    sgenrand2i(1027+seed1*10000);
+	long double seed1p; in >> seed1p;
+	unsigned long seed2=0;
+	unsigned long seed1;
+	if (seed1p>10000.0){
+		seed2=long(floor(seed1p/1000.0));
+		seed1=long(long(floor(seed1p))%10000);
+	}
+	else{
+		seed1=long(floor(seed1p));
+	}
+    sgenrand2(seed1*100000+seed2*124);
+    sgenrand2i(1027+seed1*10000+seed2*127);
 	//in >> buffer; 
 	int J; in >> J;
     //in >> buffer; int nbsimul; in >> nbsimul;
@@ -305,6 +314,9 @@ int main(int argc,char **argv){
 	double maxSS;
     double *tabfitness;
     tabfitness=new double[S];
+	for (int i=0;i<S;i++){
+        	tabfitness[i]=1;
+    }
 	
 	int *abondloc;
 	abondloc= new int[S];
