@@ -156,9 +156,14 @@ test
 ##############################
 .move_particleb<-function(param_picked,varcov_matrix,prior_matrix){
 	test=FALSE
-	while (!test){
+	counter=0
+	while ((!test)&&(counter<100)){
+		counter=counter+1
 		res=rmnorm(n = 1, mean = param_picked, varcov_matrix)
 		test=.is_included(res,prior_matrix)
+	}
+	if (counter==100){
+		stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
 	}
 res
 }
@@ -180,14 +185,18 @@ res
 		}
 		else{
 			test=FALSE
-			while (!test){
+			counter=0
+			while ((!test)&&(counter<100)){
+				counter=counter+1
 				# pick a particle
 				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 				# move it
 				param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
 				test=.is_included(param_moved,prior_matrix)
 			}
-
+			if (counter==100){
+				stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+			}
 		}
 		param=param_previous_step[1,]
 		param[tab_unfixed_param]=param_moved
@@ -324,11 +333,16 @@ res
 .move_particleb_uni<-function(param_picked,sd_array,prior_matrix){
 	test=FALSE
 	res=param_picked
-	while (!test){
+	counter=0
+	while ((!test)&&(counter<100)){
+		counter=counter+1
 		for (i in 1:length(param_picked)){
 			res[i]=rnorm(n = 1, mean = param_picked[i], sd_array[i])
 		}
 		test=.is_included(res,prior_matrix)
+	}
+	if (counter==100){
+		stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
 	}
 res
 }
@@ -382,14 +396,18 @@ tab_weight_new/sum(tab_weight_new)
 		}
 		else{
 			test=FALSE
-			while (!test){
+			counter=0
+			while ((!test)&&(counter<100)){
+				counter=counter+1
 				# pick a particle
 				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 				# move it
 				param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
 				test=.is_included(param_moved,prior_matrix)
 			}
-
+			if (counter==100){
+				stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+			}
 		}
 		param=param_previous_step[1,]
 		param[tab_unfixed_param]=param_moved
@@ -602,11 +620,10 @@ res
 				param=simul_picked[1:nparam]
 				param[tab_unfixed_param]=param_moved
 				if (use_seed) {
-					param=c((seed_count+i),param)
+					param=c((seed_count+j),param)
 				}
 				# perform a simulation
 				new_simul=c(param,model(param))
-				seed_count=seed_count+1
 				if (use_seed) {
 					new_simul=new_simul[2:(l+1)]
 				}
@@ -616,6 +633,7 @@ res
 					i_acc=i_acc+1
 				}
 			}
+			seed_count=seed_count+R
 			simul_below_tol2=rbind(simul_below_tol2,simul_picked)
 		}
 		simul_below_tol2=rbind(simul_below_tol,simul_below_tol2)
@@ -649,11 +667,10 @@ res
 			param=simul_picked[1:nparam]
 			param[tab_unfixed_param]=param_moved
 			if (use_seed) {
-				param=c((seed_count+i),param)
+				param=c((seed_count+j),param)
 			}
 			# perform a simulation
 			new_simul=c(param,model(param))
-			seed_count=seed_count+1
 			if (use_seed) {
 				new_simul=new_simul[2:(l+1)]
 				}
@@ -662,6 +679,7 @@ res
 				simul_picked=as.numeric(new_simul)
 			}
 		}
+		seed_count=seed_count+R
 		simul_below_tol2=rbind(simul_below_tol2,simul_picked)
 	}
 	write.table((seed_count-seed_count_ini),file="n_simul_tot_end",row.names=F,col.names=F,quote=F)
@@ -692,9 +710,9 @@ cbind(tab_weight,simul_below_tol2)
 		}
 		for (k in 1:M){
 			if (use_seed) {
-				param=c((seed_count+i),param)
-				seed_count=seed_count+1
+				param=c((seed_count+1),param)	
 			}
+			seed_count=seed_count+1
 			simul_summarystat=model(param)
 			tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
 			if (use_seed) {
@@ -785,6 +803,7 @@ tab_weight2
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
 .ABC_Delmoral<-function(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target,summary_stat_target,use_seed=TRUE,seed_count=0){
+	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
 	tab_unfixed_param=array(TRUE,nparam)
@@ -812,6 +831,7 @@ tab_weight2
 
 	tab_weight2=.replicate_tab(tab_weight,M)
 	write.table(cbind(tab_weight2,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
 
 # following steps
@@ -886,7 +906,7 @@ tab_weight2
 			param=particles[i,]
 			param[tab_unfixed_param]=param_moved
 			if (use_seed) {
-				param=c((seed_count+i),param)
+				param=c((seed_count+1),param)
 			}
 			# perform M simulations
 			for (j in 1:M){
@@ -957,6 +977,7 @@ tab_weight2
 	tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
 	tab_weight2=.replicate_tab(tab_weight,M)
 	write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+	write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
 	print(paste("step ",kstep," completed",sep=""))
    }
 	
@@ -1037,13 +1058,18 @@ tab_weight_new
 		}
 		else{
 			test=FALSE
-			while (!test){
+			counter=0
+			while ((!test)&&(counter<100)){
+				counter=counter+1
 				k_acc=k_acc+1
 				# pick a particle
 				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 				# move it
 				param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
 				test=.is_included(param_moved,prior_matrix)
+			}
+			if (counter==100){
+				stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
 			}
 
 		}
@@ -1066,7 +1092,8 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
+.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=FALSE){
+	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
 	tab_unfixed_param=array(TRUE,nparam)
@@ -1096,6 +1123,7 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 	tab_weight=array(1,n_alpha)
 
 	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
 	tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
 	tol_next=max(tab_dist)
@@ -1134,7 +1162,8 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 			}
 		}
 		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		print(paste("step ",it," completed",sep=""))
+		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
 	}
 cbind(tab_weight,simul_below_tol)
 }
@@ -1151,11 +1180,16 @@ cbind(tab_weight,simul_below_tol)
 .move_particle_uni_uniform<-function(param_picked,sd_array,prior_matrix){
 	test=FALSE
 	res=param_picked
-	while (!test){
+	counter=0
+	while ((!test)&&(counter<100)){
+		counter=counter+1
 		for (i in 1:length(param_picked)){
 			res[i]=runif(n = 1, min = param_picked[i]-sd_array[i],max=param_picked[i]+sd_array[i])
 		}
 		test=.is_included(res,prior_matrix)
+	}
+	if (counter==100){
+		stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
 	}
 res
 }
@@ -1163,6 +1197,7 @@ res
 ## ABC-MCMC algorithm of Marjoram et al. 2003
 #############################################
 .ABC_MCMC<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,dist_max,tab_normalization,proposal_range,use_seed=TRUE,seed_count=0){
+	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
 	tab_simul_summary_stat=NULL
@@ -1180,7 +1215,7 @@ res
 			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
 		}
 		if (use_seed) {
-			param=c((seed_count+i),param)
+			param=c((seed_count+1),param)
 		}
 		simul_summary_stat=model(param)
 		dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
@@ -1196,6 +1231,7 @@ res
 	}
 	tab_simul_ini=as.numeric(simul_summary_stat)
 	param_ini=tab_param
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("initial draw performed ")
 
 	# chain run
@@ -1236,6 +1272,7 @@ cbind(tab_param,tab_simul_summary_stat)
 ## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
 .ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,use_seed=TRUE,seed_count=0){
+	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
 	tab_simul_summary_stat=NULL
@@ -1258,6 +1295,7 @@ cbind(tab_param,tab_simul_summary_stat)
 		tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summary_stat)
 		tab_param=rbind(tab_param,param)
 	}
+	seed_count=seed_count+n_calibration
 	if (use_seed) {
 			tab_param=tab_param[,2:(nparam+1)]
 	}
@@ -1273,12 +1311,13 @@ cbind(tab_param,tab_simul_summary_stat)
 	n_ini=sample(nmax,1)
 	tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
 	param_ini=tab_param[n_ini,]
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("initial calibration performed ")
 
 	# chain run
 	tab_param=param_ini
 	tab_simul_summary_stat=tab_simul_ini
-	seed_count=seed_count+n_calibration+1
+	seed_count=seed_count+1
 	for (is in 2:n_obs){
 		for (i in 1:n_between_sampling){
 			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
@@ -1318,6 +1357,7 @@ library(MASS)
 #################################################################################################################################################################################################
 .ABC_MCMC3<-function(model,prior_matrix,n_obs,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,n_between_sampling=1,numcomp=0,use_seed=TRUE,seed_count=0){
 ##AM1
+	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_targ)
 	if (numcomp==0){
@@ -1346,6 +1386,8 @@ library(MASS)
 	if (use_seed) {
 			tab_param=tab_param[,2:(nparam+1)]
 	}
+	seed_count=seed_count+n_calibration
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 
 ## AM2: PLS step
 	print("AM2 ")
@@ -1431,7 +1473,7 @@ library(MASS)
 	param_ini=tab_param[n_ini,]
 	tab_param=param_ini
 	tab_simul_summary_stat=tab_simul_ini
-	seed_count=seed_count+n_calibration+1
+	seed_count=seed_count+1
 	for (is in 2:n_obs){
 		for (i in 1:n_between_sampling){
 ## AM6
