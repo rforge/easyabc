@@ -164,7 +164,7 @@ test
 		test=.is_included(res,prior_matrix)
 	}
 	if (counter==100){
-		stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+		stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
 	}
 res
 }
@@ -196,7 +196,7 @@ res
 				test=.is_included(param_moved,prior_matrix)
 			}
 			if (counter==100){
-				stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+				stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
 			}
 		}
 		param=param_previous_step[1,]
@@ -343,7 +343,7 @@ res
 		test=.is_included(res,prior_matrix)
 	}
 	if (counter==100){
-		stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+		stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
 	}
 res
 }
@@ -407,7 +407,7 @@ tab_weight_new/sum(tab_weight_new)
 				test=.is_included(param_moved,prior_matrix)
 			}
 			if (counter==100){
-				stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+				stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
 			}
 		}
 		param=param_previous_step[1,]
@@ -1071,7 +1071,7 @@ tab_weight_new
 				test=.is_included(param_moved,prior_matrix)
 			}
 			if (counter==100){
-				stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+				stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
 			}
 
 		}
@@ -1191,7 +1191,7 @@ cbind(tab_weight,simul_below_tol)
 		test=.is_included(res,prior_matrix)
 	}
 	if (counter==100){
-		stop("The proposal jumps outside of the prior distribution too often - consider using the option "inside_prior=FALSE" or enlarging the prior distribution")
+		stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
 	}
 res
 }
