@@ -124,8 +124,9 @@ res
 ## function to randomly pick a particle from a weighted array (of sum=1)
 ########################################################################
 .particle_pick<-function(param,tab_weight){
+	tab_weight2=tab_weight/sum(tab_weight)
 	u=runif(1)
-	weight_cum=cumsum(tab_weight)
+	weight_cum=cumsum(tab_weight2)
 	pos=1:length(tab_weight)
 	p=min(pos[weight_cum>u])
 param[p,]
@@ -782,7 +783,8 @@ new_weight
 ####################################################################################################
 .particle_pick_delmoral<-function(simul_below_tol,tab_weight,M){
 	u=runif(1)
-	weight_cum=cumsum(tab_weight)
+	tab_weight2=tab_weight/sum(tab_weight)
+	weight_cum=cumsum(tab_weight2)
 	pos=1:length(tab_weight)
 	p=min(pos[weight_cum>u])
 	simul_below_tol[((1:M)+(p-1)*M),]
