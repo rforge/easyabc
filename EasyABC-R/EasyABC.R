@@ -1044,6 +1044,33 @@ library(lhs)
 tab_weight_new
 }
 
+## function to compute particle weights with unidimensional jumps without normalizing to 1
+##########################################################################################
+.compute_weightb_uni<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
+	tab_weight=tab_weight2/sum(tab_weight2)
+	l=dim(param_previous_step)[2]
+	sd_array=array(1,l)
+	for (j in 1:l){
+		sd_array[j]=sqrt(2*var(param_previous_step[,j]))
+	}
+	sd_array=as.numeric(sd_array)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+	for (i in 1:n_particle){
+		for (j in 1:n_new_particle){
+			tab_temp=tab_weight[i]
+			for (k in 1:l){
+				tab_temp=tab_temp*dnorm(as.numeric(param_simulated[j,k]),as.numeric(param_previous_step[i,k]),sd_array[k])
+			}
+			tab_weight_new[j]=tab_weight_new[j]+tab_temp
+		}
+	}
+	tab_weight_new=prior_density/tab_weight_new
+tab_weight_new
+}
+
+
 ## function to perform ABC simulations from a non-uniform prior (derived from a set of particles)
 #################################################################################################
 .ABC_launcher_not_uniformc<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior){
@@ -1092,6 +1119,63 @@ tab_weight_new
 	}
 list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 }
+
+## function to perform ABC simulations from a non-uniform prior and with unidimensional jumps
+#############################################################################################
+.ABC_launcher_not_uniformc_uni<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior){
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	k_acc=0
+	for (i in 1:nb_simul){
+		l=dim(param_previous_step)[2]
+		l_array=dim(param_previous_step[,tab_unfixed_param])[2]
+		sd_array=array(1,l_array)
+		covmat=2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov # computation of a WEIGHTED variance
+		for (j in 1:l_array){
+			sd_array[j]=sqrt(covmat[j,j])
+
+		}
+		if (!inside_prior){
+			k_acc=k_acc+1
+			# pick a particle
+			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+			# move it
+			param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+		}
+		else{
+			test=FALSE
+			counter=0
+			while ((!test)&&(counter<100)){
+				counter=counter+1
+				k_acc=k_acc+1
+				# pick a particle
+				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+				# move it
+				param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+				test=.is_included(param_moved,prior_matrix)
+			}
+			if (counter==100){
+				stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
+			}
+		}
+		param=param_previous_step[1,]
+		param[tab_unfixed_param]=param_moved
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summarystat=model(param)
+		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+		if (use_seed) {
+			tab_param=rbind(tab_param,param[2:(l+1)])
+		}
+		else{
+			tab_param=rbind(tab_param,param)
+		}
+	}
+list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
+}
+
+
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
@@ -1176,6 +1260,92 @@ cbind(tab_weight,simul_below_tol)
 # .ABC_Lenormand(.binary_model("./parthy"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
 # windows
 # .ABC_Lenormand(.binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
+
+
+## sequential algorithm of Lenormand et al. 2012 with multiple univariate normal jumps 
+######################################################################################
+.ABC_Lenormand2<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=FALSE){
+	seed_count_ini=seed_count
+	nparam=dim(prior_matrix)[1]
+	nstat=length(summary_stat_target)
+	tab_unfixed_param=array(TRUE,nparam)
+	for (i in 1:nparam){
+		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
+	}
+	n_alpha=ceiling(nb_simul*alpha)
+	prior_density=1
+	for (i in 1:nparam){
+		if (tab_unfixed_param[i]){
+			prior_density=prior_density/(prior_matrix[i,2]-prior_matrix[i,1])
+		}
+	}
+
+## step 1
+	# ABC rejection step with LHS
+	tab_ini=.ABC_rejection_lhs(model,prior_matrix,nb_simul,tab_unfixed_param,use_seed,seed_count)
+	seed_count=seed_count+nb_simul
+	sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+
+	# selection of the alpha quantile closest simulations
+	simul_below_tol=NULL
+	simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,alpha))
+	simul_below_tol=simul_below_tol[1:n_alpha,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
+
+	# initially, weights are equal
+	tab_weight=array(1,n_alpha)
+
+	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	print("step 1 completed")
+	tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+	tol_next=max(tab_dist)
+
+## following steps
+	p_acc=p_acc_min+1
+	nb_simul_step=nb_simul-n_alpha
+	it=1
+	while (p_acc>p_acc_min){
+		it=it+1
+		simul_below_tol2=NULL
+		tab_inic=.ABC_launcher_not_uniformc_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior)
+		tab_ini=tab_inic[[1]]
+		seed_count=seed_count+nb_simul_step
+		if (!inside_prior){
+			tab_weight2=.compute_weightb_uni(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density)
+		}
+		else{
+			tab_weight2=tab_inic[[2]]*(.compute_weightb_uni(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density))
+		}
+		simul_below_tol2=rbind(simul_below_tol,as.matrix(tab_ini))
+		tab_weight=c(tab_weight,tab_weight2)
+		tab_dist2=.compute_dist(summary_stat_target,tab_ini[,(nparam+1):(nparam+nstat)],sd_simul)
+		p_acc=length(tab_dist2[tab_dist2<=tol_next])/nb_simul_step
+		tab_dist=c(tab_dist,tab_dist2)
+		tol_next=sort(tab_dist)[n_alpha]
+		simul_below_tol2=simul_below_tol2[tab_dist<=tol_next,]
+		tab_weight=tab_weight[tab_dist<=tol_next]
+		tab_weight=tab_weight[1:n_alpha]
+		tab_dist=tab_dist[tab_dist<=tol_next]
+		tab_dist=tab_dist[1:n_alpha]
+		simul_below_tol=matrix(0,n_alpha,(nparam+nstat))
+		for (i1 in 1:n_alpha){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+			}
+		}
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
+	}
+cbind(tab_weight,simul_below_tol)
+}
+
+## test
+# linux
+# .ABC_Lenormand(.binary_model("./parthy"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
+# windows
+# .ABC_Lenormand(.binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
+
 
 
 ## function to move a particle with a unidimensional uniform jump
