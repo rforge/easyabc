@@ -182,7 +182,7 @@ res
 			# pick a particle
 			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 			# move it
-			param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+			param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
 		}
 		else{
 			test=FALSE
@@ -192,7 +192,7 @@ res
 				# pick a particle
 				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 				# move it
-				param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+				param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
 				test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
 			}
 			if (counter==100){
@@ -393,7 +393,7 @@ tab_weight_new/sum(tab_weight_new)
 			# pick a particle
 			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 			# move it
-			param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+			param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
 		}
 		else{
 			test=FALSE
@@ -403,7 +403,7 @@ tab_weight_new/sum(tab_weight_new)
 				# pick a particle
 				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 				# move it
-				param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+				param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
 				test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
 			}
 			if (counter==100){
@@ -1084,7 +1084,7 @@ tab_weight_new
 			# pick a particle
 			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 			# move it
-			param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+			param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
 		}
 		else{
 			test=FALSE
@@ -1095,7 +1095,7 @@ tab_weight_new
 				# pick a particle
 				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 				# move it
-				param_moved=.move_particle(param_picked,2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+				param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
 				test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
 			}
 			if (counter==100){
@@ -1140,7 +1140,7 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 			# pick a particle
 			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 			# move it
-			param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+			param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
 		}
 		else{
 			test=FALSE
@@ -1151,7 +1151,7 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 				# pick a particle
 				param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
 				# move it
-				param_moved=.move_particle_uni(param_picked,sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+				param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
 				test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
 			}
 			if (counter==100){
