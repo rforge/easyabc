@@ -1,0 +1,10 @@
+Package: EasyABC
+Type: Package
+Title: What the package does (short line)
+Version: 1.0
+Date: 2012-10-15
+Author: Franck Jabot, Thierry Faure, Nicolas Dumoullin
+Maintainer: Who to complain to <yourfault@somewhere.net>
+Description: More about what it does (maybe more than one line)
+License: GPL-3
+LazyLoad: yes
