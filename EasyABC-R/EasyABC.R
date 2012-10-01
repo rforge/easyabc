@@ -351,7 +351,7 @@ res
 
 ## function to compute particle weights with unidimensional jumps
 #################################################################
-.compute_weight_uni<-function(param_simulated,param_previous_step,tab_weight){
+.compute_weight_uni_previous<-function(param_simulated,param_previous_step,tab_weight){
 	l=dim(param_previous_step)[2]
 	sd_array=array(1,l)
 	for (j in 1:l){
@@ -373,6 +373,32 @@ res
 	tab_weight_new=1/tab_weight_new
 tab_weight_new/sum(tab_weight_new)
 }
+
+## without dnorm
+################
+.compute_weight_uni<-function(param_simulated,param_previous_step,tab_weight){
+	l=dim(param_previous_step)[2]
+	var_array=array(1,l)
+	multi=(1/sqrt(2*pi))^l
+	for (j in 1:l){
+		var_array[j]=4*var(param_previous_step[,j])
+		multi=multi*(1/sqrt(var_array[j]/2))
+	}
+	var_array=as.numeric(var_array)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+	for (i in 1:n_particle){
+		tab_temp=array(tab_weight[i]*multi,n_new_particle)
+		for (k in 1:l){
+			tab_temp=tab_temp*exp(-(as.numeric(param_simulated[,k])-as.numeric(param_previous_step[i,k]))*(as.numeric(param_simulated[,k])-as.numeric(param_previous_step[i,k]))/var_array[k])
+		}
+		tab_weight_new=tab_weight_new+tab_temp
+	}
+	tab_weight_new=1/tab_weight_new
+tab_weight_new/sum(tab_weight_new)
+}
+
 
 ## function to perform ABC simulations from a non-uniform prior and with unidimensional jumps
 #############################################################################################
@@ -1029,6 +1055,23 @@ library(lhs)
 
 ## function to compute particle weights without normalizing to 1
 ################################################################
+.compute_weightb_previous<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
+	tab_weight=tab_weight2/sum(tab_weight2)
+	vmat=2*var(param_previous_step)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+	for (i in 1:n_particle){
+		for (j in 1:n_new_particle){
+			tab_weight_new[j]=tab_weight_new[j]+tab_weight[i]*dmnorm(param_simulated[j,],param_previous_step[i,],vmat)
+		}
+	}
+	tab_weight_new=prior_density/tab_weight_new
+tab_weight_new
+}
+
+## without dmnorm - TO DO
+#################
 .compute_weightb<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
 	tab_weight=tab_weight2/sum(tab_weight2)
 	vmat=2*var(param_previous_step)
@@ -1044,9 +1087,10 @@ library(lhs)
 tab_weight_new
 }
 
+
 ## function to compute particle weights with unidimensional jumps without normalizing to 1
 ##########################################################################################
-.compute_weightb_uni<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
+.compute_weightb_uni_previous<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
 	tab_weight=tab_weight2/sum(tab_weight2)
 	l=dim(param_previous_step)[2]
 	sd_array=array(1,l)
@@ -1069,6 +1113,33 @@ tab_weight_new
 	tab_weight_new=prior_density/tab_weight_new
 tab_weight_new
 }
+
+## without the use of dnorm
+###########################
+.compute_weightb_uni<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
+	tab_weight=tab_weight2/sum(tab_weight2)
+	l=dim(param_previous_step)[2]
+	var_array=array(1,l)
+	multi=(1/sqrt(2*pi))^l
+	for (j in 1:l){
+		var_array[j]=4*var(param_previous_step[,j])
+		multi=multi*(1/sqrt(var_array[j]/2))
+	}
+	var_array=as.numeric(var_array)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+	for (i in 1:n_particle){
+		tab_temp=array(tab_weight[i]*multi,n_new_particle)
+		for (k in 1:l){
+			tab_temp=tab_temp*exp(-(as.numeric(param_simulated[,k])-as.numeric(param_previous_step[i,k]))*(as.numeric(param_simulated[,k])-as.numeric(param_previous_step[i,k]))/var_array[k])
+		}
+		tab_weight_new=tab_weight_new+tab_temp
+	}
+	tab_weight_new=prior_density/tab_weight_new
+tab_weight_new
+}
+
 
 
 ## function to perform ABC simulations from a non-uniform prior (derived from a set of particles)
