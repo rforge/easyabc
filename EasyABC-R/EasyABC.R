@@ -242,10 +242,9 @@ tab_weight_new/sum(tab_weight_new)
 	l=dim(param_previous_step)[2]
 	invmat=0.5*solve(vmat)
 	for (i in 1:n_particle){
-		temp=param_simulated
-		for (k in 1:l){
-			temp[,k]=temp[,k]-param_previous_step[i,k]
-			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- temp[,k] %*% invmat %*% t(temp[,k]) ))
+		for (k in 1:n_new_particle){
+			temp=param_simulated[k,]-param_previous_step[i,]
+			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- t(temp) %*% invmat %*% temp ))
 		}
 	}
 	tab_weight_new=1/tab_weight_new
@@ -1103,10 +1102,9 @@ tab_weight_new
 	multi=exp(-0.5*l*log(2*pi))/sqrt(abs(det(vmat)))
 	invmat=0.5*solve(vmat)
 	for (i in 1:n_particle){
-		temp=param_simulated
-		for (k in 1:l){
-			temp[,k]=temp[,k]-param_previous_step[i,k]
-			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- temp[,k] %*% invmat %*% t(temp[,k]) ))
+		for (k in 1:n_new_particle){
+			temp=param_simulated[k,]-param_previous_step[i,]
+			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- t(temp) %*% invmat %*% temp ))
 		}
 	}
 	tab_weight_new=prior_density/(multi*tab_weight_new)
