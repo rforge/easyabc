@@ -245,8 +245,8 @@ tab_weight_new/sum(tab_weight_new)
 		temp=param_simulated
 		for (k in 1:l){
 			temp[,k]=temp[,k]-param_previous_step[i,k]
+			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- temp[,k] %*% invmat %*% t(temp[,k]) ))
 		}
-		tab_weight_new=tab_weight_new+tab_weight[i]*as.numeric(exp(- diag(temp %*% invmat %*% t(temp)) ))
 	}
 	tab_weight_new=1/tab_weight_new
 tab_weight_new/sum(tab_weight_new)
@@ -1106,8 +1106,8 @@ tab_weight_new
 		temp=param_simulated
 		for (k in 1:l){
 			temp[,k]=temp[,k]-param_previous_step[i,k]
+			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- temp[,k] %*% invmat %*% t(temp[,k]) ))
 		}
-		tab_weight_new=tab_weight_new+tab_weight[i]*as.numeric(exp(- diag(temp %*% invmat %*% t(temp)) ))
 	}
 	tab_weight_new=prior_density/(multi*tab_weight_new)
 tab_weight_new
