@@ -218,7 +218,7 @@ res
 
 ## function to compute particle weights
 ####################################### 
-.compute_weight<-function(param_simulated,param_previous_step,tab_weight){
+.compute_weight_previous<-function(param_simulated,param_previous_step,tab_weight){
 	vmat=2*var(param_previous_step)
 	n_particle=dim(param_previous_step)[1]
 	n_new_particle=dim(param_simulated)[1]
@@ -227,6 +227,26 @@ res
 		for (j in 1:n_new_particle){
 			tab_weight_new[j]=tab_weight_new[j]+tab_weight[i]*dmnorm(param_simulated[j,],param_previous_step[i,],vmat)
 		}
+	}
+	tab_weight_new=1/tab_weight_new
+tab_weight_new/sum(tab_weight_new)
+}
+
+## without dmnorm
+################# 
+.compute_weight<-function(param_simulated,param_previous_step,tab_weight){
+	vmat=2*var(param_previous_step)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+	l=dim(param_previous_step)[2]
+	invmat=0.5*solve(vmat)
+	for (i in 1:n_particle){
+		temp=param_simulated
+		for (k in 1:l){
+			temp[,k]=temp[,k]-param_previous_step[i,k]
+		}
+		tab_weight_new=tab_weight_new+tab_weight[i]*as.numeric(exp(- diag(temp %*% invmat %*% t(temp)) ))
 	}
 	tab_weight_new=1/tab_weight_new
 tab_weight_new/sum(tab_weight_new)
