@@ -1070,7 +1070,7 @@ library(lhs)
 tab_weight_new
 }
 
-## without dmnorm - TO DO
+## without dmnorm
 #################
 .compute_weightb<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
 	tab_weight=tab_weight2/sum(tab_weight2)
@@ -1078,12 +1078,18 @@ tab_weight_new
 	n_particle=dim(param_previous_step)[1]
 	n_new_particle=dim(param_simulated)[1]
 	tab_weight_new=array(0,n_new_particle)
+
+	l=dim(param_previous_step)[2]
+	multi=exp(-0.5*l*log(2*pi))/sqrt(abs(det(vmat)))
+	invmat=0.5*solve(vmat)
 	for (i in 1:n_particle){
-		for (j in 1:n_new_particle){
-			tab_weight_new[j]=tab_weight_new[j]+tab_weight[i]*dmnorm(param_simulated[j,],param_previous_step[i,],vmat)
+		temp=param_simulated
+		for (k in 1:l){
+			temp[,k]=temp[,k]-param_previous_step[i,k]
 		}
+		tab_weight_new=tab_weight_new+tab_weight[i]*as.numeric(exp(- diag(temp %*% invmat %*% t(temp)) ))
 	}
-	tab_weight_new=prior_density/tab_weight_new
+	tab_weight_new=prior_density/(multi*tab_weight_new)
 tab_weight_new
 }
 
