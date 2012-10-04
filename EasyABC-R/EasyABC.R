@@ -1318,15 +1318,17 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 		it=it+1
 		simul_below_tol2=NULL
 		tab_inic=.ABC_launcher_not_uniformc(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior)
-		tab_ini=tab_inic[[1]]
+		tab_ini=as.matrix(tab_inic[[1]])
+		tab_ini=as.numeric(tab_ini)
+		dim(tab_ini)=c(nb_simul_step,(nparam+nstat))
 		seed_count=seed_count+nb_simul_step
 		if (!inside_prior){
-			tab_weight2=.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density)
+			tab_weight2=.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],as.matrix(simul_below_tol[,1:nparam][,tab_unfixed_param]),tab_weight/sum(tab_weight),prior_density)
 		}
 		else{
-			tab_weight2=tab_inic[[2]]*(.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density))
+			tab_weight2=tab_inic[[2]]*(.compute_weightb(tab_ini[,1:nparam][,tab_unfixed_param],as.matrix(simul_below_tol[,1:nparam][,tab_unfixed_param]),tab_weight/sum(tab_weight),prior_density))
 		}
-		simul_below_tol2=rbind(simul_below_tol,as.matrix(tab_ini))
+		simul_below_tol2=rbind(as.matrix(simul_below_tol),as.matrix(tab_ini))
 		tab_weight=c(tab_weight,tab_weight2)
 		tab_dist2=.compute_dist(summary_stat_target,tab_ini[,(nparam+1):(nparam+nstat)],sd_simul)
 		p_acc=length(tab_dist2[tab_dist2<=tol_next])/nb_simul_step
