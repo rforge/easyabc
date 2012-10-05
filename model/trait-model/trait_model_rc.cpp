@@ -263,8 +263,8 @@ void trait_model(double *input,double *stat_to_return){
     //}
     //in >> buffer; 
 	double *sig; sig= new double[int(ntrait)];
-    for (int i=0;i<ntrait;i++){
-        sig[i]=input[(5+ntrait+i)];
+    for (int i=0;i<int(ntrait);i++){
+        sig[i]=input[(5+int(ntrait)+i)];
     }
     //in >> buffer; double *sigmax; sigmax= new double[int(ntrait)];
     //for (int i=0;i<ntrait;i++){
