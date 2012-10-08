@@ -18,7 +18,6 @@ Last modified on 31th december 2008.
 #include <list>
 #include <R.h>
 #include <Rmath.h>
-#include <trait_model_rc.h>
 
 using namespace std; // peut-être à enlever, je ne sais pas.
 
@@ -223,6 +222,7 @@ void calculstat(double *stat,int *abondloc, int l, double **trait,double ntrait)
 
 
 
+extern "C" {
 void trait_model(double *input,double *stat_to_return){
 
 
@@ -370,6 +370,7 @@ void trait_model(double *input,double *stat_to_return){
 	//}
 	//out.close();
 	//return 0;
+}
 }
 
 
