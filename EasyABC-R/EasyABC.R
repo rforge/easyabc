@@ -1625,7 +1625,7 @@ library(MASS)
 
 ## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
-.ABC_MCMC3<-function(model,prior_matrix,n_obs,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,n_between_sampling=1,numcomp=0,use_seed=TRUE,seed_count=0){
+.ABC_MCMC3<-function(model,prior_matrix,n_obs,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,n_between_sampling=1,numcomp=0,use_seed=TRUE,seed_count=0,dmat=matrix(0,n_calibration,(length(summary_stat_targ)+1))){
 ##AM1
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
@@ -1693,9 +1693,14 @@ library(MASS)
 				dmat[i1,i2]=as.numeric(d[i1,i2])
 			}
 		}
+
+		save(dmat,file="dmat.RData")
+		load("dmat.RData",.GlobalEnv)
+	
 		mylm<-lm(as.formula(as.data.frame(dmat)),data=as.data.frame(dmat))
+		#mylm<-lm(as.formula(as.data.frame(dmat)))
 		#mylm<-lm(stat[,i]~as.matrix(sparam))
-		myboxcox<-boxcox(mylm,lambda=seq(-20,100,1/10),interp=T,eps=1/50)
+		myboxcox<-boxcox(mylm,lambda=seq(-20,100,1/10),interp=T,eps=1/50,plotit=FALSE)
 		lambda<-c(lambda,myboxcox$x[myboxcox$y==max(myboxcox$y)])
 		myGM<-c(myGM, exp(mean(log(stat[,i]))))
 	}
@@ -1719,7 +1724,7 @@ library(MASS)
 
 ## AM3
 	print("AM3 ")
-	summary_stat_target=t(pls_transformation %*% t(summary_stat_target))
+	summary_stat_target=t(pls_transformation %*% as.vector(summary_stat_target))
 	stat_pls=t(pls_transformation %*% t(stat))
 	simuldist=.compute_dist(summary_stat_target,stat_pls,rep(1,numcomp))
 
