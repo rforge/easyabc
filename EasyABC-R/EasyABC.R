@@ -1625,7 +1625,7 @@ library(MASS)
 
 ## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
-.ABC_MCMC3<-function(model,prior_matrix,n_obs,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,n_between_sampling=1,numcomp=0,use_seed=TRUE,seed_count=0,dmat=matrix(0,n_calibration,(length(summary_stat_targ)+1))){
+.ABC_MCMC3<-function(model,prior_matrix,n_obs,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,n_between_sampling=1,numcomp=0,use_seed=TRUE,seed_count=0){
 ##AM1
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
