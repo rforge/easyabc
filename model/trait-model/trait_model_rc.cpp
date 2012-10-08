@@ -18,6 +18,7 @@ Last modified on 31th december 2008.
 #include <list>
 #include <R.h>
 #include <Rmath.h>
+#include <trait_model_rc.h>
 
 using namespace std; // peut-être à enlever, je ne sais pas.
 
