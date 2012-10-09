@@ -270,7 +270,9 @@ tab_weight_new/sum(tab_weight_new)
 		if (nb_simul_step>1){
 			# classic ABC step
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
-			sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			if (nb_simul_step==nb_simul){
+				sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
 			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
@@ -491,7 +493,9 @@ tab_weight_new/sum(tab_weight_new)
 		if (nb_simul_step>1){
 			# classic ABC step
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
-			sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			if (nb_simul_step==nb_simul){
+				sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
 			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
@@ -620,7 +624,9 @@ res
 		if (nb_simul_step>1){
 			# classic ABC step
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
-			sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			if (nb_simul_step==n_alpha){
+				sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
 			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
@@ -1569,15 +1575,19 @@ cbind(tab_param,tab_simul_summary_stat)
 	if (use_seed) {
 			tab_param=tab_param[,2:(nparam+1)]
 	}
-	proposal_range=array(0,nparam)
-	for (i in 1:nparam){
-		proposal_range[i]=sd(tab_param[,i])*proposal_phi
+	sd_simul=array(0,nstat)
+	for (i in 1:nstat){
+		sd_simul[i]=sd(tab_simul_summary_stat[,i])
 	}
-	simuldist=.compute_dist(summary_stat_target,tab_simul_summary_stat,proposal_range/proposal_phi)
+	simuldist=.compute_dist(summary_stat_target,tab_simul_summary_stat,sd_simul)
 	ord_sim=order(simuldist,decreasing=F)
 	nmax=ceiling(tolerance_quantile*n_calibration)
 	dist_max=simuldist[(ord_sim[nmax])]
 	tab_param=tab_param[(ord_sim[1:nmax]),]
+	proposal_range=array(0,nparam)
+	for (i in 1:nparam){
+		proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
+	}
 	n_ini=sample(nmax,1)
 	tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
 	param_ini=tab_param[n_ini,]
@@ -1598,7 +1608,7 @@ cbind(tab_param,tab_simul_summary_stat)
 			if (use_seed) {
 				param=param[2:(nparam+1)]
 			}
-			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),proposal_range/proposal_phi)
+			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),sd_simul)
 			if (dist_simul<dist_max){
 				param_ini=param
 				tab_simul_ini=as.numeric(simul_summary_stat)
@@ -1734,11 +1744,11 @@ library(MASS)
 	nmax=ceiling(tolerance_quantile*n_calibration)
 	dist_max=simuldist[(ord_sim[nmax])]
 
+	tab_param=tab_param[(ord_sim[1:nmax]),]
 	proposal_range=array(0,nparam)
 	for (i in 1:nparam){
-		proposal_range[i]=sd(tab_param[,i])*proposal_phi
+		proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
 	}
-	tab_param=tab_param[(ord_sim[1:nmax]),]
 	print("initial calibration performed ")
 
 ## AM5: chain run
