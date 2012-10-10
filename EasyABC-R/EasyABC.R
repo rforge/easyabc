@@ -1042,7 +1042,7 @@ tab_weight2
 	tab_weight2=.replicate_tab(tab_weight,M)
 	write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
 	write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
-	print(paste("step ",kstep," completed",sep=""))
+	print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
    }
 	
 cbind(tab_weight2,simul_below_tol)
