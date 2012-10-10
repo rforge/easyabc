@@ -1485,6 +1485,7 @@ res
 
 	# initial draw of a particle below the tolerance dist_max
 	test=FALSE
+	dist_simul=NULL
 	while (!test){
 		param=array(0,nparam)
 		for (j in 1:nparam){
@@ -1507,12 +1508,14 @@ res
 	}
 	tab_simul_ini=as.numeric(simul_summary_stat)
 	param_ini=tab_param
+	dist_ini=dist_simul
 	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("initial draw performed ")
 
 	# chain run
 	tab_param=param_ini
 	tab_simul_summary_stat=tab_simul_ini
+	tab_dist=as.numeric(dist_ini)
 	for (is in 2:n_obs){
 		for (i in 1:n_between_sampling){
 			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
@@ -1527,16 +1530,18 @@ res
 			if (dist_simul<dist_max){
 				param_ini=param
 				tab_simul_ini=as.numeric(simul_summary_stat)
+				dist_ini=dist_simul
 			}
 			seed_count=seed_count+1
 		}
 		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
 		tab_param=rbind(tab_param,as.numeric(param_ini))
+		tab_dist=rbind(tab_dist,as.numeric(dist_ini))
 		if (is%%100==0){
 			print(paste(is," ",sep=""))
 		}
 	}	
-cbind(tab_param,tab_simul_summary_stat)	
+cbind(tab_param,tab_simul_summary_stat,tab_dist)	
 }
 
 ## test
@@ -1590,6 +1595,7 @@ cbind(tab_param,tab_simul_summary_stat)
 	}
 	n_ini=sample(nmax,1)
 	tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
+	dist_ini=simuldist[(ord_sim[n_ini])]
 	param_ini=tab_param[n_ini,]
 	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("initial calibration performed ")
@@ -1597,6 +1603,7 @@ cbind(tab_param,tab_simul_summary_stat)
 	# chain run
 	tab_param=param_ini
 	tab_simul_summary_stat=tab_simul_ini
+	tab_dist=as.numeric(dist_ini)
 	seed_count=seed_count+1
 	for (is in 2:n_obs){
 		for (i in 1:n_between_sampling){
@@ -1612,16 +1619,18 @@ cbind(tab_param,tab_simul_summary_stat)
 			if (dist_simul<dist_max){
 				param_ini=param
 				tab_simul_ini=as.numeric(simul_summary_stat)
+				dist_ini=dist_simul
 			}
 			seed_count=seed_count+1
 		}
 		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
 		tab_param=rbind(tab_param,as.numeric(param_ini))
+		tab_dist=rbind(tab_dist,as.numeric(dist_ini))
 		if (is%%100==0){
 			print(paste(is," ",sep=""))
 		}
 	}	
-cbind(tab_param,tab_simul_summary_stat)	
+cbind(tab_param,tab_simul_summary_stat,tab_dist)	
 }
 
 ## test
@@ -1670,7 +1679,7 @@ library(MASS)
 	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 
 ## AM2: PLS step
-	print("AM2 ")
+	#print("AM2 ")
 	#standardize the params
 	sparam=tab_param[,tab_unfixed_param]
 	ls=dim(sparam)[2]
@@ -1683,8 +1692,8 @@ library(MASS)
 	lambda<-c()
 	myGM<-c()
 	stat=tab_simul_summary_stat
-	print("stat 1 ")
-	print(stat)
+	#print("stat 1 ")
+	#print(stat)
 	summary_stat_target=summary_stat_targ
 	for (i in 1:nstat){
 		myMax<-c(myMax,max(stat[,i]))
@@ -1692,8 +1701,8 @@ library(MASS)
 		stat[,i]=1+(stat[,i]-myMin[i])/(myMax[i]-myMin[i])
 		summary_stat_target[i]=1+(summary_stat_target[i]-myMin[i])/(myMax[i]-myMin[i])
 	}
-	print("stat 2 ")
-	print(stat)
+	#print("stat 2 ")
+	#print(stat)
 	#transform statistics via boxcox
 	dmat=matrix(0,n_calibration,(ls+1))
 	for(i in 1:nstat){
@@ -1718,8 +1727,8 @@ library(MASS)
 	myBCMeans<-c()
 	myBCSDs<-c()
 	for(i in 1:nstat){
-		stat[,i]<-((stat[,i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)));
-		summary_stat_target[i]<-((summary_stat_target[i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)));
+		stat[,i]<-((stat[,i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)))
+		summary_stat_target[i]<-((summary_stat_target[i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)))
 		myBCSDs<-c(myBCSDs, sd(stat[,i]))
 		myBCMeans<-c(myBCMeans, mean(stat[,i]))
 		stat[,i]<-(stat[,i]-myBCMeans[i])/myBCSDs[i]
@@ -1733,13 +1742,13 @@ library(MASS)
 	}
 
 ## AM3
-	print("AM3 ")
+	#print("AM3 ")
 	summary_stat_target=t(pls_transformation %*% as.vector(summary_stat_target))
 	stat_pls=t(pls_transformation %*% t(stat))
 	simuldist=.compute_dist(summary_stat_target,stat_pls,rep(1,numcomp))
 
 ## AM4
-	print("AM4 ")
+	#print("AM4 ")
 	ord_sim=order(simuldist,decreasing=F)
 	nmax=ceiling(tolerance_quantile*n_calibration)
 	dist_max=simuldist[(ord_sim[nmax])]
@@ -1752,23 +1761,25 @@ library(MASS)
 	print("initial calibration performed ")
 
 ## AM5: chain run
-	print("AM5 ")
+	#print("AM5 ")
 	n_ini=sample(nmax,1)
 	tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
 	param_ini=tab_param[n_ini,]
 	tab_param=param_ini
 	tab_simul_summary_stat=tab_simul_ini
+	dist_ini=simuldist[(ord_sim[n_ini])]
+	tab_dist=as.numeric(dist_ini)
 	seed_count=seed_count+1
 	for (is in 2:n_obs){
 		for (i in 1:n_between_sampling){
 ## AM6
-	print("AM6 ")
+	#print("AM6 ")
 			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
 			if (use_seed) {
 				param=c(seed_count,param)
 			}
 ## AM7	
-	print("AM7 ")
+	#print("AM7 ")
 			simul_summary_stat=model(param)
 			if (use_seed) {
 				param=param[2:(nparam+1)]
@@ -1777,25 +1788,28 @@ library(MASS)
 				simul_summary_stat[ii]=1+(simul_summary_stat[ii]-myMin[ii])/(myMax[ii]-myMin[ii])
 			}
 			for(ii in 1:nstat){
+				simul_summary_stat[ii]<-((simul_summary_stat[ii]^lambda[ii]) - 1)/(lambda[ii]*(myGM[ii]^(lambda[ii]-1)))
 				simul_summary_stat[ii]<-(simul_summary_stat[ii]-myBCMeans[ii])/myBCSDs[ii]
 			}
 			simul_summary_stat=t(pls_transformation %*% t(simul_summary_stat))
 			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),rep(1,numcomp))
 ## AM8-9
-	print("AM8-9 ")
+	#print("AM8-9 ")
 			if (dist_simul<dist_max){
 				param_ini=param
 				tab_simul_ini=as.numeric(simul_summary_stat)
+				dist_ini=dist_simul
 			}
 			seed_count=seed_count+1
 		}
 		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
 		tab_param=rbind(tab_param,as.numeric(param_ini))
+		tab_dist=rbind(tab_dist,as.numeric(dist_ini))
 		if (is%%100==0){
 			print(paste(is," ",sep=""))
 		}
 	}	
-cbind(tab_param,tab_simul_summary_stat)	
+cbind(tab_param,tab_simul_summary_stat,tab_dist)	
 }
 
 ## test
