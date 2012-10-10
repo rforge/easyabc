@@ -607,7 +607,7 @@ res
 	}
 
 ## step 1
-	nb_simul_step=nb_simul
+	nb_simul_step=ceiling(nb_simul/(1-alpha))
 	simul_below_tol=NULL
 	if (first_tolerance_level_auto){
 		# classic ABC step
@@ -615,37 +615,37 @@ res
 		sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 		seed_count=seed_count+nb_simul_step
 		# selection of simulations below the first tolerance level
-		simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,alpha))
-		simul_below_tol=simul_below_tol[1:n_alpha,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
+		simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,(1-alpha)))
+		simul_below_tol=simul_below_tol[1:nb_simul,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
 	}
 	else{
-	   nb_simul_step=n_alpha
+	   nb_simul_step=nb_simul
 	   while (nb_simul_step>0){
 		if (nb_simul_step>1){
 			# classic ABC step
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
-			if (nb_simul_step==n_alpha){
+			if (nb_simul_step==nb_simul){
 				sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
-			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
+			simul_below_tol=rbind(simul_below_tol,.selec_simulb(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1])) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
 			if (length(simul_below_tol)>0){
-				nb_simul_step=n_alpha-dim(simul_below_tol)[1]
+				nb_simul_step=nb_simul-dim(simul_below_tol)[1]
 			}
 		}
 		else{
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			seed_count=seed_count+nb_simul_step
-			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
+			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<=tolerance_tab[1]){
 				simul_below_tol=rbind(simul_below_tol,tab_ini)
 				nb_simul_step=0
 			}
 		}
-	  } # until we get n_alpha simulations below the first tolerance threshold
+	  } # until we get nb_simul simulations below the first tolerance threshold
 	}
 	# initially, weights are equal
-	tab_weight=array(1/n_alpha,n_alpha)
+	tab_weight=array(1/nb_simul,nb_simul)
 	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
 	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
@@ -654,21 +654,32 @@ res
 	tol_next=tolerance_tab[1]
 	if (first_tolerance_level_auto){
 		tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
-	}
+	} 
 	R=1
 	l=dim(simul_below_tol)[2]
 	it=1
 	while (tol_next>tol_end){
 		it=it+1
 		i_acc=0
-		nb_simul_step=nb_simul-n_alpha
+		nb_simul_step=n_alpha
+		# compute epsilon_next
+		tol_next=sort(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))[(nb_simul-n_alpha)]
+		# drop the n_alpha poorest particles
+		simul_below_tol2=.selec_simulb(summary_stat_target,simul_below_tol[,1:nparam],simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul,tol_next) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+		simul_below_tol=matrix(0,(nb_simul-n_alpha),(nparam+nstat))
+		for (i1 in 1:(nb_simul-n_alpha)){
+			for (i2 in 1:(nparam+nstat)){
+				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+			}
+		}
+
 		simul_below_tol2=NULL
 		for (i in 1:nb_simul_step){
 			# pick a particle
-			simul_picked=.particle_pick(simul_below_tol,tab_weight)
+			simul_picked=.particle_pick(simul_below_tol,tab_weight[1:(nb_simul-n_alpha)])
 			for (j in 1:R){
 				# move it
-				param_moved=.move_particle(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+				param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
 				param=simul_picked[1:nparam]
 				param[tab_unfixed_param]=param_moved
 				if (use_seed) {
@@ -688,34 +699,34 @@ res
 			seed_count=seed_count+R
 			simul_below_tol2=rbind(simul_below_tol2,simul_picked)
 		}
-		simul_below_tol2=rbind(simul_below_tol,simul_below_tol2)
-		simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
-		for (i1 in 1:nb_simul){
+		simul_below_tol3=matrix(0,nb_simul,(nparam+nstat))
+		for (i1 in 1:(nb_simul-n_alpha)){
 			for (i2 in 1:(nparam+nstat)){
-				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+				simul_below_tol3[i1,i2]=as.numeric(simul_below_tol[i1,i2])
 			}
 		}
-		tol_next=sort(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))[n_alpha]
-		simul_below_tol2=.selec_simulb(summary_stat_target,simul_below_tol[,1:nparam],simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul,tol_next) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
-		simul_below_tol=matrix(0,n_alpha,(nparam+nstat))
-		for (i1 in 1:n_alpha){
+		for (i1 in (nb_simul-n_alpha+1):nb_simul){
 			for (i2 in 1:(nparam+nstat)){
-				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+				simul_below_tol3[i1,i2]=as.numeric(simul_below_tol2[(i1-nb_simul+n_alpha),i2])
 			}
 		}
+		simul_below_tol=simul_below_tol3
 		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		write.table(cbind(tab_weight,simul_below_tol),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		p_acc=i_acc/(nb_simul_step*R)
-		R=log(c)/log(1-p_acc)
+		p_acc=max(1,i_acc)/(nb_simul_step*R) # to have a strictly positive p_acc
+		Rp=R
+		R=ceiling(log(c)/log(1-p_acc))
+		tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+		print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
 	}
 
 ## final step to diversify the n_alpha particles
 	simul_below_tol2=NULL
-	for (i in 1:n_alpha){
+	for (i in 1:nb_simul){
 		simul_picked=simul_below_tol[i,]
 		for (j in 1:R){
 			# move it
-			param_moved=.move_particle(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+			param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
 			param=simul_picked[1:nparam]
 			param[tab_unfixed_param]=param_moved
 			if (use_seed) {
@@ -732,7 +743,7 @@ res
 			}
 		}
 		seed_count=seed_count+R
-		simul_below_tol2=rbind(simul_below_tol2,simul_picked)
+		simul_below_tol2=rbind(simul_below_tol2,as.numeric(simul_picked))
 	}
 	write.table((seed_count-seed_count_ini),file="n_simul_tot_end",row.names=F,col.names=F,quote=F)
 
