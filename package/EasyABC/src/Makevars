@@ -1,0 +1,14 @@
+SOURCES=$(wildcard example/*.cpp)
+
+OBJECTS =  $(SOURCES:.cpp=.o)
+#OBJECTS =  example/trait_model_rc.o) $(SOURCES:.cpp=.o)
+
+PKG_CPPFLAGS=-I.
+
+all: $(SHLIB)
+
+#$(OBJECTS): clean
+
+clean:
+	@rm -f $(OBJECTS)
+
