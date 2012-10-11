@@ -350,6 +350,24 @@ cbind(tab_weight,simul_below_tol)
 res
 }
 
+.move_particleb_uni<-function(param_picked,sd_array,prior_matrix){
+	test=FALSE
+	counter=0
+	res=param_picked
+	while ((!test)&&(counter<100)){
+		counter=counter+1
+		for (i in 1:length(param_picked)){
+			res[i]=rnorm(n = 1, mean = param_picked[i], sd_array[i])
+		}
+		res=rmnorm(n = 1, mean = param_picked, varcov_matrix)
+		test=.is_included(res,prior_matrix)
+	}
+	if (counter==100){
+		stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
+	}
+res
+}
+
 ## function to move a particle with a unidimensional normal jump
 ################################################################
 .move_particleb_uni<-function(param_picked,sd_array,prior_matrix){
@@ -692,7 +710,7 @@ res
 				}
 				# check whether it is below tol_next and undo the move if it is not
 				if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
-					simul_picked=new_simul
+					simul_picked=as.numeric(new_simul)
 					i_acc=i_acc+1
 				}
 			}
@@ -966,7 +984,7 @@ tab_weight2
 		if (tab_weight[i]>0){
 			tab_new_simul=NULL
 			# move it
-			param_moved=.move_particle_uni(as.numeric(particles[i,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+			param_moved=.move_particleb_uni(as.numeric(particles[i,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
 			param=particles[i,]
 			param[tab_unfixed_param]=param_moved
 			if (use_seed) {
@@ -1041,7 +1059,7 @@ tab_weight2
 	tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
 	tab_weight2=.replicate_tab(tab_weight,M)
 	write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+	write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
 	print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
    }
 	
@@ -1792,6 +1810,7 @@ library(MASS)
 ## AM7	
 	#print("AM7 ")
 			simul_summary_stat=model(param)
+			simul_summary_stat_output=simul_summary_stat
 			if (use_seed) {
 				param=param[2:(nparam+1)]
 			}
@@ -1808,7 +1827,7 @@ library(MASS)
 	#print("AM8-9 ")
 			if (dist_simul<dist_max){
 				param_ini=param
-				tab_simul_ini=as.numeric(simul_summary_stat)
+				tab_simul_ini=as.numeric(simul_summary_stat_output)
 				dist_ini=dist_simul
 			}
 			seed_count=seed_count+1
