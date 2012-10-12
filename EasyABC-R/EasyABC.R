@@ -640,7 +640,7 @@ res
 		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
 	}
 	if (first_tolerance_level_auto){
-		tol_end=tolerance_tab
+		tol_end=tolerance_tab[1]
 	}
 	else{
 		tol_end=tolerance_tab[2]
