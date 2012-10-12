@@ -1,5 +1,5 @@
 ABC_sequential <-
-function(functionName,model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
+function(functionName,model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,...){
 	## fonction regroup sequentials algorithms (PMC, drovandi, delmoral, maxime)
   switch(EXPR = functionName, 
          PMC = .ABC_PMC(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed,seed_count,inside_prior),

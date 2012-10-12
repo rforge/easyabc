@@ -8,6 +8,7 @@ function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
 	
   # progress bar
 	pb <- .progressBar(width=50)
+	duration = 0;
   for (i in 1:nb_simul){
 		l=dim(prior_matrix)[1]
 		param=array(0,l)
@@ -29,12 +30,12 @@ function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
     # for progressbar message and time evaluation 
 		duration = duration + difftime(Sys.time(), start, unit="secs")
 		text="";
-		if (i==length(simus)) {
+		if (i==nb_simul) {
 		   text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
 		} else {
-		 text = paste("− Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"− Estimated time remaining:",format(.POSIXct(duration/i*(length(simus)-i), tz="GMT"), "%H:%M:%S"));
+		 text = paste("− Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"− Estimated time remaining:",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
 		}
-		.updateProgressBar(pb, i/length(simus), text)
+		.updateProgressBar(pb, i/nb_simul, text)
   }
 	close(pb)
 	cbind(tab_param,tab_simul_summarystat)
