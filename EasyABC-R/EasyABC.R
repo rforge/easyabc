@@ -795,11 +795,11 @@ cbind(tab_weight,simul_below_tol2)
 			}
 			seed_count=seed_count+1
 			simul_summarystat=model(param)
-			tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+			tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(simul_summarystat))
 			if (use_seed) {
 				param=param[2:(l+1)]
 			}
-			tab_param=rbind(tab_param,param)
+			tab_param=rbind(tab_param,as.numeric(param))
 		}
 	}
 	cbind(tab_param,tab_simul_summarystat)
