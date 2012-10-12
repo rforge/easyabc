@@ -172,7 +172,7 @@ tab_weight_new/sum(tab_weight_new)
 	invmat=0.5*solve(vmat)
 	for (i in 1:n_particle){
 		for (k in 1:n_new_particle){
-			temp=param_simulated[k,]-param_previous_step[i,]
+			temp=as.numeric(param_simulated[k,])-param_previous_step[i,]
 			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- t(temp) %*% invmat %*% temp ))
 		}
 	}
@@ -180,9 +180,31 @@ tab_weight_new/sum(tab_weight_new)
 tab_weight_new/sum(tab_weight_new)
 }
 
+
+.compute_weightb<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
+	tab_weight=tab_weight2/sum(tab_weight2)
+	vmat=2*var(param_previous_step)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+
+	l=dim(param_previous_step)[2]
+	multi=exp(-0.5*l*log(2*pi))/sqrt(abs(det(vmat)))
+	invmat=0.5*solve(vmat)
+	for (i in 1:n_particle){
+		for (k in 1:n_new_particle){
+			temp=param_simulated[k,]-param_previous_step[i,]
+			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- t(temp) %*% invmat %*% temp ))
+		}
+	}
+	tab_weight_new=prior_density/(multi*tab_weight_new)
+tab_weight_new
+}
+
+
 ## PMC ABC algorithm with multivariate normal jumps
 ###################################################
-.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,...){
+.ABC_PMC2<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,...){
   print('    ------ PMC2 algoritm ------')
 	seed_count_ini=seed_count
   library(mnormt)
@@ -249,7 +271,7 @@ tab_weight_new/sum(tab_weight_new)
 			}
 		} # until we get nb_simul simulations below the it-th tolerance threshold
 		# update of particle weights
-		tab_weight2=.compute_weight(simul_below_tol2[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight)
+		tab_weight2=.compute_weight(as.matrix(simul_below_tol2[,1:nparam][,tab_unfixed_param]),as.matrix(simul_below_tol[,1:nparam][,tab_unfixed_param]),tab_weight)
 		# update of the set of particles and of the associated weights for the next ABC sequence
 		tab_weight=tab_weight2
 		simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
@@ -425,7 +447,7 @@ tab_weight_new/sum(tab_weight_new)
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,...){
+.ABC_PMC<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,...){
   print('    ------ PMC algoritm ------')
 	seed_count_ini=seed_count
 	T=length(tolerance_tab)
@@ -551,7 +573,7 @@ res
 		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
 	}
 	if (first_tolerance_level_auto){
-		tol_end=tolerance_tab
+		tol_end=tolerance_tab[1]
 	}
 	else{
 		tol_end=tolerance_tab[2]
@@ -817,7 +839,7 @@ tab_weight2
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral<-function(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target,summary_stat_target,use_seed=TRUE,seed_count=0,...){
+.ABC_Delmoral<-function(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target=1,summary_stat_target,use_seed=TRUE,seed_count=0,...){
   print('    ------ Delmoral algoritm ------')
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
