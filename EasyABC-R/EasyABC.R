@@ -243,13 +243,35 @@ tab_weight_new/sum(tab_weight_new)
 	invmat=0.5*solve(vmat)
 	for (i in 1:n_particle){
 		for (k in 1:n_new_particle){
-			temp=param_simulated[k,]-param_previous_step[i,]
+			temp=as.numeric(param_simulated[k,])-param_previous_step[i,]
 			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- t(temp) %*% invmat %*% temp ))
 		}
 	}
 	tab_weight_new=1/tab_weight_new
 tab_weight_new/sum(tab_weight_new)
 }
+
+
+.compute_weightb<-function(param_simulated,param_previous_step,tab_weight2,prior_density){
+	tab_weight=tab_weight2/sum(tab_weight2)
+	vmat=2*var(param_previous_step)
+	n_particle=dim(param_previous_step)[1]
+	n_new_particle=dim(param_simulated)[1]
+	tab_weight_new=array(0,n_new_particle)
+
+	l=dim(param_previous_step)[2]
+	multi=exp(-0.5*l*log(2*pi))/sqrt(abs(det(vmat)))
+	invmat=0.5*solve(vmat)
+	for (i in 1:n_particle){
+		for (k in 1:n_new_particle){
+			temp=param_simulated[k,]-param_previous_step[i,]
+			tab_weight_new[k]=tab_weight_new[k]+tab_weight[i]*as.numeric(exp(- t(temp) %*% invmat %*% temp ))
+		}
+	}
+	tab_weight_new=prior_density/(multi*tab_weight_new)
+tab_weight_new
+}
+
 
 ## PMC ABC algorithm with multivariate normal jumps
 ###################################################
@@ -318,7 +340,7 @@ tab_weight_new/sum(tab_weight_new)
 			}
 		} # until we get nb_simul simulations below the it-th tolerance threshold
 		# update of particle weights
-		tab_weight2=.compute_weight(simul_below_tol2[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight)
+		tab_weight2=.compute_weight(as.matrix(simul_below_tol2[,1:nparam][,tab_unfixed_param]),as.matrix(simul_below_tol[,1:nparam][,tab_unfixed_param]),tab_weight)
 		# update of the set of particles and of the associated weights for the next ABC sequence
 		tab_weight=tab_weight2
 		simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
