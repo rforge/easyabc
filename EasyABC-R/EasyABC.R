@@ -271,7 +271,7 @@ tab_weight_new/sum(tab_weight_new)
 			# classic ABC step
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
-				sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
@@ -512,7 +512,7 @@ tab_weight_new/sum(tab_weight_new)
 			# classic ABC step
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
-				sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
@@ -630,7 +630,7 @@ res
 	if (first_tolerance_level_auto){
 		# classic ABC step
 		tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
-		sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+		sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 		seed_count=seed_count+nb_simul_step
 		# selection of simulations below the first tolerance level
 		simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,(1-alpha)))
@@ -643,7 +643,7 @@ res
 			# classic ABC step
 			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
-				sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
@@ -900,7 +900,7 @@ tab_weight2
 	tab_weight=rep(1/nb_simul,nb_simul)
 	ESS=nb_simul
 	uu=(1:nb_simul)*M  # to compute sd_simul with only one simulation per parameter set
-	sd_simul=sd(simul_below_tol[uu,(nparam+1):(nparam+nstat)])  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+	sd_simul=sapply(as.data.frame(simul_below_tol[uu,(nparam+1):(nparam+nstat)]),sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 	l=dim(simul_below_tol)[2]
 	if (M>1){
 		particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
@@ -1329,7 +1329,7 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 	# ABC rejection step with LHS
 	tab_ini=.ABC_rejection_lhs(model,prior_matrix,nb_simul,tab_unfixed_param,use_seed,seed_count)
 	seed_count=seed_count+nb_simul
-	sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+	sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 
 	# selection of the alpha quantile closest simulations
 	simul_below_tol=NULL
@@ -1416,7 +1416,7 @@ cbind(tab_weight,simul_below_tol)
 	# ABC rejection step with LHS
 	tab_ini=.ABC_rejection_lhs(model,prior_matrix,nb_simul,tab_unfixed_param,use_seed,seed_count)
 	seed_count=seed_count+nb_simul
-	sd_simul=sd(tab_ini[,(nparam+1):(nparam+nstat)]) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+	sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 
 	# selection of the alpha quantile closest simulations
 	simul_below_tol=NULL
