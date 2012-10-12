@@ -1,0 +1,74 @@
+
+library(parallel)
+
+.binary_model_clust<-function(command) {
+	invoke<-function(param) {
+		n_clust=param[1]
+		numclust=1+((param[2]-1)%%n_clust)
+		nparam=length(param)
+		write.table(param[2:nparam],file=paste("input",numclust,sep=""),row.names=F,col.names=F,quote=F)
+		system2(command,args=as.character(numclust))
+		read.table(paste("output",numclust,sep=""),h=F)
+	}
+}
+
+.binary_model_clust("./trait_model_clust.exe")(c(3,1,500,4,1,1,2))
+.binary_model_clust("./trait_model_clust.exe")(c(3,2,500,4,1,1,2))
+
+ABC_rejection_clust<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0,n_cluster=1){
+	options(scipen=50)
+if (n_cluster==1){
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	
+	for (i in 1:nb_simul){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summarystat=model(param)
+		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+		if (use_seed) {
+			tab_param=rbind(tab_param,param[2:(l+1)])
+		}
+		else{
+			tab_param=rbind(tab_param,param)
+		}
+	}
+}
+else{
+	cl <- makeCluster(getOption("cl.cores", n_cluster))
+
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	list_param=list(NULL)
+	
+	for (i in 1:nb_simul){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		#if (use_seed) { # NB: we force the value use_seed=TRUE
+		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		list_param[[i]]=param
+		tab_param=rbind(tab_param,param[3:(l+2)])
+	}
+	list_simul_summarystat=parLapplyLB(cl,list_param,model)
+	for (i in 1:nb_simul){
+		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+	}
+}
+	options(scipen=0)
+	cbind(tab_param,tab_simul_summarystat)
+}
+
+prior_matrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
+dim(prior_matrix)<-c(6,2)
+prior_matrix
+q3=ABC_rejection_clust(.binary_model_clust("./trait_model_clust.exe"),prior_matrix,20,use_seed=TRUE,seed_count=0,n_cluster=3)
+q3
