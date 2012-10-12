@@ -17,30 +17,6 @@ library(parallel)
 
 ABC_rejection_clust<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0,n_cluster=1){
 	options(scipen=50)
-if (n_cluster==1){
-	tab_simul_summarystat=NULL
-	tab_param=NULL
-	
-	for (i in 1:nb_simul){
-		l=dim(prior_matrix)[1]
-		param=array(0,l)
-		for (j in 1:l){
-			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
-		}
-		if (use_seed) {
-			param=c((seed_count+i),param)
-		}
-		simul_summarystat=model(param)
-		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
-		if (use_seed) {
-			tab_param=rbind(tab_param,param[2:(l+1)])
-		}
-		else{
-			tab_param=rbind(tab_param,param)
-		}
-	}
-}
-else{
 	cl <- makeCluster(getOption("cl.cores", n_cluster))
 
 	tab_simul_summarystat=NULL
@@ -62,7 +38,6 @@ else{
 	for (i in 1:nb_simul){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
 	}
-}
 	options(scipen=0)
 	cbind(tab_param,tab_simul_summarystat)
 }
