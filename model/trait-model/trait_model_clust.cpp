@@ -272,8 +272,9 @@ int main(int argc,char **argv){
     lsimul=J;
     in.close();
     
-    ifstream in2("species_traits");
-    in2 >> buffer; int S; in2 >> S;
+    //ifstream in2("species_traits");
+    //in2 >> buffer; 
+	int S=1000; // in2 >> S;
     
     double **trait;
     trait= new double*[S];
@@ -284,13 +285,13 @@ int main(int argc,char **argv){
     abondreg=new double[S];
     double sumabondreg=0.0;
     for (int i=0;i<S;i++){
-        in2 >> abondreg[i];
+        abondreg[i]=0.001;
 	sumabondreg+=abondreg[i];
         for (int j=0;j<ntrait;j++){
-            in2 >> trait[i][j];
+            trait[i][j]=(i+1.0)/10.0;
         }
     }
-    in2.close();
+    //in2.close();
     
 	for (int i=0;i<S;i++){
         	abondreg[i]/=sumabondreg;
@@ -306,7 +307,7 @@ int main(int argc,char **argv){
 //PREPARATION DES FLUX DE SORTIE
     //sprintf(buffer,"ABCpt_Filteredcom2_J_%d_nbsimul_%d_m_%d_h_%d_sig_%d_ss_%d.txt",J,nbsimul,int(floor(Imax)),int(floor(hmax)),int(floor(sigmax)),int(floor(SSmax)));
 	sprintf(buffer,"output%d",numjob); 
-    ofstream out(buffer);
+    ofstream out(buffer, ios::out | ios::trunc);
     //out<<"I\t SS\t maxSS\t h\t sig\t J\t S\t Shan\t VarNi\t"
     //for (int i=0;i<ntrait;i++){
     //    out<<"Meantrait"<<(i+1)<<"\t Vartrait"<<(i+1)<<"\t Moment3trait"<<(i+1)<<"\t Meantraitespece"<<(i+1)<<"\t Vartraitespece"<<(i+1)<<"\t Moment3traitespece"<<(i+1)<<"\t Moment4trait"<<(i+1)<<"\t Moment4traitespece"<<(i+1)<<"\t";
