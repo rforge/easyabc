@@ -36,6 +36,7 @@ ABC_rejection_clust<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_cou
 		list_param[[i]]=param
 		tab_param=rbind(tab_param,param[3:(l+2)])
 	  }
+	  seed_count=seed_count+n_cluster
 	  list_simul_summarystat=parLapply(cl,list_param,model)
 	  for (i in 1:n_cluster){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
