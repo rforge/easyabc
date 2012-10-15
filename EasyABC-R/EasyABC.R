@@ -114,9 +114,17 @@ dist
 ###########################################################################################
 .selec_simul<-function(summary_stat_target,param,simul,sd_simul,tol){
 	dist=.compute_dist(summary_stat_target,simul,sd_simul)
-	res=cbind(param[dist<tol,],simul[dist<tol,])
-	if (dim(res)[1]==0){
-		res=NULL
+	ll=length(dist[dist<tol])
+	if (ll>1){
+		res=cbind(param[dist<tol,],simul[dist<tol,])
+	}
+	else{
+		if (ll==0){
+			res=NULL
+		}
+		else{
+			res=c(param[dist<tol,],simul[dist<tol,])
+		}
 	}
 res
 }
@@ -620,9 +628,17 @@ res
 ###################################################################################################
 .selec_simulb<-function(summary_stat_target,param,simul,sd_simul,tol){
 	dist=.compute_dist(summary_stat_target,simul,sd_simul)
-	res=cbind(param[dist<=tol,],simul[dist<=tol,])
-	if (dim(res)[1]==0){
-		res=NULL
+	ll=length(dist[dist<tol])
+	if (ll>1){
+		res=cbind(param[dist<=tol,],simul[dist<=tol,])
+	}
+	else{
+		if (ll==0){
+			res=NULL
+		}
+		else{
+			res=c(param[dist<=tol,],simul[dist<=tol,])
+		}
 	}
 res
 }
