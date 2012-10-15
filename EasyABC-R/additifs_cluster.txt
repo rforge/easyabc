@@ -12,8 +12,8 @@ library(parallel)
 	}
 }
 
-.binary_model_clust("./trait_model_clust.exe")(c(3,1,500,4,1,1,2))
-.binary_model_clust("./trait_model_clust.exe")(c(3,2,500,4,1,1,2))
+#.binary_model_clust("./trait_model_clust.exe")(c(3,1,500,4,1,1,2))
+#.binary_model_clust("./trait_model_clust.exe")(c(3,2,500,4,1,1,2))
 
 ABC_rejection_clust<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0,n_cluster=1){
 	options(scipen=50)
@@ -22,8 +22,10 @@ ABC_rejection_clust<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_cou
 	tab_simul_summarystat=NULL
 	tab_param=NULL
 	list_param=list(NULL)
-	
-	for (i in 1:nb_simul){
+	npar=floor(nb_simul/n_cluster)
+	n_end=nb_simul-(npar*n_cluster)
+	for (irun in 1:npar){
+	  for (i in 1:n_cluster){
 		l=dim(prior_matrix)[1]
 		param=array(0,l)
 		for (j in 1:l){
@@ -33,10 +35,35 @@ ABC_rejection_clust<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_cou
 		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
 		list_param[[i]]=param
 		tab_param=rbind(tab_param,param[3:(l+2)])
-	}
-	list_simul_summarystat=parLapplyLB(cl,list_param,model)
-	for (i in 1:nb_simul){
+	  }
+	  list_simul_summarystat=parLapply(cl,list_param,model)
+	  for (i in 1:n_cluster){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+	  }
+	}
+	if (n_end>0){
+	  stopCluster(cl)
+	  cl <- makeCluster(getOption("cl.cores", 1))
+	  list_param=list(NULL)
+	  for (i in 1:n_end){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		#if (use_seed) { # NB: we force the value use_seed=TRUE
+		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		list_param[[i]]=param
+		tab_param=rbind(tab_param,param[3:(l+2)])
+	  }
+	  list_simul_summarystat=parLapply(cl,list_param,model)
+	  for (i in 1:n_end){
+		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+	  }
+    	  stopCluster(cl)
+	}
+	else{
+	  stopCluster(cl)
 	}
 	options(scipen=0)
 	cbind(tab_param,tab_simul_summarystat)
@@ -45,5 +72,15 @@ ABC_rejection_clust<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_cou
 prior_matrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
 dim(prior_matrix)<-c(6,2)
 prior_matrix
-q3=ABC_rejection_clust(.binary_model_clust("./trait_model_clust.exe"),prior_matrix,20,use_seed=TRUE,seed_count=0,n_cluster=3)
-q3
+
+Sys.time()
+q3=ABC_rejection_clust(.binary_model_clust("./trait_model_clust.exe"),prior_matrix,200,use_seed=TRUE,seed_count=0,n_cluster=3)
+Sys.time()
+q1=ABC_rejection_clust(.binary_model_clust("./trait_model_clust.exe"),prior_matrix,200,use_seed=TRUE,seed_count=0,n_cluster=1)
+Sys.time()
+
+Sys.time()
+rejclust=ABC_rejection_clust(.binary_model_clust("./trait_model_clust.exe"),prior_matrix,1000,use_seed=TRUE,seed_count=0,n_cluster=3)
+Sys.time()
+write.table(rejclust,file="test_cluster_1000",row.names=F,col.names=F,quote=F)
+
