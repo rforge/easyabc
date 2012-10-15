@@ -466,16 +466,15 @@ tab_weight_new/sum(tab_weight_new)
 .ABC_launcher_not_uniform_uni<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior){
 	tab_simul_summarystat=NULL
 	tab_param=NULL
-	
-	for (i in 1:nb_simul){
-		l=dim(param_previous_step)[2]
-		l_array=dim(param_previous_step[,tab_unfixed_param])[2]
-		sd_array=array(1,l_array)
-		covmat=2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov # computation of a WEIGHTED variance
-		for (j in 1:l_array){
-			sd_array[j]=sqrt(covmat[j,j])
+	l=dim(param_previous_step)[2]
+	l_array=dim(param_previous_step[,tab_unfixed_param])[2]
+	sd_array=array(1,l_array)
+	covmat=2*cov.wt(param_previous_step[,tab_unfixed_param],as.vector(tab_weight))$cov # computation of a WEIGHTED variance
+	for (j in 1:l_array){
+		sd_array[j]=sqrt(covmat[j,j])
 
-		}
+	}
+	for (i in 1:nb_simul){
 		if (!inside_prior){
 			# pick a particle
 			param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
