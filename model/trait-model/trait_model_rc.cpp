@@ -225,154 +225,85 @@ void calculstat(double *stat,int *abondloc, int l, double **trait,double ntrait)
 extern "C" {
 void trait_model(double *input,double *stat_to_return){
 
-
 //LECTURE DES FICHIERS D'ENTREE 
     char buffer[256];
-    //ifstream in("input");
-	//in >> buffer;
-	long double seed1p; seed1p=input[0];
-	unsigned long seed2=0;
-	unsigned long seed1;
-	if (seed1p>10000.0){
-		seed2=long(floor(seed1p/1000.0));
-		seed1=long(long(floor(seed1p))%10000);
-	}
-	else{
-		seed1=long(floor(seed1p));
-	}
+    long double seed1p = input[0];
+    unsigned long seed2 = 0;
+    unsigned long seed1;
+    if (seed1p>10000.0){
+	    seed2=long(floor(seed1p/1000.0));
+	    seed1=long(long(floor(seed1p))%10000);
+    }
+    else{
+	    seed1=long(floor(seed1p));
+    }
     sgenrand2(seed1*100000+seed2*124);
     sgenrand2i(1027+seed1*10000+seed2*127);
-	//in >> buffer; 
-	int J; J=input[1];
-    //in >> buffer; int nbsimul; in >> nbsimul;
-    //in >> buffer; 
-	double I; I=input[2];
-    //in >> buffer; double Imax; in >> Imax;
-    //in >> buffer;
-	double SS; SS=input[3];
-    //in >> buffer; double SSmax; in >> SSmax;
-    //in >> buffer; 
-	double ntrait; ntrait=input[4];
-    //in >> buffer; 
-	double *h; h= new double[int(ntrait)];
+    int J = input[1];
+    double I = input[2];
+    double SS = input[3];
+    double ntrait = input[4];
+    double *h = new double[int(ntrait)];
     for (int i=0;i<ntrait;i++){
-        h[i]=input[(5+i)];
+        h[i] = input[(5+i)];
     }
-    //in >> buffer; double *hmax; hmax= new double[int(ntrait)];
-    // for (int i=0;i<ntrait;i++){
-    //    in >> hmax[i];
-    //}
-    //in >> buffer; 
 	double *sig; sig= new double[int(ntrait)];
     for (int i=0;i<int(ntrait);i++){
         sig[i]=input[(5+int(ntrait)+i)];
     }
-    //in >> buffer; double *sigmax; sigmax= new double[int(ntrait)];
-    //for (int i=0;i<ntrait;i++){
-    //    in >> sigmax[i];
-    //}
     int lsimul;
     lsimul=J;
-    //in.close();
     
-    ifstream in2("species_traits");
-    in2 >> buffer; int S; in2 >> S;
-    
-    double **trait;
-    trait= new double*[S];
-    for (int i=0;i<S;i++){
-        trait[i]=new double[int(ntrait)];
+    // fixed species traits for EasyABC sample
+    if (ntrait != 1) {
+      return;
     }
-    double *abondreg;
-    abondreg=new double[S];
-    double sumabondreg=0.0;
+    int S = 1000;
+    double **trait = new double*[S];
+    double *abondreg = new double[S];
+    double sumabondreg=1.0;
     for (int i=0;i<S;i++){
-        in2 >> abondreg[i];
-	sumabondreg+=abondreg[i];
-        for (int j=0;j<ntrait;j++){
-            in2 >> trait[i][j];
-        }
+        abondreg[i] = 0.001;
+	trait[i]=new double[1];
+	trait[i][0] = (i+1)/10.0;
     }
-    in2.close();
-    
-	for (int i=0;i<S;i++){
-        	abondreg[i]/=sumabondreg;
-    	}
-	
-	//for (int i=0;i<S;i++){
-	//	cerr<<abondreg[i]<<" "<<trait[i]<<" "<<abondobs[i]<<endl;
-	//}
-	//int toto;
-	//cin>>toto;
 
-
-//PREPARATION DES FLUX DE SORTIE
-    //sprintf(buffer,"ABCpt_Filteredcom2_J_%d_nbsimul_%d_m_%d_h_%d_sig_%d_ss_%d.txt",J,nbsimul,int(floor(Imax)),int(floor(hmax)),int(floor(sigmax)),int(floor(SSmax)));
-    //ofstream out("output");
-    //out<<"I\t SS\t maxSS\t h\t sig\t J\t S\t Shan\t VarNi\t"
-    //for (int i=0;i<ntrait;i++){
-    //    out<<"Meantrait"<<(i+1)<<"\t Vartrait"<<(i+1)<<"\t Moment3trait"<<(i+1)<<"\t Meantraitespece"<<(i+1)<<"\t Vartraitespece"<<(i+1)<<"\t Moment3traitespece"<<(i+1)<<"\t Moment4trait"<<(i+1)<<"\t Moment4traitespece"<<(i+1)<<"\t";
-    //}
-    //out<<endl;    	
-
-	double maxSS;
+    double maxSS;
     double *tabfitness;
     tabfitness=new double[S];
-	for (int i=0;i<S;i++){
-        	tabfitness[i]=1;
+    for (int i=0;i<S;i++){
+	tabfitness[i]=1;
     }
 	
-	int *abondloc;
-	abondloc= new int[S];
-	for (int i=0;i<S;i++){
-		abondloc[i]=0;
-	}
-	double *stat;
+    int *abondloc;
+    abondloc= new int[S];
+    for (int i=0;i<S;i++){
+	    abondloc[i]=0;
+    }
+    double *stat;
     int nstat=3+ntrait*2;
-	stat= new double[nstat];
+    stat= new double[nstat];
 
     int i=0;
-		//DRAWING OF PARAMETERS
-		I=exp(I);
-		SS=exp(SS);
-		for (int j=0;j<ntrait;j++){   
-        //    h[j]=hmin[j]+(hmax[j]-hmin[j])*genrand2();
-		      sig[j]=exp(sig[j]);
-        }
-		maxSS=calculfitness(tabfitness,S,trait,h,sig,SS,ntrait);
+    //DRAWING OF PARAMETERS
+    I=exp(I);
+    SS=exp(SS);
+    for (int j=0;j<ntrait;j++){   
+	sig[j]=exp(sig[j]);
+    }
+    maxSS=calculfitness(tabfitness,S,trait,h,sig,SS,ntrait);
 
-	//while(i<1){
-		
-		//SIMULATION
-		forwarddynamics(abondloc,tabfitness,abondreg,S,J,I,maxSS,lsimul);
-		
-		//COMPUTATION OF STATISTICS
-		calculstat(stat,abondloc,S,trait,ntrait);
+    //SIMULATION
+    forwarddynamics(abondloc,tabfitness,abondreg,S,J,I,maxSS,lsimul);
+    
+    //COMPUTATION OF STATISTICS
+    calculstat(stat,abondloc,S,trait,ntrait);
 
-
-		//OUTPUT
-		//if ((stat[1]>Starget-11)&&(stat[1]<Starget+11)){
-        		//out<<I<<" "<<SS<<" "<<maxSS<<" ";
-				//for (int k=0;k<ntrait;k++){
-					//out<<h[k]<<" "<<sig[k]<<" ";
-				//}
-        		for (int j=1;j<nstat;j++){
-				//  out<<stat[j]<<"\t";
-					stat_to_return[(j-1)]=stat[j];
-			    }
-			    //out<<endl;
-				//out.flush();
-                //i++;
-		//}
-		//if ((i%50)==49)	{
-			//cerr<<(i+1)<<" ";
-		//}
-	//}
-	//out.close();
-	//return 0;
+    for (int j=1;j<nstat;j++){
+	  stat_to_return[(j-1)]=stat[j];
+    }
 }
 }
-
 
 /**** GENERATEUR DE NOMBRES ALEATOIRES ****/
 /* Copyright (C) 1997 Makoto Matsumoto and Takuji Nishimura.       */
