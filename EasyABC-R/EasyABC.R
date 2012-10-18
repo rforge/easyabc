@@ -2,10 +2,124 @@
 ## FUNCTIONS TO BE USED BY USERS (4)
 ######################################
 
+## Progress Bar
+###############
+
+.progressBar <- function (min = 0, max = 1, initial = 0, text = "", char = "=", width = NA, 
+    title, label, style = 1, file = "") 
+{
+    if (!identical(file, "") && !(inherits(file, "connection") && 
+        isOpen(file))) 
+        stop("'file' must be \"\" or an open connection object")
+    if (!style %in% 1L:3L) 
+        style <- 1
+    .val <- initial
+    .killed <- FALSE
+    .nb <- 0L
+    .pc <- -1L
+    nw <- nchar(char, "w")
+    if (is.na(width)) {
+        width <- getOption("width")
+        if (style == 3L) 
+            width <- width - 10L
+        width <- trunc(width/nw)
+    }
+    if (max <= min) 
+        stop("must have max > min")
+    up <- function(value, text) {
+        if (!is.finite(value) || value < min || value > max) 
+            return()
+        .val <<- value
+        nb <- round(width * (value - min)/(max - min))
+        pc <- round(100 * (value - min)/(max - min))
+        if (nb == .nb && pc == .pc) 
+            return()
+        cat(paste(c("\r  |", rep.int(" ", nw * width + 6)), collapse = ""), file = file)
+        cat(paste(c("\r  |", rep.int(char, nb), rep.int(" ", 
+            nw * (width - nb)), sprintf("| %3d%% %s", pc,text)), collapse = ""), file = file)
+        flush.console()
+        .nb <<- nb
+        .pc <<- pc
+    }
+    getVal <- function() .val
+    kill <- function() if (!.killed) {
+        cat("\n", file = file)
+        flush.console()
+        .killed <<- TRUE
+    }
+    up(initial, text)
+    structure(list(getVal = getVal, up = up, kill = kill), class = "txtProgressBar")
+}
+
+.updateProgressBar <- function (pb, value, text = "") 
+{
+    if (!inherits(pb, "txtProgressBar")) 
+        stop("'pb' is not from class \"txtProgressBar\"")
+    oldval <- pb$getVal()
+    pb$up(value,text)
+    invisible(oldval)
+}
+
 ## FUNCTION 1: brute-force ABC (Pritchard et al. 1999)
 ######################################################
 
 ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
+
+    ## checking errors in the inputs
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'n_simul' is missing")
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if (nb_simul<1) stop("'n_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+	
+	options(scipen=50)
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	
+	start = Sys.time()
+
+ 	# progress bar
+	pb <- .progressBar(width=50)
+	duration = 0;
+
+	for (i in 1:nb_simul){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		if (use_seed) {
+			param=c((seed_count+i),param)
+		}
+		simul_summarystat=model(param)
+		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+		if (use_seed) {
+			tab_param=rbind(tab_param,param[2:(l+1)])
+		}
+		else{
+			tab_param=rbind(tab_param,param)
+		}
+
+		# for progressbar message and time evaluation
+                duration = difftime(Sys.time(), start, unit="secs")
+                text="";
+                if (i==nb_simul) {
+                   text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+               	} 
+		else {
+                 text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
+            	}
+                .updateProgressBar(pb, i/nb_simul, text)
+	}
+	close(pb)
+	options(scipen=0)
+	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
+list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+}
+
+.ABC_rejection_internal<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
 	options(scipen=50)
 	tab_simul_summarystat=NULL
 	tab_param=NULL
@@ -31,6 +145,7 @@ ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
 	options(scipen=0)
 	cbind(tab_param,tab_simul_summarystat)
 }
+
 
 ## FUNCTION 2: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
 ###################################################################################################################################
@@ -283,7 +398,7 @@ tab_weight_new
 
 ## PMC ABC algorithm with multivariate normal jumps
 ###################################################
-.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
+.ABC_PMC2<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,verbose=FALSE){
 	seed_count_ini=seed_count
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
@@ -299,7 +414,7 @@ tab_weight_new
 	while (nb_simul_step>0){
 		if (nb_simul_step>1){
 			# classic ABC step
-			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
 				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
@@ -311,7 +426,7 @@ tab_weight_new
 			}
 		}
 		else{
-			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			seed_count=seed_count+nb_simul_step
 			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
 				simul_below_tol=rbind(simul_below_tol,tab_ini)
@@ -321,8 +436,10 @@ tab_weight_new
 	} # until we get nb_simul simulations below the first tolerance threshold
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("step 1 completed")
 ## steps 2 to T
 	for (it in 2:T){
@@ -357,19 +474,19 @@ tab_weight_new
 				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
 			}
 		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		if (verbose==TRUE){
+			write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		print(paste("step ",it," completed",sep=""))
 	}
-cbind(tab_weight,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini))
 }
 
 ## test
-# linux
-# .ABC_PMC2(.binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
 # windows
-# .ABC_PMC2(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
-
+# .ABC_PMC2(.binary_model("./trait_model.exe"),prior_matrix,10,c(8,5),sum_stat_obs)
+(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,verbose=FALSE)
 ## function to move a particle with a unidimensional normal jump
 ################################################################
 .move_particle_uni<-function(param_picked,sd_array,prior_matrix){
@@ -523,7 +640,7 @@ tab_weight_new/sum(tab_weight_new)
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
+.ABC_PMC<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,verbose=FALSE){
 	seed_count_ini=seed_count
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
@@ -539,7 +656,7 @@ tab_weight_new/sum(tab_weight_new)
 	while (nb_simul_step>0){
 		if (nb_simul_step>1){
 			# classic ABC step
-			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
 				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
@@ -551,7 +668,7 @@ tab_weight_new/sum(tab_weight_new)
 			}
 		}
 		else{
-			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			seed_count=seed_count+nb_simul_step
 			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
 				simul_below_tol=rbind(simul_below_tol,tab_ini)
@@ -561,8 +678,10 @@ tab_weight_new/sum(tab_weight_new)
 	} # until we get nb_simul simulations below the first tolerance threshold
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("step 1 completed")
 ## steps 2 to T
 	for (it in 2:T){
@@ -597,19 +716,18 @@ tab_weight_new/sum(tab_weight_new)
 				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
 			}
 		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		if (verbose==TRUE){
+			write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		print(paste("step ",it," completed",sep=""))
 	}
-cbind(tab_weight,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini))
 }
 
 ## test
-# linux
-# .ABC_PMC(.binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
 # windows
-# .ABC_PMC(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.9,0.8),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
-
+#.ABC_PMC(.binary_model("./trait_model.exe"),prior_matrix,10,c(8,5),sum_stat_obs)
 
 ## function to select the alpha quantile closest simulations
 ############################################################
@@ -645,7 +763,7 @@ res
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
 ######################################################################################################################################################
-.ABC_Drovandi<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE,seed_count=0){
+.ABC_Drovandi<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE,seed_count=0,verbose=FALSE){
 	seed_count_ini=seed_count
 	n_alpha=ceiling(nb_simul*alpha)
 	nparam=dim(prior_matrix)[1]
@@ -666,7 +784,7 @@ res
 	simul_below_tol=NULL
 	if (first_tolerance_level_auto){
 		# classic ABC step
-		tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+		tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 		sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 		seed_count=seed_count+nb_simul_step
 		# selection of simulations below the first tolerance level
@@ -678,7 +796,7 @@ res
 	   while (nb_simul_step>0){
 		if (nb_simul_step>1){
 			# classic ABC step
-			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
 				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
@@ -690,7 +808,7 @@ res
 			}
 		}
 		else{
-			tab_ini=ABC_rejection(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			seed_count=seed_count+nb_simul_step
 			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<=tolerance_tab[1]){
 				simul_below_tol=rbind(simul_below_tol,tab_ini)
@@ -701,8 +819,10 @@ res
 	}
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("step 1 completed")
 
 ## following steps until tol_end is reached
@@ -766,11 +886,15 @@ res
 			}
 		}
 		simul_below_tol=simul_below_tol3
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table(cbind(tab_weight,simul_below_tol),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		p_acc=max(1,i_acc)/(nb_simul_step*R) # to have a strictly positive p_acc
 		Rp=R
 		R=ceiling(log(c)/log(1-p_acc))
+		if (verbose==TRUE){
+			write.table(as.numeric(Rp),file=paste("R_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
 		print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
 	}
@@ -800,19 +924,13 @@ res
 		seed_count=seed_count+R
 		simul_below_tol2=rbind(simul_below_tol2,as.numeric(simul_picked))
 	}
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_end",row.names=F,col.names=F,quote=F)
-
-cbind(tab_weight,simul_below_tol2)
+list(param=simul_below_tol2[,1:nparam],stats=simul_below_tol2[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol2[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini))
 }
 
 
 ## test
-# linux
-# .ABC_Drovandi(.binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5))
-# .ABC_Drovandi(.binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
 # windows
-# .ABC_Drovandi(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5))
-# .ABC_Drovandi(.binary_model("./parthy_test.exe"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
+# .ABC_Drovandi(.binary_model("./trait_model.exe"),prior_matrix,20,c(8,5),sum_stat_obs)
 
 ## rejection algorithm with M simulations per parameter set
 ############################################################
@@ -921,7 +1039,7 @@ tab_weight2
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral<-function(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target,summary_stat_target,use_seed=TRUE,seed_count=0){
+.ABC_Delmoral<-function(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target,summary_stat_target,use_seed=TRUE,seed_count=0,verbose=FALSE){
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -949,8 +1067,10 @@ tab_weight2
 	new_tolerance=max(particle_dist_mat)
 
 	tab_weight2=.replicate_tab(tab_weight,M)
-	write.table(cbind(tab_weight2,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){
+		write.table(as.matrix(cbind(tab_weight2,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("step 1 completed")
 
 # following steps
@@ -1095,22 +1215,20 @@ tab_weight2
 	dim(particle_dist_mat)<-c(nb_simul,M)
 	tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
 	tab_weight2=.replicate_tab(tab_weight,M)
-	write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){
+		write.table(as.numeric(new_tolerance),file=paste("tolerance_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+		write.table(as.matrix(cbind(tab_weight2,simul_below_tol)),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+	}
 	print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
    }
-	
-cbind(tab_weight2,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini))
 }
 
 
 ## test
-# linux
-# .ABC_Delmoral(.binary_model("./parthy"),prior_matrix,20,0.5,1,5,0.8,c(50,2.5))
-# .ABC_Delmoral(.binary_model("./parthy"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
 # windows
-# .ABC_Delmoral(.binary_model("./parthy_test.exe"),prior_matrix,10,0.5,1,3,0.8,c(50,2.5))
-# .ABC_Delmoral(.binary_model("./parthy_test.exe"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
+# .ABC_Delmoral(.binary_model("./trait_model.exe"),prior_matrix,10,0.5,1,5,15,sum_stat_obs)
 
 
 library(lhs)
@@ -1346,7 +1464,7 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=FALSE){
+.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=FALSE,verbose=FALSE){
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -1376,11 +1494,14 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 	# initially, weights are equal
 	tab_weight=array(1,n_alpha)
 
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
-	print("step 1 completed")
 	tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
 	tol_next=max(tab_dist)
+	if (verbose==TRUE){
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(tol_next),file="tolerance_step1",row.names=F,col.names=F,quote=F)
+	}
+	print("step 1 completed")
 
 ## following steps
 	p_acc=p_acc_min+1
@@ -1417,23 +1538,26 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
 			}
 		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		if (verbose==TRUE){
+			write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(p_acc),file=paste("p_acc_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
 	}
-cbind(tab_weight,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini))
 }
 
+
 ## test
-# linux
-# .ABC_Lenormand(.binary_model("./parthy"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
 # windows
-# .ABC_Lenormand(.binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
+# .ABC_Lenormand(.binary_model("./trait_model.exe"),prior_matrix,10,sum_stat_obs,inside_prior=TRUE,p_acc_min=0.8)
 
 
 ## sequential algorithm of Lenormand et al. 2012 with multiple univariate normal jumps 
 ######################################################################################
-.ABC_Lenormand2<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=FALSE){
+.ABC_Lenormand2<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=FALSE,verbose=FALSE){
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -1463,11 +1587,15 @@ cbind(tab_weight,simul_below_tol)
 	# initially, weights are equal
 	tab_weight=array(1,n_alpha)
 
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("step 1 completed")
 	tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
 	tol_next=max(tab_dist)
+	if (verbose==TRUE){
+		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(tol_next),file="tolerance_step1",row.names=F,col.names=F,quote=F)
+	}
+	print("step 1 completed")
 
 ## following steps
 	p_acc=p_acc_min+1
@@ -1502,18 +1630,21 @@ cbind(tab_weight,simul_below_tol)
 				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
 			}
 		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		if (verbose==TRUE){
+			write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(p_acc),file=paste("p_acc_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
 	}
-cbind(tab_weight,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini))
 }
 
+
 ## test
-# linux
-# .ABC_Lenormand(.binary_model("./parthy"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
 # windows
-# .ABC_Lenormand(.binary_model("./parthy_test.exe"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
+# .ABC_Lenormand2(.binary_model("./trait_model.exe"),prior_matrix,10,sum_stat_obs,inside_prior=TRUE,p_acc_min=0.8)
 
 
 
@@ -1548,15 +1679,15 @@ res
 	for (i in 1:nparam){
 		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
 	}
-
-	# initial draw of a particle below the tolerance dist_max
+ 
+ 	# initial draw of a particle below the tolerance dist_max
 	test=FALSE
 	dist_simul=NULL
 	while (!test){
 		param=array(0,nparam)
 		for (j in 1:nparam){
 			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
-		}
+ 		}
 		if (use_seed) {
 			param=c((seed_count+1),param)
 		}
@@ -1570,51 +1701,65 @@ res
 	tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summary_stat)
 	tab_param=rbind(tab_param,param)
 	if (use_seed) {
-			tab_param=tab_param[,2:(nparam+1)]
-	}
+		tab_param=tab_param[,2:(nparam+1)]
+ 	}
 	tab_simul_ini=as.numeric(simul_summary_stat)
 	param_ini=tab_param
 	dist_ini=dist_simul
 	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
 	print("initial draw performed ")
-
-	# chain run
-	tab_param=param_ini
-	tab_simul_summary_stat=tab_simul_ini
-	tab_dist=as.numeric(dist_ini)
-	for (is in 2:n_obs){
-		for (i in 1:n_between_sampling){
-			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
-			if (use_seed) {
-				param=c(seed_count,param)
-			}	
-			simul_summary_stat=model(param)
-			if (use_seed) {
-				param=param[2:(nparam+1)]
-			}
-			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
-			if (dist_simul<dist_max){
-				param_ini=param
-				tab_simul_ini=as.numeric(simul_summary_stat)
-				dist_ini=dist_simul
-			}
-			seed_count=seed_count+1
+ 
+ 	# chain run
+ 	tab_param=param_ini
+ 	tab_simul_summary_stat=tab_simul_ini
+ 	tab_dist=as.numeric(dist_ini)
+ 	for (is in 2:n_obs){
+ 		for (i in 1:n_between_sampling){
+ 			param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
+ 			if (use_seed) {
+ 				param=c(seed_count,param)
+ 			}
+ 			simul_summary_stat=model(param)
+ 			if (use_seed) {
+ 				param=param[2:(nparam+1)]
+ 			}
+ 			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
+ 			if (dist_simul<dist_max){
+ 				param_ini=param
+ 				tab_simul_ini=as.numeric(simul_summary_stat)
+ 				dist_ini=dist_simul
+ 			}
+ 			seed_count=seed_count+1
+ 		}
+ 		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
+ 		tab_param=rbind(tab_param,as.numeric(param_ini))
+ 		tab_dist=rbind(tab_dist,as.numeric(dist_ini))
+ 		if (is%%100==0){
+ 			print(paste(is," ",sep=""))
+ 		}
+ 	}
+	tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
+	for (i in 1:dim(tab_param)[1]){
+		for (j in 1:dim(tab_param)[2]){
+			tab_param2[i,j]=tab_param[i,j]
 		}
-		tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
-		tab_param=rbind(tab_param,as.numeric(param_ini))
-		tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-		if (is%%100==0){
-			print(paste(is," ",sep=""))
+	}
+	tab_simul_summary_stat2=matrix(0,dim(tab_simul_summary_stat)[1],dim(tab_simul_summary_stat)[2])
+	for (i in 1:dim(tab_simul_summary_stat)[1]){
+		for (j in 1:dim(tab_simul_summary_stat)[2]){
+			tab_simul_summary_stat2[i,j]=tab_simul_summary_stat[i,j]
 		}
-	}	
-cbind(tab_param,tab_simul_summary_stat,tab_dist)	
+	}
+	tab_dist2=array(0,length(tab_dist))
+	for (i in 1:length(tab_dist)){
+		tab_dist2[i]=tab_dist[i]
+	}
+list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=tab_normalization,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling)
 }
-
+ 
 ## test
-# linux
-# .ABC_MCMC(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),1,c(33,1),c(25,25,1,0,0))
 # windows
-# .ABC_MCMC(.binary_model("./parthy_test.exe"),prior_matrix,22,10,c(50,2.5),1,c(33,1),c(25,25,1,0,0))
+# .ABC_MCMC(.binary_model("./trait_model.exe"),prior_matrix,10,1,sum_stat_obs,8,c(50,1,20,10000),c(0,1,0.5,0,50,1),use_seed=TRUE,seed_count=0)
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
@@ -1696,14 +1841,28 @@ cbind(tab_param,tab_simul_summary_stat,tab_dist)
 			print(paste(is," ",sep=""))
 		}
 	}	
-cbind(tab_param,tab_simul_summary_stat,tab_dist)	
+	tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
+	for (i in 1:dim(tab_param)[1]){
+		for (j in 1:dim(tab_param)[2]){
+			tab_param2[i,j]=tab_param[i,j]
+		}
+	}
+	tab_simul_summary_stat2=matrix(0,dim(tab_simul_summary_stat)[1],dim(tab_simul_summary_stat)[2])
+	for (i in 1:dim(tab_simul_summary_stat)[1]){
+		for (j in 1:dim(tab_simul_summary_stat)[2]){
+			tab_simul_summary_stat2[i,j]=tab_simul_summary_stat[i,j]
+		}
+	}
+	tab_dist2=array(0,length(tab_dist))
+	for (i in 1:length(tab_dist)){
+		tab_dist2[i]=tab_dist[i]
+	}
+list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling)
 }
-
+ 
 ## test
-# linux
-# .ABC_MCMC2(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
 # windows
-# .ABC_MCMC2(.binary_model("./parthy_test.exe"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
+# .ABC_MCMC2(.binary_model("./trait_model.exe"),prior_matrix,10,1,sum_stat_obs,10,tolerance_quantile=0.5)
 
 library(pls)
 library(MASS)
@@ -1876,11 +2035,26 @@ library(MASS)
 			print(paste(is," ",sep=""))
 		}
 	}	
-cbind(tab_param,tab_simul_summary_stat,tab_dist)	
+	tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
+	for (i in 1:dim(tab_param)[1]){
+		for (j in 1:dim(tab_param)[2]){
+			tab_param2[i,j]=tab_param[i,j]
+		}
+	}
+	tab_simul_summary_stat2=matrix(0,dim(tab_simul_summary_stat)[1],dim(tab_simul_summary_stat)[2])
+	for (i in 1:dim(tab_simul_summary_stat)[1]){
+		for (j in 1:dim(tab_simul_summary_stat)[2]){
+			tab_simul_summary_stat2[i,j]=tab_simul_summary_stat[i,j]
+		}
+	}
+	tab_dist2=array(0,length(tab_dist))
+	for (i in 1:length(tab_dist)){
+		tab_dist2[i]=tab_dist[i]
+	}
+list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp)
 }
-
+ 
 ## test
-# linux
-# .ABC_MCMC3(.binary_model("./parthy"),prior_matrix,22,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
 # windows
-# .ABC_MCMC3(.binary_model("./parthy_test.exe"),prior_matrix,22,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
+# .ABC_MCMC3(.binary_model("./trait_model.exe"),prior_matrix,20,sum_stat_obs,n_calibration=10,tolerance_quantile=0.5,n_between_sampling=1)
+
