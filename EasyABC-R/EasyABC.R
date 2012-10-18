@@ -71,8 +71,14 @@ ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
     if(missing(nb_simul)) stop("'nb_simul' is missing")
     if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
     if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
     if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
     nb_simul=floor(nb_simul)
+    if(!is.logical(use_seed)) stop("'use_seed' has to be boolean.")
+    if(!is.vector(seed_count)) stop("'seed_count' has to be a vector.")
+    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+    seed_count=floor(seed_count)
 	
 	options(scipen=50)
 	tab_simul_summarystat=NULL
@@ -162,6 +168,7 @@ ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target
     }
     if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
     if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
     if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
     if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
     if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
@@ -201,6 +208,7 @@ ABC_mcmc <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_s
     }
     if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
     if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
     if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
     if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
     if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
@@ -477,6 +485,10 @@ tab_weight_new/sum(tab_weight_new)
 .ABC_PMC<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE){
     ## checking errors in the inputs
     if(!is.logical(use_seed)) stop("'use_seed' has to be boolean.")
+    if(!is.vector(seed_count)) stop("'seed_count' has to be a vector.")
+    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+    seed_count=floor(seed_count)
     if(!is.logical(inside_prior)) stop("'inside_prior' has to be boolean.")
     if(!is.vector(tolerance_tab)) stop("'tolerance_tab' has to be a vector.")
     if(tolerance_tab[1]==-1) stop("'tolerance_tab' is missing")
