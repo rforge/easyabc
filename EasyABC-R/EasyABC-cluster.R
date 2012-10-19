@@ -7,6 +7,26 @@
 
 library(parallel)
 ABC_rejection_cluster<-function(model,prior_matrix,nb_simul,seed_count=0,n_cluster=1){
+    ## checking errors in the inputs
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+    seed_count=floor(seed_count)
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
+
+	start = Sys.time()
+	
 	options(scipen=50)
 	cl <- makeCluster(getOption("cl.cores", n_cluster))
 
@@ -59,27 +79,144 @@ ABC_rejection_cluster<-function(model,prior_matrix,nb_simul,seed_count=0,n_clust
 	  stopCluster(cl)
 	}
 	options(scipen=0)
-	cbind(tab_param,tab_simul_summarystat)
+	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
+list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+}
+
+
+.ABC_rejection_internal_cluster<-function(model,prior_matrix,nb_simul,seed_count=0,n_cluster=1){
+	cl <- makeCluster(getOption("cl.cores", n_cluster))
+
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	list_param=list(NULL)
+	npar=floor(nb_simul/n_cluster)
+	n_end=nb_simul-(npar*n_cluster)
+	for (irun in 1:npar){
+	  for (i in 1:n_cluster){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		#if (use_seed) { # NB: we force the value use_seed=TRUE
+		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		list_param[[i]]=param
+		tab_param=rbind(tab_param,param[3:(l+2)])
+	  }
+	  seed_count=seed_count+n_cluster
+	  list_simul_summarystat=parLapply(cl,list_param,model)
+	  for (i in 1:n_cluster){
+		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+	  }
+	}
+	if (n_end>0){
+	  stopCluster(cl)
+	  cl <- makeCluster(getOption("cl.cores", 1))
+	  list_param=list(NULL)
+	  for (i in 1:n_end){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		#if (use_seed) { # NB: we force the value use_seed=TRUE
+		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		list_param[[i]]=param
+		tab_param=rbind(tab_param,param[3:(l+2)])
+	  }
+	  seed_count=seed_count+n_end
+	  list_simul_summarystat=parLapply(cl,list_param,model)
+	  for (i in 1:n_end){
+		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+	  }
+    	  stopCluster(cl)
+	}
+	else{
+	  stopCluster(cl)
+	}
+cbind(tab_param,tab_simul_summarystat)
 }
 
 
 
 ## FUNCTION 2: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
 ###################################################################################################################################
-ABC_sequential<-function(){
-	## fonction à faire qui regroupe les algos sequentiels (PMC, drovandi, delmoral, maxime)
+ABC_sequential_cluster<-function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Beaumont", "Drovandi", "Delmoral","Lenormand"))){
+        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
+    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
+
+	options(scipen=50)
+
+	       ## general function regrouping the different sequential algorithms     
+	  ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983â??990.
+	  ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225â??233.
+	  ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
+	  ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
+	  switch(EXPR = method,
+         	 Beaumont = .ABC_PMC_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,,...),
+	         Drovandi = .ABC_Drovandi_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
+	         Delmoral = .ABC_Delmoral_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
+	         Lenormand = .ABC_Lenormand_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...))
+
+	options(scipen=0)
+
 }
+
 
 ## FUNCTION 3: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
 ##############################################################################
-ABC_mcmc<-function(){
-	## fonction à faire qui regroupe les algos de mcmc (marjoram, marjoram modifié, wegmann)
-}
+ABC_mcmc_cluster<-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster=1,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(n_obs)) stop("'n_obs' is missing")
+    if(missing(n_between_sampling)) stop("'n_between_sampling' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))){
+        stop("Method must be Marjoram_original, Marjoram or wegmann")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
+    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
 
-## FUNCTION 4: ABC coupled to emulators (XXX)
-#############################################
-ABC_emulator<-function(){
-	## fonction à faire qui regroupe les algos de type emulator
+	options(scipen=50)
+
+	    switch(EXPR = method,
+	       Marjoram_original = .ABC_MCMC_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...),
+	       Marjoram = .ABC_MCMC2_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...),
+	       Wegmann = .ABC_MCMC3_cluster(model,prior_matrix,n_obs,summary_stat_target,n_cluster,...))
+
+	options(scipen=0)
 }
 
 ## sample usage
@@ -353,94 +490,6 @@ tab_weight_new/sum(tab_weight_new)
 tab_weight_new
 }
 
-
-## PMC ABC algorithm with multivariate normal jumps
-###################################################
-.ABC_PMC2_cluster<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,seed_count=0,inside_prior=TRUE,n_cluster=1){
-	seed_count_ini=seed_count
-	T=length(tolerance_tab)
-	nparam=dim(prior_matrix)[1]
-	nstat=length(summary_stat_target)
-	tab_unfixed_param=array(TRUE,nparam)
-	for (i in 1:nparam){
-		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
-	}
-
-## step 1
-	nb_simul_step=nb_simul
-	simul_below_tol=NULL
-	while (nb_simul_step>0){
-		if (nb_simul_step>1){
-			# classic ABC step
-			tab_ini=ABC_rejection_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
-			if (nb_simul_step==nb_simul){
-				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
-			}
-			seed_count=seed_count+nb_simul_step
-			# selection of simulations below the first tolerance level
-			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
-			if (length(simul_below_tol)>0){
-				nb_simul_step=nb_simul-dim(simul_below_tol)[1]
-			}
-		}
-		else{
-			tab_ini=ABC_rejection_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
-			seed_count=seed_count+nb_simul_step
-			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
-				simul_below_tol=rbind(simul_below_tol,tab_ini)
-				nb_simul_step=0
-			}
-		}
-	} # until we get nb_simul simulations below the first tolerance threshold
-	# initially, weights are equal
-	tab_weight=array(1/nb_simul,nb_simul)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	print("step 1 completed")
-## steps 2 to T
-	for (it in 2:T){
-		nb_simul_step=nb_simul
-		simul_below_tol2=NULL
-		while (nb_simul_step>0){
-			if (nb_simul_step>1){
-				# Sampling of parameters around the previous particles
-				tab_ini=.ABC_launcher_not_uniform_cluster(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,seed_count,inside_prior,n_cluster)
-				seed_count=seed_count+nb_simul_step
-				simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[it]))
-				if (length(simul_below_tol2)>0){
-					nb_simul_step=nb_simul-dim(simul_below_tol2)[1]
-				}
-			}
-			else{
-				tab_ini=.ABC_launcher_not_uniform_cluster(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,seed_count,inside_prior,n_cluster)
-				seed_count=seed_count+nb_simul_step
-				if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
-					simul_below_tol2=rbind(simul_below_tol2,tab_ini)
-					nb_simul_step=0
-				}
-			}
-		} # until we get nb_simul simulations below the it-th tolerance threshold
-		# update of particle weights
-		tab_weight2=.compute_weight(as.matrix(simul_below_tol2[,1:nparam][,tab_unfixed_param]),as.matrix(simul_below_tol[,1:nparam][,tab_unfixed_param]),tab_weight)
-		# update of the set of particles and of the associated weights for the next ABC sequence
-		tab_weight=tab_weight2
-		simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
-		for (i1 in 1:nb_simul){
-			for (i2 in 1:(nparam+nstat)){
-				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
-			}
-		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		print(paste("step ",it," completed",sep=""))
-	}
-cbind(tab_weight,simul_below_tol)
-}
-
-## test
-# windows
-# .ABC_PMC2_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,c(15,12),sum_stat_obs,seed_count=0,n_cluster=2)
-
 ## function to move a particle with a unidimensional normal jump
 ################################################################
 .move_particle_uni<-function(param_picked,sd_array,prior_matrix){
@@ -641,7 +690,25 @@ tab_weight_new/sum(tab_weight_new)
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC_cluster<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,seed_count=0,inside_prior=TRUE,n_cluster=1){
+.ABC_PMC_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE){
+
+    ## checking errors in the inputs
+    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+    seed_count=floor(seed_count)
+    if(!is.logical(inside_prior)) stop("'inside_prior' has to be boolean.")
+    if(!is.vector(tolerance_tab)) stop("'tolerance_tab' has to be a vector.")
+    if(tolerance_tab[1]==-1) stop("'tolerance_tab' is missing")
+    if (min(tolerance_tab)<=0) stop ("tolerance values have to be strictly positive.")
+    lll=length(tolerance_tab)
+    if (lll<=1) stop("at least two tolerance values need to be provided.")
+    if (min(tolerance_tab[1:(lll-1)]-tolerance_tab[2:lll])<=0) stop ("tolerance values have to decrease.")
+    if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+
+	print("    ------ Beaumont et al. (2009)'s algorithm ------")
+	start = Sys.time()
+
 	seed_count_ini=seed_count
 	T=length(tolerance_tab)
 	nparam=dim(prior_matrix)[1]
@@ -657,7 +724,7 @@ tab_weight_new/sum(tab_weight_new)
 	while (nb_simul_step>0){
 		if (nb_simul_step>1){
 			# classic ABC step
-			tab_ini=ABC_rejection_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
+			tab_ini=.ABC_rejection_internal_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
 			if (nb_simul_step==nb_simul){
 				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
@@ -669,7 +736,7 @@ tab_weight_new/sum(tab_weight_new)
 			}
 		}
 		else{
-			tab_ini=ABC_rejection_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
+			tab_ini=.ABC_rejection_internal_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
 			seed_count=seed_count+nb_simul_step
 			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
 				simul_below_tol=rbind(simul_below_tol,tab_ini)
@@ -719,12 +786,12 @@ tab_weight_new/sum(tab_weight_new)
 		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		print(paste("step ",it," completed",sep=""))
 	}
-cbind(tab_weight,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
 
 ## test
 # windows
-# .ABC_PMC_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,c(15,12),sum_stat_obs,seed_count=0,n_cluster=2)
+# .ABC_PMC_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,n_cluster=2,10,sum_stat_obs,tolerance_tab=c(18,15))
 
 
 ## function to select the alpha quantile closest simulations
@@ -1005,7 +1072,7 @@ res
 	simul_below_tol=NULL
 	if (first_tolerance_level_auto){
 		# classic ABC step
-		tab_ini=ABC_rejection_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
+		tab_ini=.ABC_rejection_internal_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
 		sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 		seed_count=seed_count+nb_simul_step
 		# selection of simulations below the first tolerance level
@@ -1017,7 +1084,7 @@ res
 	   while (nb_simul_step>0){
 		if (nb_simul_step>1){
 			# classic ABC step
-			tab_ini=ABC_rejection_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
+			tab_ini=.ABC_rejection_internal_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
 			if (nb_simul_step==nb_simul){
 				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
@@ -1029,7 +1096,7 @@ res
 			}
 		}
 		else{
-			tab_ini=ABC_rejection_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
+			tab_ini=.ABC_rejection_internal_cluster(model,prior_matrix,nb_simul_step,seed_count,n_cluster)
 			seed_count=seed_count+nb_simul_step
 			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<=tolerance_tab[1]){
 				simul_below_tol=rbind(simul_below_tol,tab_ini)
@@ -2022,7 +2089,7 @@ res
 	}
 
 	# initial draw of a particle
-	initial=ABC_rejection_cluster(model,prior_matrix,n_calibration,seed_count,n_cluster)
+	initial=.ABC_rejection_internal_cluster(model,prior_matrix,n_calibration,seed_count,n_cluster)
 	seed_count=seed_count+n_calibration
 	tab_param=as.matrix(initial[,1:nparam])
 	tab_simul_summary_stat=as.matrix(initial[,(nparam+1):(nparam+nstat)])
@@ -2101,7 +2168,7 @@ library(MASS)
 	}
 
 	# initial draw of a particle
-	initial=ABC_rejection_cluster(model,prior_matrix,n_calibration,seed_count,n_cluster)
+	initial=.ABC_rejection_internal_cluster(model,prior_matrix,n_calibration,seed_count,n_cluster)
 	seed_count=seed_count+n_calibration
 	tab_param=as.matrix(initial[,1:nparam])
 	tab_simul_summary_stat=as.matrix(initial[,(nparam+1):(nparam+nstat)])
