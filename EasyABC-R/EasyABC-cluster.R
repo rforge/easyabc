@@ -210,9 +210,8 @@ ABC_mcmc_cluster<-function(method,model,prior_matrix,n_obs,n_between_sampling,su
     n_cluster=floor(n_cluster)
 
 	options(scipen=50)
-
+## Note that we do not consider the original Marjoram's algortithm, which is not prone to parallel computing. (no calibration step)
 	    switch(EXPR = method,
-	       Marjoram_original = .ABC_MCMC_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...),
 	       Marjoram = .ABC_MCMC2_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...),
 	       Wegmann = .ABC_MCMC3_cluster(model,prior_matrix,n_obs,summary_stat_target,n_cluster,...))
 
@@ -746,8 +745,10 @@ tab_weight_new/sum(tab_weight_new)
 	} # until we get nb_simul simulations below the first tolerance threshold
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){
+		write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("step 1 completed")
 ## steps 2 to T
 	for (it in 2:T){
@@ -782,8 +783,10 @@ tab_weight_new/sum(tab_weight_new)
 				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
 			}
 		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		if (verbose==TRUE){
+			write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		print(paste("step ",it," completed",sep=""))
 	}
 list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
@@ -1051,7 +1054,29 @@ res
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
 ######################################################################################################################################################
-.ABC_Drovandi_cluster<-function(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,seed_count=0,n_cluster=1){
+.ABC_Drovandi_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,verbose=FALSE){
+    ## checking errors in the inputs
+    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+    seed_count=floor(seed_count)
+    if(!is.vector(tolerance_tab)) stop("'tolerance_tab' has to be a vector.")
+    if(tolerance_tab[1]==-1) stop("'tolerance_tab' is missing")
+    if (min(tolerance_tab)<=0) stop ("tolerance values have to be strictly positive.")
+    if(!is.vector(alpha)) stop("'alpha' has to be a number.")
+    if(length(alpha)>1) stop("'alpha' has to be a number.")
+    if (alpha<=0) stop ("'alpha' has to be between 0 and 1.") 
+    if (alpha>=1) stop ("'alpha' has to be between 0 and 1.") 
+    if(!is.vector(c)) stop("'c' has to be a vector.") 
+    if(length(c)>1) stop("'c' has to be a number.") 
+    if (c<=0) stop ("'c' has to be between 0 and 1.") 
+    if (c>=1) stop ("'c' has to be between 0 and 1.") 
+    if(!is.logical(first_tolerance_level_auto)) stop("'first_tolerance_level_auto' has to be boolean.")
+    if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+
+	print("    ------ Drovandi & Pettitt (2011)'s algorithm ------")
+	start = Sys.time()
+
 	seed_count_ini=seed_count
 	n_alpha=ceiling(nb_simul*alpha)
 	nparam=dim(prior_matrix)[1]
@@ -1107,8 +1132,10 @@ res
 	}
 	# initially, weights are equal
 	tab_weight=array(1/nb_simul,nb_simul)
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){
+		write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("step 1 completed")
 
 ## following steps until tol_end is reached
@@ -1158,11 +1185,15 @@ res
 			}
 		}
 		simul_below_tol=simul_below_tol3
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table(cbind(tab_weight,simul_below_tol),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
 		p_acc=max(1,i_acc)/(nb_simul_step*R) # to have a strictly positive p_acc
 		Rp=R
 		R=ceiling(log(c)/log(1-p_acc))
+		if (verbose==TRUE){
+			write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F) 
+			write.table(as.numeric(Rp),file=paste("R_step",it,sep=""),row.names=F,col.names=F,quote=F) 
+			write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(cbind(tab_weight,simul_below_tol),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
 		print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
 	}
@@ -1173,14 +1204,14 @@ res
 		simul_below_tol=.move_drovandi_diversify_cluster(nb_simul,simul_below_tol,nparam,nstat,tab_unfixed_param,prior_matrix,summary_stat_target,tol_next,seed_count,n_cluster,model,sd_simul)
 		seed_count=seed_count+nb_simul
 	}
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_end",row.names=F,col.names=F,quote=F)
-cbind(tab_weight,simul_below_tol)
+	
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
 
 
 ## test
 # windows
-# .ABC_Drovandi_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,c(8),sum_stat_obs,alpha=0.5,c=0.81,first_tolerance_level_auto=TRUE,seed_count=0,n_cluster=2)
+# .ABC_Drovandi_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,n_cluster=2,seed_count=0,c(8),alpha=0.5,c=0.81,first_tolerance_level_auto=TRUE)
 
 ## rejection algorithm with M simulations per parameter set
 ############################################################
@@ -1313,7 +1344,33 @@ tab_weight2
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target,summary_stat_target,seed_count=0,n_cluster=1){
+.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha,M,nb_threshold,tolerance_target,seed_count=0,verbose=FALSE){
+    ## checking errors in the inputs
+	    if(!is.vector(alpha)) stop("'alpha' has to be a number.")
+	    if(length(alpha)>1) stop("'alpha' has to be a number.")
+	    if (alpha<=0) stop ("'alpha' has to be between 0 and 1.")
+	    if (alpha>=1) stop ("'alpha' has to be between 0 and 1.")
+	    if(!is.vector(M)) stop("'M' has to be a number.")
+	    if(length(M)>1) stop("'M' has to be a number.")
+	    if (M<1) stop ("'M' has to be a positive integer.")
+	    M=floor(M)
+	    if(!is.vector(nb_threshold)) stop("'nb_threshold' has to be a number.")
+	    if(length(nb_threshold)>1) stop("'nb_threshold' has to be a number.")
+	    if (nb_threshold<1) stop ("'nb_threshold' has to be a positive integer.")
+	    nb_threshold=floor(nb_threshold)
+	    if(!is.vector(tolerance_target)) stop("'tolerance_target' has to be a number.")
+	    if(length(tolerance_target)>1) stop("'tolerance_target' has to be a number.")
+	    if (tolerance_target<=0) stop ("'tolerance_target' has to be positive.")
+	    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+	    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+	    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+	    seed_count=floor(seed_count)
+	    if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+	
+	        start = Sys.time()
+	        print("    ------ Delmoral et al. (2012)'s algorithm ------") 
+
+
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -1341,8 +1398,10 @@ tab_weight2
 	new_tolerance=max(particle_dist_mat)
 
 	tab_weight2=.replicate_tab(tab_weight,M)
-	write.table(cbind(tab_weight2,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){ 
+		write.table(cbind(tab_weight2,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("step 1 completed")
 
 # following steps
@@ -1514,18 +1573,21 @@ tab_weight2
 	dim(particle_dist_mat)<-c(nb_simul,M)
 	tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
 	tab_weight2=.replicate_tab(tab_weight,M)
-	write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){ 
+		write.table(as.numeric(new_tolerance),file=paste("tolerance_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+		write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
+	}
 	print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
    }	
-cbind(tab_weight2,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
 
 
 ## test
 # windows
-# .ABC_Delmoral_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,0.5,1,12,8,sum_stat_obs,seed_count=0,n_cluster=2)
-# .ABC_Delmoral_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,0.5,3,12,8,sum_stat_obs,seed_count=0,n_cluster=2)
+# .ABC_Delmoral_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,0.5,1,12,8,seed_count=0,n_cluster=2)
+# .ABC_Delmoral_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,0.5,3,12,8,seed_count=0,n_cluster=2)
 
 
 library(lhs)
@@ -1888,7 +1950,26 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=FALSE,n_cluster){
+.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=FALSE,verbose=FALSE){
+   ## checking errors in the inputs
+	    if(!is.vector(alpha)) stop("'alpha' has to be a number.")
+	    if(length(alpha)>1) stop("'alpha' has to be a number.")
+	    if (alpha<=0) stop ("'alpha' has to be between 0 and 1.")
+	    if (alpha>=1) stop ("'alpha' has to be between 0 and 1.")
+	    if(!is.vector(p_acc_min)) stop("'p_acc_min' has to be a number.")
+	    if(length(p_acc_min)>1) stop("'p_acc_min' has to be a number.")
+	    if (p_acc_min<=0) stop ("'p_acc_min' has to be between 0 and 1.")
+	    if (p_acc_min>=1) stop ("'p_acc_min' has to be between 0 and 1.")
+	    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+	    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+	    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+	    seed_count=floor(seed_count)
+	    if(!is.logical(inside_prior)) stop("'inside_prior' has to be boolean.")
+	    if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+	
+	        start = Sys.time()
+	        print("    ------ Lenormand et al. (2012)'s algorithm ------") 
+
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -1918,11 +1999,14 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 	# initially, weights are equal
 	tab_weight=array(1,n_alpha)
 
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
-	print("step 1 completed")
 	tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
 	tol_next=max(tab_dist)
+	if (verbose==TRUE){ 
+		write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+		write.table(as.numeric(tol_next),file="tolerance_step1",row.names=F,col.names=F,quote=F) 
+	}
+	print("step 1 completed")
 
 ## following steps
 	p_acc=p_acc_min+1
@@ -1959,101 +2043,20 @@ list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
 			}
 		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		if (verbose==TRUE){ 
+			write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+			write.table(as.numeric(p_acc),file=paste("p_acc_step",it,sep=""),row.names=F,col.names=F,quote=F) 
+			write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F)
+		}
 		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
 	}
-cbind(tab_weight,simul_below_tol)
+list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
 
 ## test
 # windows
 # .ABC_Lenormand_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,alpha=0.5,p_acc_min=0.5,seed_count=0,inside_prior=TRUE,n_cluster=2)
-
-
-## sequential algorithm of Lenormand et al. 2012 with multiple univariate normal jumps 
-######################################################################################
-.ABC_Lenormand2_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=FALSE,n_cluster){
-	seed_count_ini=seed_count
-	nparam=dim(prior_matrix)[1]
-	nstat=length(summary_stat_target)
-	tab_unfixed_param=array(TRUE,nparam)
-	for (i in 1:nparam){
-		tab_unfixed_param[i]=(prior_matrix[i,1]!=prior_matrix[i,2])
-	}
-	n_alpha=ceiling(nb_simul*alpha)
-	prior_density=1
-	for (i in 1:nparam){
-		if (tab_unfixed_param[i]){
-			prior_density=prior_density/(prior_matrix[i,2]-prior_matrix[i,1])
-		}
-	}
-
-## step 1
-	# ABC rejection step with LHS
-	tab_ini=.ABC_rejection_lhs_cluster(model,prior_matrix,nb_simul,tab_unfixed_param,seed_count,n_cluster)
-	seed_count=seed_count+nb_simul
-	sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
-
-	# selection of the alpha quantile closest simulations
-	simul_below_tol=NULL
-	simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,alpha))
-	simul_below_tol=simul_below_tol[1:n_alpha,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
-
-	# initially, weights are equal
-	tab_weight=array(1,n_alpha)
-
-	write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
-	print("step 1 completed")
-	tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
-	tol_next=max(tab_dist)
-
-## following steps
-	p_acc=p_acc_min+1
-	nb_simul_step=nb_simul-n_alpha
-	it=1
-	while (p_acc>p_acc_min){
-		it=it+1
-		simul_below_tol2=NULL
-		tab_inic=.ABC_launcher_not_uniformc_uni_cluster(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,seed_count,inside_prior,n_cluster)
-		tab_ini=tab_inic[[1]]
-		seed_count=seed_count+nb_simul_step
-		if (!inside_prior){
-			tab_weight2=.compute_weightb_uni(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density)
-		}
-		else{
-			tab_weight2=tab_inic[[2]]*(.compute_weightb_uni(tab_ini[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight/sum(tab_weight),prior_density))
-		}
-		simul_below_tol2=rbind(simul_below_tol,as.matrix(tab_ini))
-		tab_weight=c(tab_weight,tab_weight2)
-		tab_dist2=.compute_dist(summary_stat_target,tab_ini[,(nparam+1):(nparam+nstat)],sd_simul)
-		p_acc=length(tab_dist2[tab_dist2<=tol_next])/nb_simul_step
-		tab_dist=c(tab_dist,tab_dist2)
-		tol_next=sort(tab_dist)[n_alpha]
-		simul_below_tol2=simul_below_tol2[tab_dist<=tol_next,]
-		tab_weight=tab_weight[tab_dist<=tol_next]
-		tab_weight=tab_weight[1:n_alpha]
-		tab_dist=tab_dist[tab_dist<=tol_next]
-		tab_dist=tab_dist[1:n_alpha]
-		simul_below_tol=matrix(0,n_alpha,(nparam+nstat))
-		for (i1 in 1:n_alpha){
-			for (i2 in 1:(nparam+nstat)){
-				simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
-			}
-		}
-		write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
-		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
-	}
-cbind(tab_weight,simul_below_tol)
-}
-
-## test
-# windows
-# .ABC_Lenormand2_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,alpha=0.5,p_acc_min=0.5,seed_count=0,inside_prior=TRUE,n_cluster=2)
-
-
 
 
 ## function to move a particle with a unidimensional uniform jump
@@ -2077,7 +2080,28 @@ res
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
-.ABC_MCMC2_cluster<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,seed_count=0,n_cluster){
+.ABC_MCMC2_cluster<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,seed_count=0,verbose=FALSE){
+  ## checking errors in the inputs
+	    if(!is.vector(n_calibration)) stop("'n_calibration' has to be a number.")
+	    if(length(n_calibration)>1) stop("'n_calibration' has to be a number.")
+	    if (n_calibration<1) stop ("'n_calibration' has to be positive.")
+	    n_calibration=floor(n_calibration)
+	    if(!is.vector(tolerance_quantile)) stop("'tolerance_quantile' has to be a number.")
+	    if(length(tolerance_quantile)>1) stop("'tolerance_quantile' has to be a number.")
+	    if (tolerance_quantile<=0) stop ("'tolerance_quantile' has to be between 0 and 1.")
+	    if (tolerance_quantile>=1) stop ("'tolerance_quantile' has to be between 0 and 1.")
+	    if(!is.vector(proposal_phi)) stop("'proposal_phi' has to be a number.")
+	    if(length(proposal_phi)>1) stop("'proposal_phi' has to be a number.")
+	    if (proposal_phi<=0) stop ("'proposal_phi' has to be positive.")
+	    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+	    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+	    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+	    seed_count=floor(seed_count)
+	    if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+	
+	        start = Sys.time()
+	        print("    ------ Marjoram et al. (2003)'s algorithm with modifications drawn from Wegmann et al. (2009) related to automatization ------")
+	
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
 	nstat=length(summary_stat_target)
@@ -2111,7 +2135,9 @@ res
 	tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
 	dist_ini=simuldist[(ord_sim[n_ini])]
 	param_ini=tab_param[n_ini,]
-	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	if (verbose==TRUE){ 
+		write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+	}
 	print("initial calibration performed ")
 
 	# chain run
@@ -2139,24 +2165,67 @@ res
 		if (is%%100==0){
 			print(paste(is," ",sep=""))
 		}
-	}	
-cbind(tab_param,tab_simul_summary_stat,tab_dist)	
+	}
+       tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
+       for (i in 1:dim(tab_param)[1]){
+                for (j in 1:dim(tab_param)[2]){
+                        tab_param2[i,j]=tab_param[i,j]
+                }
+        }
+        tab_simul_summary_stat2=matrix(0,dim(tab_simul_summary_stat)[1],dim(tab_simul_summary_stat)[2])
+        for (i in 1:dim(tab_simul_summary_stat)[1]){
+                for (j in 1:dim(tab_simul_summary_stat)[2]){
+                        tab_simul_summary_stat2[i,j]=tab_simul_summary_stat[i,j]
+                }
+        }
+        tab_dist2=array(0,length(tab_dist))
+        for (i in 1:length(tab_dist)){
+                tab_dist2[i]=tab_dist[i]
+        } 		
+list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
 
 ## test
 # windows
-# .ABC_MCMC2_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,22,1,sum_stat_obs,n_calibration=10,tolerance_quantile=0.2,proposal_phi=1,n_cluster=2)
+# .ABC_MCMC2_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,22,1,sum_stat_obs,n_cluster=2,n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
 
 library(pls)
 library(MASS)
 
 ## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
-.ABC_MCMC3_cluster<-function(model,prior_matrix,n_obs,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,n_between_sampling=1,numcomp=0,seed_count=0,n_cluster){
+.ABC_MCMC3_cluster<-function(model,prior_matrix,n_obs,n_between_sampling=1,summary_stat_target,n_cluster,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,numcomp=0,seed_count=0,verbose=FALSE){
+  ## checking errors in the inputs
+	    if(!is.vector(n_calibration)) stop("'n_calibration' has to be a number.")
+	    if(length(n_calibration)>1) stop("'n_calibration' has to be a number.")
+	    if (n_calibration<1) stop ("'n_calibration' has to be positive.")
+	    n_calibration=floor(n_calibration)
+	    if(!is.vector(tolerance_quantile)) stop("'tolerance_quantile' has to be a number.")
+	    if(length(tolerance_quantile)>1) stop("'tolerance_quantile' has to be a number.")
+	    if (tolerance_quantile<=0) stop ("'tolerance_quantile' has to be between 0 and 1.")
+	    if (tolerance_quantile>=1) stop ("'tolerance_quantile' has to be between 0 and 1.")
+	    if(!is.vector(proposal_phi)) stop("'proposal_phi' has to be a number.")
+	    if(length(proposal_phi)>1) stop("'proposal_phi' has to be a number.")
+	    if (proposal_phi<=0) stop ("'proposal_phi' has to be positive.")
+	
+	    if(!is.vector(numcomp)) stop("'numcomp' has to be a number.")
+	    if(length(numcomp)>1) stop("'numcomp' has to be a number.")
+	    if (numcomp<0) stop ("'numcomp' has to be positive.")
+	    if (numcomp>length(summary_stat_target)) stop ("'numcomp' has to smaller or equal to the number of summary statistics.")
+	    numcomp=floor(numcomp)
+	    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+	    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+	    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+	    seed_count=floor(seed_count)
+	    if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+	
+	        start = Sys.time()
+	        print("    ------ Wegmann et al. (2009)'s algorithm ------")
+	
 ##AM1
 	seed_count_ini=seed_count
 	nparam=dim(prior_matrix)[1]
-	nstat=length(summary_stat_targ)
+	nstat=length(summary_stat_target)
 	if (numcomp==0){
 		numcomp=nstat
 	}
@@ -2190,12 +2259,12 @@ library(MASS)
 	stat=tab_simul_summary_stat
 	#print("stat 1 ")
 	#print(stat)
-	summary_stat_target=summary_stat_targ
+	summary_stat_targ=summary_stat_target
 	for (i in 1:nstat){
 		myMax<-c(myMax,max(stat[,i]))
 		myMin<-c(myMin,min(stat[,i]))
 		stat[,i]=1+(stat[,i]-myMin[i])/(myMax[i]-myMin[i])
-		summary_stat_target[i]=1+(summary_stat_target[i]-myMin[i])/(myMax[i]-myMin[i])
+		summary_stat_targ[i]=1+(summary_stat_targ[i]-myMin[i])/(myMax[i]-myMin[i])
 	}
 	#print("stat 2 ")
 	#print(stat)
@@ -2224,11 +2293,11 @@ library(MASS)
 	myBCSDs<-c()
 	for(i in 1:nstat){
 		stat[,i]<-((stat[,i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)))
-		summary_stat_target[i]<-((summary_stat_target[i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)))
+		summary_stat_targ[i]<-((summary_stat_targ[i]^lambda[i]) - 1)/(lambda[i]*(myGM[i]^(lambda[i]-1)))
 		myBCSDs<-c(myBCSDs, sd(stat[,i]))
 		myBCMeans<-c(myBCMeans, mean(stat[,i]))
 		stat[,i]<-(stat[,i]-myBCMeans[i])/myBCSDs[i]
-		summary_stat_target[i]<-(summary_stat_target[i]-myBCMeans[i])/myBCSDs[i]
+		summary_stat_targ[i]<-(summary_stat_targ[i]-myBCMeans[i])/myBCSDs[i]
 	}
 	#perform pls
 	myPlsr<-plsr(as.matrix(sparam)~as.matrix(stat), scale=F,ncomp=numcomp,validation='LOO')
@@ -2239,9 +2308,9 @@ library(MASS)
 
 ## AM3
 	#print("AM3 ")
-	summary_stat_target=t(pls_transformation %*% as.vector(summary_stat_target))
+	summary_stat_targ=t(pls_transformation %*% as.vector(summary_stat_targ))
 	stat_pls=t(pls_transformation %*% t(stat))
-	simuldist=.compute_dist(summary_stat_target,stat_pls,rep(1,numcomp))
+	simuldist=.compute_dist(summary_stat_targ,stat_pls,rep(1,numcomp))
 
 ## AM4
 	#print("AM4 ")
@@ -2285,7 +2354,7 @@ library(MASS)
 				simul_summary_stat[ii]<-(simul_summary_stat[ii]-myBCMeans[ii])/myBCSDs[ii]
 			}
 			simul_summary_stat=t(pls_transformation %*% t(simul_summary_stat))
-			dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),rep(1,numcomp))
+			dist_simul=.compute_dist_single(summary_stat_targ,as.numeric(simul_summary_stat),rep(1,numcomp))
 ## AM8-9
 	#print("AM8-9 ")
 			if (dist_simul<dist_max){
@@ -2302,9 +2371,26 @@ library(MASS)
 			print(paste(is," ",sep=""))
 		}
 	}	
-cbind(tab_param,tab_simul_summary_stat,tab_dist)	
+        tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
+        for (i in 1:dim(tab_param)[1]){
+                for (j in 1:dim(tab_param)[2]){
+                        tab_param2[i,j]=tab_param[i,j]
+                }
+        }
+        tab_simul_summary_stat2=matrix(0,dim(tab_simul_summary_stat)[1],dim(tab_simul_summary_stat)[2])
+        for (i in 1:dim(tab_simul_summary_stat)[1]){
+               for (j in 1:dim(tab_simul_summary_stat)[2]){
+                        tab_simul_summary_stat2[i,j]=tab_simul_summary_stat[i,j]
+                }
+        }
+        tab_dist2=array(0,length(tab_dist))
+        for (i in 1:length(tab_dist)){
+                tab_dist2[i]=tab_dist[i]
+      	}
+list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
 
 ## test
 # windows
-# .ABC_MCMC3_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,22,sum_stat_obs,n_calibration=10,tolerance_quantile=0.2,proposal_phi=1,1,n_cluster=2)
+# .ABC_MCMC3_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,22,1,sum_stat_obs,n_calibration=10,tolerance_quantile=0.2,proposal_phi=1,n_cluster=2)
+
