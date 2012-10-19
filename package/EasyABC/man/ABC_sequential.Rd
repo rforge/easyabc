@@ -9,8 +9,8 @@ ABC_sequential(functionName, model, prior_matrix, nb_simul, tolerance_tab, summa
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{functionName}{
-%%     ~~Describe \code{functionName} here~~
+  \item{method}{
+%%     ~~Describe \code{method} here~~
 }
   \item{model}{
 %%     ~~Describe \code{model} here~~
@@ -27,14 +27,8 @@ ABC_sequential(functionName, model, prior_matrix, nb_simul, tolerance_tab, summa
   \item{summary_stat_target}{
 %%     ~~Describe \code{summary_stat_target} here~~
 }
-  \item{use_seed}{
-%%     ~~Describe \code{use_seed} here~~
-}
-  \item{seed_count}{
-%%     ~~Describe \code{seed_count} here~~
-}
-  \item{inside_prior}{
-%%     ~~Describe \code{inside_prior} here~~
+  \item{\dots}{
+%%     ~~Describe \code{\dots} here~~
 }
 }
 \details{
@@ -66,14 +60,45 @@ ABC_sequential(functionName, model, prior_matrix, nb_simul, tolerance_tab, summa
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function(functionName,model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE){
-	## fonction ? faire qui regroupe les algos sequentiels (PMC, drovandi, delmoral, maxime)
-  switch(EXPR = functionName, 
-         PMC = .ABC_PMC(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed,seed_count,inside_prior),
-         PMC2 = .ABC_PMC2(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,use_seed,seed_count,inside_prior),
-         Drovandi = .ABC_Drovandi(model,prior_matrix,nb_simul,tolerance_tab,summary_stat_target,alpha,c,first_tolerance_level_auto,use_seed,seed_count),
-         Delmoral = .ABC_Delmoral(model,prior_matrix,nb_simul,alpha,M,nb_threshold,tolerance_target,summary_stat_target,use_seed,seed_count),
-         Lenormand = .ABC_Lenormand(model,prior_matrix,nb_simul,summary_stat_target,alpha,p_acc_min,use_seed,seed_count,inside_prior))
+function (method, model, prior_matrix, nb_simul, summary_stat_target, 
+    ...) 
+{
+    if (missing(method)) 
+        stop("'method' is missing")
+    if (missing(model)) 
+        stop("'model' is missing")
+    if (missing(prior_matrix)) 
+        stop("'prior_matrix' is missing")
+    if (missing(nb_simul)) 
+        stop("'nb_simul' is missing")
+    if (missing(summary_stat_target)) 
+        stop("'summary_stat_target' is missing")
+    if (!any(method == c("Beaumont", "Drovandi", "Delmoral", 
+        "Lenormand"))) {
+        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
+    }
+    if (!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) 
+        stop("'prior_matrix' has to be a matrix or data.frame.")
+    if (is.data.frame(prior_matrix)) 
+        prior_matrix <- as.matrix(prior_matrix)
+    if (dim(prior_matrix)[2] != 2) 
+        stop("'prior_matrix' must have two columns.")
+    if (!is.vector(nb_simul)) 
+        stop("'nb_simul' has to be a number.")
+    if (length(nb_simul) > 1) 
+        stop("'nb_simul' has to be a number.")
+    if (nb_simul < 1) 
+        stop("'nb_simul' must be a number larger than 1.")
+    nb_simul = floor(nb_simul)
+    if (!is.vector(summary_stat_target)) 
+        stop("'summary_stat_target' has to be a vector.")
+    options(scipen = 50)
+    switch(EXPR = method, Beaumont = .ABC_PMC(model, prior_matrix, 
+        nb_simul, summary_stat_target, ...), Drovandi = .ABC_Drovandi(model, 
+        prior_matrix, nb_simul, summary_stat_target, ...), Delmoral = .ABC_Delmoral(model, 
+        prior_matrix, nb_simul, summary_stat_target, ...), Lenormand = .ABC_Lenormand(model, 
+        prior_matrix, nb_simul, summary_stat_target, ...))
+    options(scipen = 0)
   }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

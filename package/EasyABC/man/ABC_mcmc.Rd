@@ -6,9 +6,32 @@
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
 \usage{
-ABC_mcmc()
+ABC_mcmc(method, model, prior_matrix, n_obs, n_between_sampling, summary_stat_target, ...)
 }
 %- maybe also 'usage' for other objects documented here.
+\arguments{
+  \item{method}{
+%%     ~~Describe \code{method} here~~
+}
+  \item{model}{
+%%     ~~Describe \code{model} here~~
+}
+  \item{prior_matrix}{
+%%     ~~Describe \code{prior_matrix} here~~
+}
+  \item{n_obs}{
+%%     ~~Describe \code{n_obs} here~~
+}
+  \item{n_between_sampling}{
+%%     ~~Describe \code{n_between_sampling} here~~
+}
+  \item{summary_stat_target}{
+%%     ~~Describe \code{summary_stat_target} here~~
+}
+  \item{\dots}{
+%%     ~~Describe \code{\dots} here~~
+}
+}
 \details{
 %%  ~~ If necessary, more details than the description above ~~
 }
@@ -40,8 +63,46 @@ ABC_mcmc()
 ##--	or do  help(data=index)  for the standard data sets.
 
 ## The function is currently defined as
-function(){
-	## fonction ? faire qui regroupe les algos de mcmc (marjoram, marjoram modifi?, wegmann)
+function (method, model, prior_matrix, n_obs, n_between_sampling, 
+    summary_stat_target, ...) 
+{
+    if (missing(method)) 
+        stop("'method' is missing")
+    if (missing(model)) 
+        stop("'model' is missing")
+    if (missing(prior_matrix)) 
+        stop("'prior_matrix' is missing")
+    if (missing(n_obs)) 
+        stop("'n_obs' is missing")
+    if (missing(n_between_sampling)) 
+        stop("'n_between_sampling' is missing")
+    if (missing(summary_stat_target)) 
+        stop("'summary_stat_target' is missing")
+    if (!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))) {
+        stop("Method must be Marjoram_original, Marjoram or wegmann")
+    }
+    if (!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) 
+        stop("'prior_matrix' has to be a matrix or data.frame.")
+    if (is.data.frame(prior_matrix)) 
+        prior_matrix <- as.matrix(prior_matrix)
+    if (dim(prior_matrix)[2] != 2) 
+        stop("'prior_matrix' must have two columns.")
+    if (!is.vector(nb_simul)) 
+        stop("'nb_simul' has to be a number.")
+    if (length(nb_simul) > 1) 
+        stop("'nb_simul' has to be a number.")
+    if (nb_simul < 1) 
+        stop("'nb_simul' must be a number larger than 1.")
+    nb_simul = floor(nb_simul)
+    if (!is.vector(summary_stat_target)) 
+        stop("'summary_stat_target' has to be a vector.")
+    options(scipen = 50)
+    switch(EXPR = method, Marjoram_original = .ABC_MCMC(model, 
+        prior_matrix, n_obs, n_between_sampling, summary_stat_target, 
+        ...), Marjoram = .ABC_MCMC2(model, prior_matrix, n_obs, 
+        n_between_sampling, summary_stat_target, ...), Wegmann = .ABC_MCMC3(model, 
+        prior_matrix, n_obs, summary_stat_target, ...))
+    options(scipen = 0)
   }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
