@@ -12,8 +12,8 @@ More about what it does (maybe more than one line)
 Package: EasyABC
 Type: Package
 Version: 1.0
-Date: 2012-09-27
-License: GPL-2
+Date: 2012-10-15
+License: GPL-3
 LazyLoad: yes
 }
 ~~ An overview of how to use the package, including the most important ~~
@@ -23,7 +23,7 @@ LazyLoad: yes
 \references{
 in preparation
 }
-\keyword{ package }
+\keyword{ package, abc }
 \seealso{
 ~~ Optional links to other man pages, e.g. ~~
 ~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~

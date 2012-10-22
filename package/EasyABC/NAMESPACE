@@ -1,0 +1,5 @@
+#exportPattern("^[[:alpha:]]+")
+export(trait_model)
+useDynLib(EasyABC)
+
+export(ABC_rejection)

@@ -25,7 +25,7 @@ prior_matrix
 
 
 initAndClear <- function(path,...){
-model=.binary_model("../../model/parthy/parthy")
+model=trait_model
 sourceDir(path)
 prior_matrix=c(1,1,-1,1000,10000,100,100,1,1000,10000)
 dim(prior_matrix)<-c(5,2)
