@@ -108,36 +108,50 @@ test
 res
 }
 
-.ABC_rejection_internal<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
-	options(scipen=50)
-	tab_simul_summarystat=NULL
-	tab_param=NULL
-	
-	for (i in 1:nb_simul){
-		l=dim(prior_matrix)[1]
-		param=array(0,l)
-		for (j in 1:l){
-			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
-		}
-		if (use_seed) {
-			param=c((seed_count+i),param)
-		}
-		simul_summarystat=model(param)
-		tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
-		if (use_seed) {
-			tab_param=rbind(tab_param,param[2:(l+1)])
-		}
-		else{
-			tab_param=rbind(tab_param,param)
-		}
+.ABC_rejection_internal<-function(model, prior_matrix, nb_simul, use_seed=TRUE, seed_count=0, progressbarwidth=0){
+    options(scipen=50)
+    tab_simul_summarystat=NULL
+    tab_param=NULL
+    pb = NULL
+    if (progressbarwidth>0) {
+	pb = .progressBar(width=progressbarwidth)
+    }
+    start = Sys.time()
+    for (i in 1:nb_simul){
+	l=dim(prior_matrix)[1]
+	param=array(0,l)
+	for (j in 1:l){
+	    param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
 	}
-	options(scipen=0)
-	cbind(tab_param,tab_simul_summarystat)
+	if (use_seed) {
+	    param=c((seed_count+i),param)
+	}
+	simul_summarystat=model(param)
+	tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+	if (use_seed) {
+	    tab_param=rbind(tab_param,param[2:(l+1)])
+	} else {
+	    tab_param=rbind(tab_param,param)
+	}
+	if (!is.null(pb)) {
+	    duration = difftime(Sys.time(), start, unit="secs")
+	    text = "";
+	    if (i == nb_simul) {
+		text = paste("Completed  in", format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+	    } 
+	    else {
+		text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
+	    }
+	    .updateProgressBar(pb, i/nb_simul, text)
+	}
+    }
+    if (!is.null(pb)) {
+      close(pb)
+    }
+    options(scipen=0)
+
+list(param=tab_param, summarystat=tab_simul_summarystat, start=start)
 }
-
-
-
-
 
 ## function to compute particle weights
 #######################################  
@@ -305,11 +319,11 @@ tab_weight_new/sum(tab_weight_new)
 			# classic ABC step
 			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
-				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+				sd_simul=sapply(as.data.frame(tab_ini$summarystat),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
-			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
+			simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini$param,tab_ini$summarystat,sd_simul,tolerance_tab[1]))
 			if (length(simul_below_tol)>0){
 				nb_simul_step=nb_simul-dim(simul_below_tol)[1]
 			}
@@ -317,8 +331,8 @@ tab_weight_new/sum(tab_weight_new)
 		else{
 			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			seed_count=seed_count+nb_simul_step
-			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
-				simul_below_tol=rbind(simul_below_tol,tab_ini)
+			if (.compute_dist_single(summary_stat_target,tab_ini$summarystat,sd_simul)<tolerance_tab[1]){
+				simul_below_tol=rbind(simul_below_tol,cbind(tab_ini$param, tab_ini$summarystat))
 				nb_simul_step=0
 			}
 		}
@@ -464,10 +478,10 @@ res
 	if (first_tolerance_level_auto){
 		# classic ABC step
 		tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
-		sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+		sd_simul=sapply(as.data.frame(tab_ini$summarystat),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 		seed_count=seed_count+nb_simul_step
 		# selection of simulations below the first tolerance level
-		simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,(1-alpha)))
+		simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini$param,tab_ini$summarystat,sd_simul,(1-alpha)))
 		simul_below_tol=simul_below_tol[1:nb_simul,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
 	}
 	else{
@@ -477,11 +491,11 @@ res
 			# classic ABC step
 			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			if (nb_simul_step==nb_simul){
-				sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+				sd_simul=sapply(as.data.frame(tab_ini$summarystat),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
 			}
 			seed_count=seed_count+nb_simul_step
 			# selection of simulations below the first tolerance level
-			simul_below_tol=rbind(simul_below_tol,.selec_simulb(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1])) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+			simul_below_tol=rbind(simul_below_tol,.selec_simulb(summary_stat_target,tab_ini$param,tab_ini$summarystat,sd_simul,tolerance_tab[1])) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
 			if (length(simul_below_tol)>0){
 				nb_simul_step=nb_simul-dim(simul_below_tol)[1]
 			}
@@ -489,8 +503,8 @@ res
 		else{
 			tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
 			seed_count=seed_count+nb_simul_step
-			if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<=tolerance_tab[1]){
-				simul_below_tol=rbind(simul_below_tol,tab_ini)
+			if (.compute_dist_single(summary_stat_target,tab_ini$summarystat,sd_simul)<=tolerance_tab[1]){
+				simul_below_tol=rbind(simul_below_tol,cbind(tab_ini$param, tab_ini$summarystat))
 				nb_simul_step=0
 			}
 		}
