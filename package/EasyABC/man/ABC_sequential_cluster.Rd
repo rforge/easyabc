@@ -1,9 +1,7 @@
 \name{ABC_sequential_cluster}
 \alias{ABC_sequential_cluster}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{
-%%  ~~function to do ... ~~
-}
+\title{Sequential ABC methods cluster-mode}
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }

@@ -1,9 +1,7 @@
 \name{ABC_mcmc_cluster}
 \alias{ABC_mcmc_cluster}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{
-%%  ~~function to do ... ~~
-}
+\title{ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009) cluster-mode}
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }

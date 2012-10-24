@@ -1,9 +1,7 @@
 \name{ABC_rejection_cluster}
 \alias{ABC_rejection_cluster}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{
-%%  ~~function to do ... ~~
-}
+\title{ Brute-force ABC (Pritchard et al. 1999) cluster-mode}
 \description{
 %%  ~~ A concise (1-5 lines) description of what the function does. ~~
 }
