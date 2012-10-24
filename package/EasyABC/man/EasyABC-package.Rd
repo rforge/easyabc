@@ -2,41 +2,34 @@
 \alias{EasyABC-package}
 \alias{EasyABC}
 \docType{package}
-\title{
-What the package does (short line)
-~~ package title ~~
-}
+\title{A package for ABC computation}
 \description{
 More about what it does (maybe more than one line)
 ~~ A concise (1-5 lines) description of the package ~~
 }
 \details{
 \tabular{ll}{
-Package: \tab EasyABC\cr
-Type: \tab Package\cr
-Version: \tab 1.0\cr
-Date: \tab 2012-10-23\cr
-License: \tab What license is it under?\cr
+Package: EasyABC
+Type: Package
+Version: 1.0
+Date: 2012-10-15
+License: GPL-3
+LazyLoad: yes
 }
 ~~ An overview of how to use the package, including the most important ~~
 ~~ functions ~~
 }
-\author{
-Who wrote it
-
-Maintainer: Who to complain to <yourfault@somewhere.net>
-~~ The author and/or maintainer of the package ~~
-}
+\author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
 \references{
-~~ Literature or other references for background information ~~
+in preparation
 }
-~~ Optionally other standard keywords, one per line, from file KEYWORDS in ~~
-~~ the R documentation directory ~~
-\keyword{ package }
+\keyword{ package, abc }
 \seealso{
 ~~ Optional links to other man pages, e.g. ~~
 ~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
 }
 \examples{
-~~ simple examples of the most important functions ~~
+prior_matrix=c(1,1,-1,1000,10000,100,100,1,1000,10000)
+dim(prior_matrix)<-c(5,2)
+prior_matrix
 }
