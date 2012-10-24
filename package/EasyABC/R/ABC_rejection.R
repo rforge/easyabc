@@ -18,7 +18,7 @@ ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0){
     nb_simul=floor(nb_simul)
     seed_count=floor(seed_count)
 
-    rejection = .ABC_rejection_internal2(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0, progressbarwidth=50)
+    rejection = .ABC_rejection_internal(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0, progressbarwidth=50)
 
     sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
     
