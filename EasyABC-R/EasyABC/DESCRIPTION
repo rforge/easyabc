@@ -1,7 +1,7 @@
 Package: EasyABC
 Type: Package
 Title: What the package does (short line)
-Version: 1.0
+Version: 0.99
 Date: 2012-10-12
 Author: Franck Jabot, Thierry Faure, Nicolas Dumoullin
 Maintainer: Nicolas Dumoulin <nicolas.dumoulin@irstea.fr>

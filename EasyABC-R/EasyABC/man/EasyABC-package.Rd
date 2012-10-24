@@ -11,7 +11,7 @@ More about what it does (maybe more than one line)
 \tabular{ll}{
 Package: EasyABC
 Type: Package
-Version: 1.0
+Version: 0.99
 Date: 2012-10-15
 License: GPL-3
 LazyLoad: yes
