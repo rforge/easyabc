@@ -5,34 +5,20 @@
 \description{Sequential ABC methods 
 It contains algorithms from Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)}
 \usage{
-ABC_sequential(functionName, model, prior_matrix, nb_simul, tolerance_tab, summary_stat_target, use_seed = TRUE, seed_count = 0, inside_prior = TRUE)
+ABC_sequential(method, model, prior_matrix, nb_simul, tolerance_tab, summary_stat_target, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{method}{
-%%     ~~Describe \code{method} here~~
-}
-  \item{model}{
-%%     ~~Describe \code{model} here~~
-}
-  \item{prior_matrix}{
-%%     ~~Describe \code{prior_matrix} here~~
-}
-  \item{nb_simul}{
-%%     ~~Describe \code{nb_simul} here~~
-}
-  \item{tolerance_tab}{
-%%     ~~Describe \code{tolerance_tab} here~~
-}
-  \item{summary_stat_target}{
-%%     ~~Describe \code{summary_stat_target} here~~
-}
-  \item{\dots}{
-%%     ~~Describe \code{\dots} here~~
-}
+  \item{method}{The choosen method for performing the sequential ABC}
+  \item{model}{The function to invoke for running the model}
+  \item{prior_matrix}{A matrix containing the range of the prior distribution of the parameters}
+  \item{nb_simul}{The number of simulations}
+  \item{tolerance_tab}{An array containing the tolerance levels}
+  \item{summary_stat_target}{An array containing the summary statistics of targeted (observed) data}
+  \item{\dots}{The additional arguments depending of the choosen method}
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+If a blank string is given as \code{method}, the list of available methods will be printed.
 }
 \value{
 %%  ~Describe the value returned
@@ -55,53 +41,13 @@ ABC_sequential(functionName, model, prior_matrix, nb_simul, tolerance_tab, summa
 %% ~~objects to See Also as \code{\link{help}}, ~~~
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
-
-## The function is currently defined as
-function (method, model, prior_matrix, nb_simul, summary_stat_target, 
-    ...) 
-{
-    if (missing(method)) 
-        stop("'method' is missing")
-    if (missing(model)) 
-        stop("'model' is missing")
-    if (missing(prior_matrix)) 
-        stop("'prior_matrix' is missing")
-    if (missing(nb_simul)) 
-        stop("'nb_simul' is missing")
-    if (missing(summary_stat_target)) 
-        stop("'summary_stat_target' is missing")
-    if (!any(method == c("Beaumont", "Drovandi", "Delmoral", 
-        "Lenormand"))) {
-        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
-    }
-    if (!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) 
-        stop("'prior_matrix' has to be a matrix or data.frame.")
-    if (is.data.frame(prior_matrix)) 
-        prior_matrix <- as.matrix(prior_matrix)
-    if (dim(prior_matrix)[2] != 2) 
-        stop("'prior_matrix' must have two columns.")
-    if (!is.vector(nb_simul)) 
-        stop("'nb_simul' has to be a number.")
-    if (length(nb_simul) > 1) 
-        stop("'nb_simul' has to be a number.")
-    if (nb_simul < 1) 
-        stop("'nb_simul' must be a number larger than 1.")
-    nb_simul = floor(nb_simul)
-    if (!is.vector(summary_stat_target)) 
-        stop("'summary_stat_target' has to be a vector.")
-    options(scipen = 50)
-    switch(EXPR = method, Beaumont = .ABC_PMC(model, prior_matrix, 
-        nb_simul, summary_stat_target, ...), Drovandi = .ABC_Drovandi(model, 
-        prior_matrix, nb_simul, summary_stat_target, ...), Delmoral = .ABC_Delmoral(model, 
-        prior_matrix, nb_simul, summary_stat_target, ...), Lenormand = .ABC_Lenormand(model, 
-        prior_matrix, nb_simul, summary_stat_target, ...))
-    options(scipen = 0)
-  }
+priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
+dim(priormatrix)<-c(6,2)
+sum_stat_obs=c(100,2.5,20,30000)
+ABC_sequential(method="Beaumont",model=trait_model,prior_matrix=priormatrix,
+nb_simul=10,summary_stat_target=sum_stat_obs,tolerance_tab=c(8,5))
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{abc}
+
