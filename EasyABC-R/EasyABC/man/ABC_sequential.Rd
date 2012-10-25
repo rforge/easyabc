@@ -14,14 +14,18 @@ ABC_sequential(method, model, prior_matrix, nb_simul, tolerance_tab, summary_sta
   \item{prior_matrix}{A matrix containing the range of the prior distribution of the parameters}
   \item{nb_simul}{The number of simulations to perform}
   \item{summary_stat_target}{An array containing the summary statistics of targeted (observed) data}
-  \item{\dots}{The additional arguments depending of the choosen method
-  \item{use_seed }{use of the seed value. Default value TRUE}
-  \item{seed_count }{initial value for seed number. Default value 0}
-  \item{inside_prior }{Default value TRUE}
-  \item{tolerance_tab}{An array containing the tolerance levels. Default value -1}
-  \item{verbose }{for debugging purpose. default value FALSE}
-
-  use_seed=TRUE,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE
+  \item{use_seed}{use of the seed value. Default value TRUE}
+  \item{seed_count}{initial value for seed number. Default value 0}
+  \item{verbose}{for debugging purpose. default value FALSE}
+  \item{inside_prior}{Be carefull this parameter is only used by Beaumont and Lenormand algorithms.Default value TRUE for Beaumont and FALSE for Lenormand.}
+  \item{tolerance_tab}{An array containing the tolerance levels. Default value -1. Be carefull this parameter is only used by Beaumont and Drovandi algorithms.}
+  \item{alpha}{Default value 0.5. Be carefull this parameter is only used by Drovandi, Delmoral and Lenormand algorithms.}
+  \item{c}{Default value 0.01. Be carefull this parameter is only used by Drovandi algorithm.}
+  \item{first_tolerance_level_auto}{Default value TRUE. Be carefull this parameter is only used by Drovandi algorithm.}
+  \item{M}{Be carefull this parameter is only used by Delmoral algorithm.}
+  \item{nb_threshold}{Be carefull this parameter is only used by Delmoral algorithm.}
+  \item{tolerance_target}{Default value 1. Be carefull this parameter is only used by Delmoral algorithm.}
+  \item{p_acc_min}{Default value 0.05. Be carefull this parameter is only used by Lenormand algorithm.}
 }
 \details{
 If a blank string is given as \code{method}, the list of available methods will be printed.
