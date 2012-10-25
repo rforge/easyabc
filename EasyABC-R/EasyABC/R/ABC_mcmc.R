@@ -14,10 +14,6 @@ ABC_mcmc <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_s
     if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
     if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
     if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
-    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
-    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
-    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
-    nb_simul=floor(nb_simul)
     if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
 
 	options(scipen=50)
