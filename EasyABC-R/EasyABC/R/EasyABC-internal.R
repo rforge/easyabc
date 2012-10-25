@@ -750,7 +750,7 @@ tab_weight2
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha,M,nb_threshold,tolerance_target=1,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
+.ABC_Delmoral<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,M=1,nb_threshold=nb_simul,tolerance_target=1,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
 	 
     ## checking errors in the inputs
     if(!is.vector(alpha)) stop("'alpha' has to be a number.")
