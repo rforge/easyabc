@@ -21,7 +21,7 @@ ABC_mcmc <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_s
 	    return(switch(EXPR = method,
 	       Marjoram_original = .ABC_MCMC(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...),
 	       Marjoram = .ABC_MCMC2(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...),
-	       Wegmann = .ABC_MCMC3(model,prior_matrix,n_obs,summary_stat_target,...)))
+	       Wegmann = .ABC_MCMC3(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...)))
 
 	options(scipen=0)
 }
