@@ -1,67 +1,137 @@
 \name{ABC_sequential}
 \alias{ABC_sequential}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{Sequential ABC methods}
-\description{Sequential ABC methods 
-It contains algorithms from Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)}
-\usage{
-ABC_sequential(method, model, prior_matrix, nb_simul, tolerance_tab, summary_stat_target, ...)
+\title{
+	Sequential sampling schemes for ABC}
+\description{
+	This function implements four different algorithms to perform sequential sampling schemes for ABC.
+	Sequential sampling schemes consist in sampling initially model parameters in the prior distribution, just like in a standard rejection-based ABC, in order to obtain a rough posterior distribution of parameter values, and in subsequently sampling close to this rough posterior distribution to refine it.
+	Sequential sampling schemes have been shown to be more efficient than standard rejection-based procedures.
 }
-%- maybe also 'usage' for other objects documented here.
+\usage{
+	ABC_sequential(method, model, prior_matrix, nb_simul, tolerance_tab, summary_stat_target, ...)
+}
+
 \arguments{
-  \item{method}{The choosen method for performing the sequential ABC. It can take the following character values:"Beaumont", "Drovandi", "Delmoral", "Lenormand"}
-  \item{model}{The function to invoke for running the model}
-  \item{prior_matrix}{A matrix containing the range of the prior distribution of the parameters}
-  \item{nb_simul}{The number of simulations to perform}
-  \item{summary_stat_target}{An array containing the summary statistics of targeted (observed) data}
-  \item{use_seed}{use of the seed value. Default value TRUE}
-  \item{seed_count}{initial value for seed number. Default value 0}
-  \item{verbose}{for debugging purpose. default value FALSE}
-  \item{inside_prior}{Be carefull this parameter is only used by Beaumont and Lenormand algorithms.Default value TRUE for Beaumont and FALSE for Lenormand.}
-  \item{tolerance_tab}{An array containing the tolerance levels. Default value -1. Be carefull this parameter is only used by Beaumont and Drovandi algorithms.}
-  \item{alpha}{Default value 0.5. Be carefull this parameter is only used by Drovandi, Delmoral and Lenormand algorithms.}
-  \item{c}{Default value 0.01. Be carefull this parameter is only used by Drovandi algorithm.}
-  \item{first_tolerance_level_auto}{Default value TRUE. Be carefull this parameter is only used by Drovandi algorithm.}
-  \item{M}{Be carefull this parameter is only used by Delmoral algorithm.}
-  \item{nb_threshold}{Be carefull this parameter is only used by Delmoral algorithm.}
-  \item{tolerance_target}{Default value 1. Be carefull this parameter is only used by Delmoral algorithm.}
-  \item{p_acc_min}{Default value 0.05. Be carefull this parameter is only used by Lenormand algorithm.}
+  \item{method}{
+	a character string indicating the sequential algorithm to be used. Possible values are \code{"Beaumont"}, \code{"Drovandi"}, \code{"Delmoral"} and \code{"Lenormand"}.
+  \item{model}{
+    	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
+	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
+  \item{prior_matrix}{
+    	a matrix or data frame containing the ranges of the prior distribution for each of the \eqn{p} model parameters. It has \eqn{p} lines and 2 columns. The first (second) column contains the lower (upper) bound of the prior distribution of the \eqn{p} parameters.}
+  \item{nb_simul}{
+    	a positive integer equal to the desired number of simulations of the model below the tolerance threshold when \code{method} is \code{"Beaumont"}, \code{"Drovandi"} and \code{"Delmoral"}.
+	When \code{method} is \code{"Lenormand"}, the number of simulations below the tolerance threshold is equal to \code{nb_simul * alpha}. See the package's vignette and Lenormand et al. (2012) for details.}
+  \item{summary_stat_target}{
+	a vector containing the targeted (observed) summary statistics.}
+  \item{use_seed}{
+    	logical. If \code{TRUE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
+    	The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
+    	If \code{FALSE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
+  \item{seed_count}{
+    	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
+  \item{inside_prior}{
+	logical used when \code{method} is \code{"Beaumont"} or \code{"Lenormand"}. \code{TRUE} by default.
+	If \code{FALSE}, parameter sampling is not restricted to the initial ranges of the prior distribution during the subsequent algorithm steps.}
+  \item{tolerance_tab}{
+	a vector containing the sequence of tolerance thresholds when \code{method} is \code{"Beaumont"}, or the targeted final tolerance threshold when \code{method} is \code{"Drovandi"}.}
+  \item{alpha}{
+	a positive number between 0 and 1 (strictly) used when \code{method} is \code{"Drovandi"}, \code{"Delmoral"} or \code{"Lenormand"}.
+	\code{alpha} is the proportion of particles rejected at each step in the algorithm \code{"Drovandi"}.
+	This is the proportion of particles kept at each step in the algorithms \code{"Delmoral"} and \code{"Lenormand"}.
+	Default values are 0.5 when \code{method} is \code{"Drovandi"} or \code{"Lenormand"} and 0.9 for \code{"Delmoral"}.
+	See the package's vignette for details.}
+  \item{c}{
+	a positive number between 0 and 1 (strictly) used when \code{method} is \code{"Drovandi"}.
+	This is the expected proportion of particles which are going to be duplicated at each step.
+	Default value is 0.01.
+	See the package's vignette and Drovandi and Pettitt (2011) for details.}
+  \item{first_tolerance_level_auto}{
+	logical used when \code{method} is \code{"Drovandi"}.
+	Default value is \code{TRUE}. In this case, the first tolerance threshold is determined by the algorithm, by taking the 1-\code{alpha} quantile of the distances between the simulated and targeted summary statistics.
+	If \code{FALSE}, the initial tolerance threshold for the first step has to be provided as the first element of the vector \code{tolerance_tab}. In this case, the targeted final tolerance threshold is the second element of \code{tolerance_tab}.}
+  \item{M}{
+	a positive integer used when \code{method} is \code{"Delmoral"}.
+	This is the number of \code{model} simulations performed for each parameter set.
+	Default value is 1. See the package's vignette and Del Moral et al. (2012) for details.}
+  \item{nb_threshold}{
+	a positive integer used when \code{method} is \code{"Delmoral"}.
+	This is the minimal effective sample size below which a resampling step is launched. See the package's vignette and Del Moral et al. (2012) for details.}
+  \item{tolerance_target}{
+	a positive number used when \code{method} is \code{"Delmoral"}.
+	This is the targeted final tolerance threshold.}
+  \item{p_acc_min}{
+	a positive number between 0 and 1 (strictly) used when \code{method} is \code{"Lenormand"}.
+	This is the stopping criterion of the algorithm: a small number ensures a better convergence of the algorithm, but at a cost in computing time.
+	Default value is 0.05. See the package's vignette and Lenormand et al. (2012) for details.}
+  \item{verbose}{
+	logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_sequential} writes in the current directory intermediary results at the end of each step of the algorithm.}
 }
 \details{
-If a blank string is given as \code{method}, the list of available methods will be printed.
+See the package's vignette for details on the four algorithms.
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+The returned value is a list containing the following components: 
+  \item{param}{
+  	The model parameters used in the \code{model} simulations.}
+  \item{stats}{
+  	The summary statistics obtained at the end of the \code{model} simulations.}
+  \item{weights}{
+  	The weights of the different \code{model} simulations.}
+  \item{stats_normalization}{
+  	The standard deviation of the summary statistics across the \code{model} simulations of the initial step.
+	These values are used to normalize the summary statistics before the computation of the Euclidean distance between simulations and data.}
+  \item{epsilon}{
+  	The final maximal distance between simulations and data in the retained sample of particles.}
+  \item{nsim}{
+  	The number of \code{model} simulations performed.}
+  \item{computime}{
+  	The computing time to perform the simulations.}
 }
 \references{
-    [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.
-    [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
-    [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
-   [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
-}
-\author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
-\note{
-%%  ~~further notes~~
-}
+	Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009) Adaptive approximate Bayesian computation. \emph{Biometrika},\bold{96}, 983--990.
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
+	Drovandi, C. C. and Pettitt, A. N. (2011) Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. \emph{Biometrics}, \bold{67}, 225--233.
 
+	Del Moral, P., Doucet, A., and Jasra, A. (2012) An adaptive sequential Monte Carlo method for approximate Bayesian computation. \emph{Statistics and Computing}, \bold{22}, 1009--1020.
+
+	Lenormand, M., Jabot, F., Deffuant G. (2012) Adaptive approximate Bayesian computation for complex models. http://arxiv.org/pdf/1111.1308.pdf}
+}
+\author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+\code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_mcmc}}
 }
 \examples{
 priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
 dim(priormatrix)<-c(6,2)
 sum_stat_obs=c(100,2.5,20,30000)
- ## to perform the Beaumont Method
-ABC_sequential(method="Beaumont",model=trait_model,prior_matrix=priormatrix,
-nb_simul=10,summary_stat_target=sum_stat_obs,tolerance_tab=c(8,5))
-}
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{abc}
 
+## artificial example to perform the Beaumont et al. (2009)'s method.
+##
+ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model, prior_matrix=priormatrix,
+nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=c(8,5))
+ABC_Beaumont
+
+## artificial example to perform the Drovandi and Pettitt (2011)'s method.
+##
+ABC_Drovandi<-ABC_sequential(method="Drovandi", model=trait_model, prior_matrix=priormatrix,
+nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=3, c=0.7)
+ABC_Drovandi
+
+## artificial example to perform the Del Moral et al. (2012)'s method.
+##
+ABC_Delmoral<-ABC_sequential(method="Delmoral", model=trait_model, prior_matrix=priormatrix,
+nb_simul=10, summary_stat_target=sum_stat_obs, alpha=0.5, tolerance_target=3)
+ABC_Delmoral
+
+## artificial example to perform the Lenormand et al. (2012)'s method.
+##
+ABC_Lenormand<-ABC_sequential(method="Lenormand", model=trait_model, prior_matrix=priormatrix,
+nb_simul=10, summary_stat_target=sum_stat_obs, p_acc_min=0.4)
+ABC_Lenormand
+}
+\keyword{abc}
+\keyword{model}
+\keyword{inference}
+\keyword{sequential monte carlo}
+\keyword{population monte carlo}
