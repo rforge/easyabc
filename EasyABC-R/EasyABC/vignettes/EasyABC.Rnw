@@ -1,9 +1,15 @@
 \documentclass[a4paper]{article}
 
+\usepackage[utf8]{inputenc}
+\usepackage{url}
+\usepackage[colorlinks=true]{hyperref}
+\usepackage{a4wide}
+
 \title{\texttt{EasyABC}: a \texttt{R} package to perform efficient approximate Bayesian computation sampling schemes}
 \author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
 
-\SweaveOpts{echo=FALSE}
+\SweaveOpts{echo=TRUE,print=TRUE}
+% \SweaveOpts{eval=FALSE}
 
 \begin{document}
 
@@ -13,11 +19,12 @@
 
 \section{Summary}
 The aim of this vignette is to present the features of the \texttt{EasyABC} package.
-Section 2 describes the different algorithms available in the package.
-Section 3 details how to install the package and the formatting requirements.
-Section 4 presents a detailed worked example.
+Section \ref{algorithms} describes the different algorithms available in the package.
+Section \ref{installation} details how to install the package and the formatting requirements.
+Section \ref{example} presents a detailed worked example.
 
 \section{Overview of the package EasyABC}
+\label{algorithms}
 \texttt{EasyABC} enables to launch various ABC schemes and to retrieve the ouputs of the simulations, so as to perform post-processing treatments with the various R tools available. \texttt{EasyABC} is also able to launch the simulations on multiple cores of a multi-core computer.
 Three main types of ABC schemes are available in EasyABC: the standard rejection algorithm of Pritchard et al. (1999), sequential schemes first proposed by Sisson et al. (2007), and coupled to MCMC schemes first proposed by Marjoram et al. (2003).
 Four different sequential algorithms are available: the ones of Beaumont et al. (2009), Drovandi and Pettitt (2011), Del Moral et al. (2012) and Lenormand et al. (2012).
@@ -25,14 +32,15 @@ Three different MCMC schemes are available: the ones of Marjoram et al. (2003), 
 Details on how to implement these various algorithms with \texttt{EasyABC} are given in the manual pages of each function and an example is detailed in Section 4.
 
 \section{Installation and requirements}
+\label{installation}
 \subsection{Installing the package}
 To install the \texttt{EasyABC} package from \texttt{R}, simply type:
-<<echo=TRUE,print=TRUE,eval=FALSE>>= 
+<<eval=FALSE>>= 
 install.packages("EasyABC") 
 @
 
 Once the package is installed, it needs to be loaded in the current \texttt{R} session to be used:
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 library(EasyABC)
 @
 
@@ -81,13 +89,39 @@ An array containing the summary statistics of the data must be supplied (for the
 
 \subsection{Building a \texttt{R} function calling a \texttt{C/C++} program}
 Users having a \texttt{C/C++} simulation code may wish to construct a \texttt{R} function calling their \texttt{C/C++} program, instead of using the provided wrappers (see sections \ref{simulator_single_core} and \ref{simulator_several_cores}).
-The procedure is abundantly described in XXX (-> NICO !! Tes sources !). In short, this can be done by:
-XXX -> NICO !! 
-
-
+The procedure is abundantly described in the \href{http://cran.r-project.org/doc/manuals/R-exts.html}{`Writing R Extensions' manual}.
+In short, this can be done by:
+\begin{itemize}
+  \item Adapt your C/C++ program by wrapping your main method into a \texttt{extern "C" \{ … \}} block. Here is an excerpt of the source code of the tarit model provided in this package, in the folder \texttt{src}:
+  \begin{verbatim}
+  extern "C" {
+    void trait_model(double *input,double *stat_to_return){
+      // compute output and fill the array stat_to_return
+    }
+  }
+  \end{verbatim} 
+  \item Build your code into a binary library (.so under Linux or .dll under Windows) with the \texttt{R CMD SHLIB} command.
+  In our example, the command for compiling the trait model and the given output are:
+  \begin{verbatim}
+  $ R CMD SHLIB trait_model_rc.cpp
+  g++ -I/usr/share/R/include -DNDEBUG -fpic -O2 -pipe -g -c trait_model_rc.cpp
+  -o trait_model_rc.o
+  g++ -shared -o trait_model_rc.so trait_model_rc.o -L/usr/lib/R/lib -lR
+  \end{verbatim} 
+  \item Load the builded library in your session with the \texttt{dyn.load} function.
+  \begin{verbatim}
+  > dyn.load("trait_model_rc.so")
+  \end{verbatim} 
+  \item Use the \texttt{.C} function for calling your program, like we've done in our \texttt{trait\_model} function:
+  \begin{verbatim}
+  function(input=c(1,500,1,1,1,1)) {
+    .C("trait_model",input=input,stat_to_return=array(0,4))$stat_to_return
+  }
+  \end{verbatim} 
+\end{itemize}
 
 \section{A worked example}
-
+\label{example}
 \subsection{The trait model}
 We consider a simple stochastic ecological model hereafter called \texttt{trait\_model}.
 This model represents the stochastic dynamics of an ecological community where each species is represented by a set of traits (i.e. characteristics) which determine its competitive ability.
@@ -102,39 +136,41 @@ The simulation code \texttt{trait\_model} therefore takes an exponential transfo
 In the following, we will use the values $J=500$ and $n\_t=1$, and uniform prior distributions for $ln(I)$ in $[3;5]$, $h$ in [-25;125], $ln(A)$ in $[ln(0.1);ln(5)]$ and $ln(\sigma)$ in $[ln(0.5);ln(25)]$. The simulation code \texttt{trait\_model} reads sequentially $J$, $I$, $A$, $n\_t$, $h$ and $\sigma$.
 
 \textit{NB:} Note that the fixed variables $J$ and $n\_t$ are included in the prior matrix (lines 1 and 4) with their two columns equal to their fixed values:
-
-<<echo=TRUE,print=TRUE>>=
+  
+<<>>=
 priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
 dim(priormatrix)<-c(6,2)
 priormatrix
 @
 
 We will consider an imaginary arbitrary dataset whose summary statistics are $(S,H,MTV,STV) = (100,2.5,20,30000)$:
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 sum_stat_obs=c(100,2.5,20,30000)
 @
 
 
 \subsection{Performing a standard ABC-rejection procedure}
 A standard ABC-rejection procedure can be simply performed with the function \texttt{ABC\_rejection}, in precising the number $n$ of simulations to be performed:
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 set.seed(1)
 n=10
-ABC_rej<-ABC_rejection(model=trait_model,prior_matrix=priormatrix,nb_simul=n)
+ABC_rej<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n)
 ABC_rej
 @
 
-Note that a simulation code \texttt{My\_simulation\_code} can be passed to the function \texttt{ABC\_rejection} with the command:
-
-\texttt{ABC\_rejection(My\_simulation\_code,prior\_matrix=priormatrix,nb\_simul=n)} if it is a \texttt{R} function, or with the command:
-
-\texttt{ABC\_rejection(.binary\_model("./My\_simulation\_code"),prior\_matrix=priormatrix,nb\_simul=n)} if it is a binary executable file.
+Note that a simulation code \texttt{My\_simulation\_code} can be passed to the function \texttt{ABC\_rejection} in several ways depending of its nature:
+\begin{itemize}
+  \item if it is a \texttt{R} function \\
+    \texttt{ABC\_rejection(My\_simulation\_code, prior\_matrix=priormatrix, nb\_simul=n)} 
+  \item  if it is a binary executable file \\
+    \texttt{ABC\_rejection(.binary\_model("./My\_simulation\_code"), prior\_matrix=priormatrix, nb\_simul=n)}
+\end{itemize}
 
 Simulation outputs can be transparently passed to post-processing tools, like the ones proposed by the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012):
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 #install.packages("abc")
 #library(abc)
-#rej<-abc(sum_stat_obs,ABC_rej[,c(2,3,5,6)],ABC_rej[,7:10],tol=0.3,method="rejection")
+#rej<-abc(sum_stat_obs, ABC_rej[,c(2,3,5,6)], ABC_rej[,7:10], tol=0.3, method="rejection")
 # simulations selected:
 #rej$unadj.values
 # their associated summary statistics:
@@ -147,29 +183,31 @@ Simulation outputs can be transparently passed to post-processing tools, like th
 \subsection{Performing a sequential ABC scheme}
 Other functions of the \texttt{EasyABC} package are used in a very similar manner.
 To perform the algorithm of Beaumont et al. (2009), one needs to specify the sequence of tolerance levels $tolerance\_tab$ and the number $nb\_simul$ of simulations to obtain below the tolerance level at each iteration:
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 n=10
 tolerance=c(8,5)
-ABC_Beaumont<-ABC_sequential(method="Beaumont",model=trait_model,prior_matrix=priormatrix,
-nb_simul=n,summary_stat_target=sum_stat_obs,tolerance_tab=tolerance)
+ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model,
+prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,
+tolerance_tab=tolerance)
 ABC_Beaumont
 @
 
 To perform the algorithm of Drovandi and Pettitt (2011), one needs to specify four arguments: the initial number of simulations $nb\_simul$, the final tolerance level $tolerance\_tab$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the target proportion $c$ of unmoved particles during the MCMC jump.
 Note that default values $alpha=0.5$ and $c=0.01$ are used if not specified, following Drovandi and Pettitt (2011).
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 n=10
 tol=3
 alpha=0.5
 c=0.7
-ABC_Drovandi<-ABC_sequential(method="Drovandi",model=trait_model,prior_matrix=priormatrix,
-nb_simul=n,summary_stat_target=sum_stat_obs,tolerance_tab=tol,alpha=alpha,c=c)
+ABC_Drovandi<-ABC_sequential(method="Drovandi", model=trait_model,
+prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,
+tolerance_tab=tol, alpha=alpha, c=c)
 ABC_Drovandi
 @
 
 To perform the algorithm of Del Moral et al. (2012), one needs to specify five arguments: the initial number of simulations $nb\_simul$, the number $\alpha$ controlling the decrease in effective sample size of the particle set at each step, the number $M$ of simulations performed for each particle, the minimal effective sample size $nb\_threshold$ below which a resampling of particles is performed and the final tolerance level $tolerance\_target$.
 Note that default values $alpha=0.5$, $M=1$ and $nb\_threshold=nb\_simul/2$ are used if not specified.
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 n=10
 tol=5
 ABC_Delmoral<-ABC_sequential(method="Delmoral",model=trait_model,prior_matrix=priormatrix,
@@ -179,7 +217,7 @@ ABC_Delmoral
 
 To perform the algorithm of Lenormand et al. (2012), one needs to specify three arguments: the initial number of simulations $nb\_simul$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the stopping criterion $p\_acc\_min$.
 Note that default values $alpha=0.5$ and $p\_acc\_min=0.05$ are used if not specified, following Lenormand et al. (2012).
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 n=10
 alpha=0.5
 paccmin=0.4
@@ -192,7 +230,7 @@ ABC_Lenormand
 
 \subsection{Performing a ABC-MCMC scheme}
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_obs$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, an array $tab\_normalization$ precising the scale of each summary statistics, and an array $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 n=10
 nbetweensampling=1
 distmax=8
@@ -205,7 +243,7 @@ ABC_Marjoram_original
 To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
 These modifications are drawn from the algorithm of Wegmann et al. (2009), without relying on PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$,$tolerance\_quantile=0.01$ and $proposal\_phi=1$.
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 n=10
 nbetweensampling=1
 ncalib=10
@@ -219,7 +257,7 @@ ABC_Marjoram
 
 To perform the algorithm of Wegmann et al. (2009), one needs to specify four arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$, the scale factor $proposal\_phi$ to determine the proposal range and the number of components $numcomp$ to be used in PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$,$tolerance\_quantile=0.01$, $proposal\_phi=1$ and $numcomp=0$, this last default value encodes a choice of a number of PLS components equal to the number of summary statistics.
-<<echo=TRUE,print=TRUE>>=
+<<>>=
 n=10
 nbetweensampling=1
 ncalib=10
