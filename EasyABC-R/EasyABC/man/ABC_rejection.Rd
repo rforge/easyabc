@@ -10,18 +10,18 @@
 }
 \arguments{
   \item{model}{
-    The model to be simulated. It must be a \code{R} function taking as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
+    a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
     A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
   \item{prior_matrix}{
-    This matrix contains the ranges of the prior distribution for each of the \eqn{p} model parameters. It has \eqn{p} lines and 2 columns. The first (second) column contains the lower (upper) bound of the prior distribution of the \eqn{p} parameters.}
+    a matrix or data frame containing the ranges of the prior distribution for each of the \eqn{p} model parameters. It has \eqn{p} lines and 2 columns. The first (second) column contains the lower (upper) bound of the prior distribution of the \eqn{p} parameters.}
   \item{nb_simul}{
-    Number of simulations of the model}
+    a positive integer equal to the desired number of simulations of the model.}
   \item{use_seed}{
-    if \code{TRUE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
+    logical. If \code{TRUE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
     The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
-    if \code{FALSE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
+    If \code{FALSE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
   \item{seed_count}{
-    Initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
+    a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
 }
 \details{
 }
