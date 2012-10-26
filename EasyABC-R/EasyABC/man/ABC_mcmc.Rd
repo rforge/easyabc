@@ -1,111 +1,148 @@
 \name{ABC_mcmc}
 \alias{ABC_mcmc}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)}
+\title{
+	Coupled to MCMC scheme for ABC
+}
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+	This function implements three different algorithms to perform coupled to MCMC ABC.
 }
 \usage{
-ABC_mcmc(method, model, prior_matrix, n_obs, n_between_sampling, summary_stat_target, ...)
+	ABC_mcmc(method, model, prior_matrix, n_obs, n_between_sampling, summary_stat_target, ...)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{method}{
-%%     ~~Describe \code{method} here~~
-}
+	a character string indicating the ABC-MCMC algorithm to be used. Possible values are \code{"Marjoram_original"}, \code{"Marjoram"} and \code{"Wegmann"}.
   \item{model}{
-%%     ~~Describe \code{model} here~~
-}
+    	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
+	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
   \item{prior_matrix}{
-%%     ~~Describe \code{prior_matrix} here~~
-}
+    	a matrix or data frame containing the ranges of the prior distribution for each of the \eqn{p} model parameters. It has \eqn{p} lines and 2 columns. The first (second) column contains the lower (upper) bound of the prior distribution of the \eqn{p} parameters.}
   \item{n_obs}{
-%%     ~~Describe \code{n_obs} here~~
-}
+    	a positive integer equal to the desired number of sampled points along the MCMC.}
   \item{n_between_sampling}{
-%%     ~~Describe \code{n_between_sampling} here~~
-}
+    	a positive integer equal to the desired spacing between sampled points along the MCMC.}
   \item{summary_stat_target}{
-%%     ~~Describe \code{summary_stat_target} here~~
-}
-  \item{\dots}{
-%%     ~~Describe \code{\dots} here~~
-}
+	a vector containing the targeted (observed) summary statistics.}
+  \item{dist_max}{
+	a positive number, used when \code{method} is \code{"Marjoram_original"}.
+	This is the tolerance threshold used during the MCMC.}
+  \item{tab_normalization}{
+	a vector of the same length as \code{summary_stat_target}, used when \code{method} is \code{"Marjoram_original"}.
+	Each element contains a positive number by which each summary statistics must be divided before the computation of the Euclidean distance between simulations and data.}
+  \item{proposal_range}{
+	a vector of the same length as the number of model parameters, used when \code{method} is \code{"Marjoram_original"}.
+	Each element contains a positive number defining the range of MCMC jumps for each model parameter.}
+  \item{n_calibration}{
+    	a positive integer, used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
+	This is the number of simulations performed during the calibration step.
+	Default value is 10000.}
+  \item{tolerance_quantile}{
+    	a positive number between 0 and 1 (strictly), used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
+	This is the percentage of simulations retained during the calibration step to determine the tolerance threshold to be used during the MCMC.
+	Default value is 0.01.}
+  \item{proposal_phi}{
+    	a positive number, used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
+	This is a scaling factor defining the range of MCMC jumps.
+	Default value is 1.}
+  \item{numcomp}{
+    	a positive integer, used when \code{method} is \code{"Wegmann"}.
+	This is the number of components to be used for PLS transformations.
+	Default value is 0 which encodes that this number is equal to the number of summary statistics.}
+  \item{use_seed}{
+    	logical. If \code{TRUE} (default), \code{ABC_mcmc} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
+    	The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
+    	If \code{FALSE} (default), \code{ABC_mcmc} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
+  \item{seed_count}{
+    	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
+  \item{verbose}{
+	logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} writes in the current directory intermediary results at the end of the calibration step of the algorithm.}
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
+See the package's vignette for details on ABC-MCMC.
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+The returned value is a list containing the following components: 
+  \item{param}{
+  	The model parameters used in the \code{model} simulations.}
+  \item{stats}{
+  	The summary statistics obtained at the end of the \code{model} simulations.}
+  \item{dist}{
+  	The distance of the simulations to the data.}
+  \item{stats_normalization}{
+  	The standard deviation of the summary statistics across the \code{model} simulations of the initial step.
+	These values are used to normalize the summary statistics before the computation of the Euclidean distance between simulations and data.
+	If \code{method} is \code{"Marjoram_original"}, this is equal to \code{tab_normalization}.
+	If \code{method} is \code{"Wegmann"}, this is not provided.}
+  \item{epsilon}{
+  	The final maximal distance between simulations and data in the retained sample of particles.}
+  \item{nsim}{
+  	The number of \code{model} simulations performed.}
+  \item{n_between_sampling}{
+  	The spacing between two sampled points in the MCMC.}
+  \item{computime}{
+  	The computing time to perform the simulations.}
+  \item{min_stats}{
+  	The minimal values of each summary statistics during the calibration step, given when \code{method} is \code{"Wegmann"}.}
+  \item{max_stats}{
+  	The minimal values of each summary statistics during the calibration step, given when \code{method} is \code{"Wegmann"}.}
+  \item{lambda}{
+  	The lambda values of the Box-Cox transformation, given when \code{method} is \code{"Wegmann"}.}
+  \item{geometric_mean}{
+  	The geometric means, given when \code{method} is \code{"Wegmann"}.}
+  \item{boxcox_mean}{
+  	The means of Box-Cox transforms, given when \code{method} is \code{"Wegmann"}.}
+  \item{boxcox_sd}{
+  	The standard deviations of Box-Cox transforms, given when \code{method} is \code{"Wegmann"}.}
+  \item{pls_transform}{
+  	The matrix of PLS transformation, given when \code{method} is \code{"Wegmann"}.}
+  \item{n_component}{
+  	The number of used components for the PLS transformation, given when \code{method} is \code{"Wegmann"}.}
 }
 \references{
-%% ~put references to the literature/web site here ~
-}
-\author{
-%%  ~~who you are~~
-}
-\note{
-%%  ~~further notes~~
-}
+	Marjoram, P., Molitor, J., Plagnol, V. and Tavar\'e, S. (2003) Markov chain Monte Carlo without likelihoods. \emph{PNAS}, \bold{100}, 15324--15328.
 
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
+	Wegmann, D., Leuenberger, C. and Excoffier, L. (2009) Efficient approximate Bayesian computation coupled with Markov chain Monte Carlo without likelihood. \emph{Genetics}, \bold{182}, 1207-1218.
+}
+\author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+\code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}
 }
 \examples{
-##---- Should be DIRECTLY executable !! ----
-##-- ==>  Define data, use random,
-##--	or do  help(data=index)  for the standard data sets.
+priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
+dim(priormatrix)<-c(6,2)
+sum_stat_obs=c(100,2.5,20,30000)
+n=10
+nbetweensampling=1
+distmax=8
+tabnormalization=c(50,1,20,10000)
+proposalrange=c(0,1,0.5,0,50,1)
 
-## The function is currently defined as
-function (method, model, prior_matrix, n_obs, n_between_sampling, 
-    summary_stat_target, ...) 
-{
-    if (missing(method)) 
-        stop("'method' is missing")
-    if (missing(model)) 
-        stop("'model' is missing")
-    if (missing(prior_matrix)) 
-        stop("'prior_matrix' is missing")
-    if (missing(n_obs)) 
-        stop("'n_obs' is missing")
-    if (missing(n_between_sampling)) 
-        stop("'n_between_sampling' is missing")
-    if (missing(summary_stat_target)) 
-        stop("'summary_stat_target' is missing")
-    if (!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))) {
-        stop("Method must be Marjoram_original, Marjoram or wegmann")
-    }
-    if (!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) 
-        stop("'prior_matrix' has to be a matrix or data.frame.")
-    if (is.data.frame(prior_matrix)) 
-        prior_matrix <- as.matrix(prior_matrix)
-    if (dim(prior_matrix)[2] != 2) 
-        stop("'prior_matrix' must have two columns.")
-    if (!is.vector(nb_simul)) 
-        stop("'nb_simul' has to be a number.")
-    if (length(nb_simul) > 1) 
-        stop("'nb_simul' has to be a number.")
-    if (nb_simul < 1) 
-        stop("'nb_simul' must be a number larger than 1.")
-    nb_simul = floor(nb_simul)
-    if (!is.vector(summary_stat_target)) 
-        stop("'summary_stat_target' has to be a vector.")
-    options(scipen = 50)
-    switch(EXPR = method, Marjoram_original = .ABC_MCMC(model, 
-        prior_matrix, n_obs, n_between_sampling, summary_stat_target, 
-        ...), Marjoram = .ABC_MCMC2(model, prior_matrix, n_obs, 
-        n_between_sampling, summary_stat_target, ...), Wegmann = .ABC_MCMC3(model, 
-        prior_matrix, n_obs, summary_stat_target, ...))
-    options(scipen = 0)
-  }
+## artificial example to perform the Marjoram et al. (2003)'s method.
+##
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model, prior_matrix=priormatrix,
+n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, dist_max=distmax,
+tab_normalization=tabnormalization, proposal_range=proposalrange)
+ABC_Marjoram_original
+
+## artificial example to perform the Marjoram et al. (2003)'s method, with modifications drawn from Wegmann et al. (2009) without Box-Cox and PLS transformations.
+##
+ncalib=10
+tolquantile = 0.5
+ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=trait_model, prior_matrix=priormatrix,
+n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs,
+n_calibration=ncalib, tolerance_quantile=tolquantile)
+ABC_Marjoram
+
+
+## artificial example to perform the Wegmann et al. (2009)'s method.
+##
+ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior_matrix=priormatrix,
+n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs,
+n_calibration=ncalib, tolerance_quantile=tolquantile)
+ABC_Wegmann
+
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ ~kwd1 }
-\keyword{ ~kwd2 }% __ONLY ONE__ keyword per line
+\keyword{abc}
+\keyword{model}
+\keyword{inference}
+\keyword{mcmc}
