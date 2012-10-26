@@ -27,9 +27,11 @@ Details on how to implement these various algorithms with \texttt{EasyABC} are g
 \section{Installation and requirements}
 \subsection{Installing the package}
 To install the \texttt{EasyABC} package from \texttt{R}, simply type:
-<<echo=TRUE,print=TRUE>>=
-#install.packages("EasyABC")
-@
+\begin{Schunk}
+\begin{Sinput}
+> install.packages("EasyABC")
+\end{Sinput}
+\end{Schunk}
 
 Once the package is installed, it needs to be loaded in the current \texttt{R} session to be used:
 <<echo=TRUE,print=TRUE>>=
