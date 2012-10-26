@@ -1,56 +1,67 @@
 \name{ABC_rejection}
 \alias{ABC_rejection}
-%- Also NEED an '\alias' for EACH other topic documented here.
-\title{brute-force ABC (Pritchard et al. 1999)}
+\title{
+  Rejection sampling scheme for ABC}
 \description{
-%%  ~~ A concise (1-5 lines) description of what the function does. ~~
+  This function launches a series of \code{nb_simul} model simulations with model parameters drawn in the prior distribution specified in \code{prior_matrix}.
 }
 \usage{
-ABC_rejection(model, prior_matrix, nb_simul, use_seed = TRUE, seed_count = 0)
+  ABC_rejection(model, prior_matrix, nb_simul, use_seed = TRUE, seed_count = 0)
 }
-%- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{model}{
-%%     ~~Describe \code{model} here~~
-}
-  \item{prior_matrix}{The matrix of the priors coefficients}
-  \item{nb_simul}{number of time to evaluate the model}
+    The model to be simulated. It must be a \code{R} function taking as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
+    A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
+  \item{prior_matrix}{
+    This matrix contains the ranges of the prior distribution for each of the \eqn{p} model parameters. It has \eqn{p} lines and 2 columns. The first (second) column contains the lower (upper) bound of the prior distribution of the \eqn{p} parameters.}
+  \item{nb_simul}{
+    Number of simulations of the model}
   \item{use_seed}{
-%%     ~~Describe \code{use_seed} here~~
-}
+    if \code{TRUE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
+    The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
+    if \code{FALSE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
   \item{seed_count}{
-%%     ~~Describe \code{seed_count} here~~
-}
+    Initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
 }
 \details{
-%%  ~~ If necessary, more details than the description above ~~
 }
 \value{
-%%  ~Describe the value returned
-%%  If it is a LIST, use
-%%  \item{comp1 }{Description of 'comp1'}
-%%  \item{comp2 }{Description of 'comp2'}
-%% ...
+The returned value is a list containing the following components: 
+  \item{param}{
+  	The model parameters used in the \code{model} simulations.}
+  \item{stats}{
+  	The summary statistics obtained at the end of the \code{model} simulations.}
+  \item{weights}{
+  	The weights of the different \code{model} simulations. In the standard rejection scheme, all \code{model} simulations have the same weights.}
+  \item{stats_normalization}{
+  	The standard deviation of the summary statistics across the \code{model} simulations.}
+  \item{nsim}{
+  	The number of \code{model} simulations performed.}
+  \item{computime}{
+  	The computing time to perform the simulations.}
 }
 \references{
-[Pritchard et al. 1999] J.K. Pritchard, M.T. Seielstad, A. Perez-Lezaun, M.W. Feldman (1999) Population growth of human Y chromosomes: a study of Y chromosome microsatellites., Mol. Biol. Evol., 16, 1791–1798 
+  Pritchard, J.K., and M.T. Seielstad and A. Perez-Lezaun and
+  M.W. Feldman (1999) Population growth of human Y chromosomes: a study
+  of Y chromosome microsatellites. \emph{Molecular Biology and
+  Evolution}, \bold{16}, 1791--1798.
 }
-\author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}\note{
-%%  ~~further notes~~
-}
-
-%% ~Make other sections like Warning with \section{Warning }{....} ~
-
+\author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
-%% ~~objects to See Also as \code{\link{help}}, ~~~
+\code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
 }
 \examples{
-
-prior_matrix=c(1,1,-1,1000,10000,100,100,1,1000,10000)
-dim(prior_matrix)<-c(5,2)
+## artificial example to show how to use the ABC_rejection function
+##
+set.seed(1)
+n=10
+priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
+dim(priormatrix)<-c(6,2)
+priormatrix
+ABC_rej<-ABC_rejection(model=trait_model,prior_matrix=priormatrix,nb_simul=n)
+ABC_rej
 ABC_rejection(model=trait_model, prior_matrix=prior_matrix, nb_simul=10, use_seed=TRUE)
-
 }
-% Add one or more standard keywords, see file 'KEYWORDS' in the
-% R documentation directory.
-\keyword{ abc }
+\keyword{abc}
+\keyword{model}
+\keyword{inference}
