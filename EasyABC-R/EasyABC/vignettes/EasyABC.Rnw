@@ -27,11 +27,9 @@ Details on how to implement these various algorithms with \texttt{EasyABC} are g
 \section{Installation and requirements}
 \subsection{Installing the package}
 To install the \texttt{EasyABC} package from \texttt{R}, simply type:
-\begin{Schunk}
-\begin{Sinput}
-> install.packages("EasyABC")
-\end{Sinput}
-\end{Schunk}
+<<echo=TRUE,print=TRUE,eval=FALSE>>= 
+install.packages("EasyABC") 
+@
 
 Once the package is installed, it needs to be loaded in the current \texttt{R} session to be used:
 <<echo=TRUE,print=TRUE>>=
@@ -39,6 +37,7 @@ library(EasyABC)
 @
 
 \subsection{The simulation code - for use on a single core}
+\label{simulator_single_core}
 Users need to develop a simulation code with minimal compatibility constraints. The code can either be a \texttt{R} function or a binary executable file.
 
 If the code is a \texttt{R} function, its argument must be an array of parameter values and it must return an array of summary statistics. If the default option \texttt{use\_seed=TRUE} is chosen, the first parameter value passed to the simulation code corresponds to the seed value to be used by the simulation code to initialize the pseudo-random number generator.  The following parameters are the model parameters.
@@ -48,6 +47,7 @@ If the code is a binary executable file, a wrapper \texttt{R} function named '.b
 
 
 \subsection{The simulation code - for use with multiple cores}
+\label{simulator_several_cores}
 Users need to develop a simulation code with minimal compatibility constraints. The code can either be a \texttt{R} function or a binary executable file.
 
 If the code is a \texttt{R} function, its argument must be an array of parameter values and it must return an array of summary statistics. The first parameter value passed to the simulation code corresponds to the number of cores used by the \texttt{EasyABC} function, the second parameter corresponds to the seed value to be used by the simulation code to initialize the pseudo-random number generator. The following parameters are the model parameters.
@@ -80,7 +80,7 @@ For instance, in the example below (section 4), three parameters are exponential
 An array containing the summary statistics of the data must be supplied (for the sequential and MCMC schemes, not for the simple rejection scheme). The statistics must be in the same order as in the simulation outputs.
 
 \subsection{Building a \texttt{R} function calling a \texttt{C/C++} program}
-Users having a \texttt{C/C++} simulation code may wish to construct a \texttt{R} function calling their \texttt{C/C++} program, instead of using the provided wrappers (see sections 3.2 and 3.3).
+Users having a \texttt{C/C++} simulation code may wish to construct a \texttt{R} function calling their \texttt{C/C++} program, instead of using the provided wrappers (see sections \ref{simulator_single_core} and \ref{simulator_several_cores}).
 The procedure is abundantly described in XXX (-> NICO !! Tes sources !). In short, this can be done by:
 XXX -> NICO !! 
 
