@@ -8,7 +8,7 @@
 	Sequential sampling schemes have been shown to be more efficient than standard rejection-based procedures.
 }
 \usage{
-	ABC_sequential(method, model, prior_matrix, nb_simul, tolerance_tab, summary_stat_target, ...)
+	ABC_sequential(method, model, prior_matrix, nb_simul, tolerance_tab, summary_stat_target, n_cluster = 1,...)
 }
 
 \arguments{
@@ -24,6 +24,8 @@
 	When \code{method} is \code{"Lenormand"}, the number of simulations below the tolerance threshold is equal to \code{nb_simul * alpha}. See the package's vignette and Lenormand et al. (2012) for details.}
   \item{summary_stat_target}{
 	a vector containing the targeted (observed) summary statistics.}
+  \item{n_cluster}{
+    a positive integer. If larger than 1 (the default value), \code{ABC_sequential} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
   \item{use_seed}{
     	logical. If \code{TRUE} (default), \code{ABC_sequential} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
     	The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
@@ -66,6 +68,8 @@
 	Default value is 0.05. See the package's vignette and Lenormand et al. (2012) for details.}
   \item{verbose}{
 	logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_sequential} writes in the current directory intermediary results at the end of each step of the algorithm.}
+  \item{progress_bar}{
+    logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_sequential} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
 }
 \details{
 See the package's vignette for details on the four algorithms.

@@ -283,7 +283,7 @@
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE){
+.ABC_PMC<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.logical(use_seed)) stop("'use_seed' has to be boolean.")
   if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
@@ -298,9 +298,13 @@
   if (lll<=1) stop("at least two tolerance values need to be provided.")
   if (min(tolerance_tab[1:(lll-1)]-tolerance_tab[2:lll])<=0) stop ("tolerance values have to decrease.")
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+  if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean.")
   
-  
-  print("    ------ Beaumont et al. (2009)'s algorithm ------")
+  if (progress_bar){
+	  print("    ------ Beaumont et al. (2009)'s algorithm ------")
+  }
+
+
   start = Sys.time()
   seed_count_ini=seed_count
   T=length(tolerance_tab)
@@ -343,7 +347,9 @@
     write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("step 1 completed")
+  if (progress_bar){
+	  print("step 1 completed")
+  }
   ## steps 2 to T
   for (it in 2:T){
     nb_simul_step=nb_simul
@@ -381,7 +387,9 @@
       write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
       write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
     }
-    print(paste("step ",it," completed",sep=""))
+    if (progress_bar){
+	    print(paste("step ",it," completed",sep=""))
+    }
   }
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
@@ -426,7 +434,7 @@
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
 ######################################################################################################################################################
-.ABC_Drovandi<-function(model,prior_matrix,nb_simul,summary_stat_target,tolerance_tab,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
+.ABC_Drovandi<-function(model,prior_matrix,nb_simul,summary_stat_target,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,use_seed=TRUE,seed_count=0,verbose=FALSE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(tolerance_tab)) stop("'tolerance_tab' has to be a vector.")
   if(tolerance_tab[1]==-1) stop("'tolerance_tab' is missing")
@@ -450,11 +458,15 @@
   if (seed_count<0) stop ("'seed_count' has to be a positive number.")
   seed_count=floor(seed_count)
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+  if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean.")
   
   start = Sys.time()
   
-  
-  print("    ------ Drovandi & Pettitt (2011)'s algorithm ------")
+  progressbarwidth=0
+  if (progress_bar){
+  	print("    ------ Drovandi & Pettitt (2011)'s algorithm ------")
+	progressbarwidth=50
+  } 
   
   seed_count_ini=seed_count
   n_alpha=ceiling(nb_simul*alpha)
@@ -470,14 +482,17 @@
   else{
     tol_end=tolerance_tab[2]
   }
-  print(paste("targetted tolerance = ",tol_end,sep=""))
+  
+  if (progress_bar){
+	print(paste("targetted tolerance = ",tol_end,sep=""))
+  } 
   
   ## step 1
   nb_simul_step=ceiling(nb_simul/(1-alpha))
   simul_below_tol=NULL
   if (first_tolerance_level_auto){
     # classic ABC step
-    tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
+    tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count,progressbarwidth)
     sd_simul=sapply(as.data.frame(tab_ini$summarystat),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
     seed_count=seed_count+nb_simul_step
     # selection of simulations below the first tolerance level
@@ -516,7 +531,9 @@
     write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("step 1 completed")
+  if (progress_bar){
+	  print("step 1 completed")
+  }
   
   ## following steps until tol_end is reached
   tol_next=tolerance_tab[1]
@@ -544,7 +561,10 @@
     simul_below_tol2=NULL
     startb = Sys.time()
     # progress bar
-    pb <- .progressBar(width=50)
+    pb=NULL
+    if (progress_bar){
+	    pb <- .progressBar(width=50)
+    }
     duration = 0;
     for (i in 1:nb_simul_step){
       # pick a particle
@@ -571,17 +591,21 @@
       seed_count=seed_count+R
       simul_below_tol2=rbind(simul_below_tol2,simul_picked)
       # for progressbar message and time evaluation
-      duration = difftime(Sys.time(), startb, unit="secs")
-      text="";
-      if (i==nb_simul_step) {
-        text = paste("Step ",it," completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-      } 
-      else {
-        text = paste("Time elapsed during step ",it,":",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining for step ",it,":",format(.POSIXct(duration/i*(nb_simul_step-i), tz="GMT"), "%H:%M:%S"));
-      }
-      .updateProgressBar(pb, i/nb_simul_step, text)
+	if (progress_bar){
+      	duration = difftime(Sys.time(), startb, unit="secs")
+      	text="";
+      	if (i==nb_simul_step) {
+        		text = paste("Step ",it," completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+      	} 
+	      else {
+      	  	text = paste("Time elapsed during step ",it,":",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining for step ",it,":",format(.POSIXct(duration/i*(nb_simul_step-i), tz="GMT"), "%H:%M:%S"));
+      	}
+      	.updateProgressBar(pb, i/nb_simul_step, text)
+	}
     }
-    close(pb)
+    if (progress_bar){
+	    close(pb)
+    }
     simul_below_tol3=matrix(0,nb_simul,(nparam+nstat))
     for (i1 in 1:(nb_simul-n_alpha)){
       for (i2 in 1:(nparam+nstat)){
@@ -604,7 +628,9 @@
       write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
     }
     tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
-    print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
+    if (progress_bar){
+	    print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
+    }
   }
   
   ## final step to diversify the n_alpha particles
@@ -750,7 +776,7 @@
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,M=1,nb_threshold=nb_simul,tolerance_target=1,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
+.ABC_Delmoral<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.9,M=1,nb_threshold=floor(nb_simul/2),tolerance_target=-1,use_seed=TRUE,seed_count=0,verbose=FALSE,progress_bar=FALSE){
   
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
@@ -774,9 +800,13 @@
   if (seed_count<0) stop ("'seed_count' has to be a positive number.")
   seed_count=floor(seed_count)
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+  if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean.")
   
   start = Sys.time()
-  print("    ------ Delmoral et al. (2012)'s algorithm ------") 
+
+  if (progress_bar{
+	  print("    ------ Delmoral et al. (2012)'s algorithm ------") 
+  }
   
   seed_count_ini=seed_count
   nparam=dim(prior_matrix)[1]
@@ -809,7 +839,9 @@
     write.table(as.matrix(cbind(tab_weight2,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("step 1 completed")
+  if (progress_bar{
+	  print("step 1 completed")
+  }
   
   # following steps
   kstep=1
@@ -878,7 +910,9 @@
     
     startb = Sys.time()
     # progress bar
-    pb <- .progressBar(width=50)
+    if (progress_bar{
+	    pb <- .progressBar(width=50)
+    }
     duration = 0;
     for (i in 1:nb_simul){
       if (tab_weight[i]>0){
@@ -949,17 +983,21 @@
         }
       }
       # for progressbar message and time evaluation
-      duration = difftime(Sys.time(), startb, unit="secs")
-      text="";
-      if (i==nb_simul) {
-        text = paste("Step ",kstep," completed in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-      } 
-      else {
-        text = paste("Time elapsed during step ",kstep,":",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining for step ",kstep,":",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
-      }
-      .updateProgressBar(pb, i/nb_simul, text)
+	if (progress_bar{
+	      duration = difftime(Sys.time(), startb, unit="secs")
+      	text="";
+	      if (i==nb_simul) {
+      	 text = paste("Step ",kstep," completed in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+      	} 
+      	else {
+        	 text = paste("Time elapsed during step ",kstep,":",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining for step ",kstep,":",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
+      	}
+	      .updateProgressBar(pb, i/nb_simul, text)
+     	}
     }
-    close(pb)	
+    if (progress_bar{
+	    close(pb)
+    }
     if (M>1){
       particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
     }
@@ -974,7 +1012,9 @@
       write.table(as.matrix(cbind(tab_weight2,simul_below_tol)),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
       write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
     }
-    print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
+    if (progress_bar{
+	    print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
+    }
   }
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
@@ -1070,14 +1110,16 @@
 
 ## function to perform ABC simulations from a non-uniform prior (derived from a set of particles)
 #################################################################################################
-.ABC_launcher_not_uniformc<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior){
+.ABC_launcher_not_uniformc<-function(model,prior_matrix,param_previous_step,tab_unfixed_param,tab_weight,nb_simul,use_seed,seed_count,inside_prior,progress_bar){
   tab_simul_summarystat=NULL
   tab_param=NULL
   k_acc=0
   
   startb = Sys.time()
   # progress bar
-  pb <- .progressBar(width=50)
+  if (progress_bar){
+    pb <- .progressBar(width=50)
+  }
   duration = 0;
   for (i in 1:nb_simul){
     l=dim(param_previous_step)[2]
@@ -1119,25 +1161,28 @@
       tab_param=rbind(tab_param,param)
     }
     # for progressbar message and time evaluation
-    duration = difftime(Sys.time(), startb, unit="secs")
-    text="";
-    if (i==nb_simul) {
-      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-    } 
-    else {
-      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
+    if (progress_bar){
+    	duration = difftime(Sys.time(), startb, unit="secs")
+    	text="";
+    	if (i==nb_simul) {
+      	text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+    	} 
+    	else {
+     	 text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
+    	}
+    	.updateProgressBar(pb, i/nb_simul, text)
     }
-    .updateProgressBar(pb, i/nb_simul, text)
   }
-  close(pb)
+  if (progress_bar){
+	  close(pb)
+  }
   list(cbind(tab_param,tab_simul_summarystat),nb_simul/k_acc)
 }
 
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=FALSE,verbose=FALSE,...){
-  
+.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,alpha=0.5,p_acc_min=0.05,use_seed=TRUE,seed_count=0,inside_prior=TRUE,verbose=FALSE,progress_bar=FALSE){  
   
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
@@ -1155,9 +1200,12 @@
   seed_count=floor(seed_count)
   if(!is.logical(inside_prior)) stop("'inside_prior' has to be boolean.")
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+  if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean.")
   
   start = Sys.time()
-  print("    ------ Lenormand et al. (2012)'s algorithm ------") 
+  if (progress_bar){
+	  print("    ------ Lenormand et al. (2012)'s algorithm ------") 
+  }
   
   
   seed_count_ini=seed_count
@@ -1196,7 +1244,9 @@
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(tol_next),file="tolerance_step1",row.names=F,col.names=F,quote=F)
   }
-  print("step 1 completed")
+  if (progress_bar){
+	print("step 1 completed")
+  }
   
   ## following steps
   p_acc=p_acc_min+1
@@ -1205,7 +1255,7 @@
   while (p_acc>p_acc_min){
     it=it+1
     simul_below_tol2=NULL
-    tab_inic=.ABC_launcher_not_uniformc(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior)
+    tab_inic=.ABC_launcher_not_uniformc(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior,progress_bar)
     tab_ini=as.matrix(tab_inic[[1]])
     tab_ini=as.numeric(tab_ini)
     dim(tab_ini)=c(nb_simul_step,(nparam+nstat))
@@ -1239,7 +1289,9 @@
       write.table(as.numeric(p_acc),file=paste("p_acc_step",it,sep=""),row.names=F,col.names=F,quote=F)
       write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F)
     }
-    print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
+    if (progress_bar){
+    	print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
+    }
   }
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
@@ -2063,7 +2115,7 @@
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE){
+.ABC_PMC_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE,progress_bar=FALSE){
   
   ## checking errors in the inputs
   if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
@@ -2079,7 +2131,9 @@
   if (min(tolerance_tab[1:(lll-1)]-tolerance_tab[2:lll])<=0) stop ("tolerance values have to decrease.")
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
   
-  print("    ------ Beaumont et al. (2009)'s algorithm ------")
+  if (progress_bar){
+	print("    ------ Beaumont et al. (2009)'s algorithm ------")
+  }
   start = Sys.time()
   
   seed_count_ini=seed_count
@@ -2123,7 +2177,9 @@
     write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("step 1 completed")
+  if (progress_bar){
+	  print("step 1 completed")
+  }
   ## steps 2 to T
   for (it in 2:T){
     nb_simul_step=nb_simul
@@ -2161,7 +2217,9 @@
       write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
       write.table((seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
     }
-    print(paste("step ",it," completed",sep=""))
+    if (progress_bar){
+   	 print(paste("step ",it," completed",sep=""))
+    }
   }
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
@@ -2396,7 +2454,7 @@
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
 ######################################################################################################################################################
-.ABC_Drovandi_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,verbose=FALSE){
+.ABC_Drovandi_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,verbose=FALSE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
   if(length(seed_count)>1) stop("'seed_count' has to be a number.")
@@ -2416,7 +2474,9 @@
   if(!is.logical(first_tolerance_level_auto)) stop("'first_tolerance_level_auto' has to be boolean.")
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
   
-  print("    ------ Drovandi & Pettitt (2011)'s algorithm ------")
+  if (progress_bar){
+	  print("    ------ Drovandi & Pettitt (2011)'s algorithm ------")
+  }
   start = Sys.time()
   
   seed_count_ini=seed_count
@@ -2478,7 +2538,9 @@
     write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("step 1 completed")
+  if (progress_bar){
+	  print("step 1 completed")
+  }
   
   ## following steps until tol_end is reached
   tol_next=tolerance_tab[1]
@@ -2537,7 +2599,9 @@
       write.table(cbind(tab_weight,simul_below_tol),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
     }
     tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
-    print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
+    if (progress_bar){
+    	print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
+    }
   }
   
   ## final step to diversify the n_alpha particles
@@ -2610,7 +2674,7 @@
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha,M,nb_threshold,tolerance_target,seed_count=0,verbose=FALSE){
+.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha,M,nb_threshold,tolerance_target,seed_count=0,verbose=FALSE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
   if(length(alpha)>1) stop("'alpha' has to be a number.")
@@ -2634,7 +2698,9 @@
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
   
   start = Sys.time()
-  print("    ------ Delmoral et al. (2012)'s algorithm ------") 
+  if (progress_bar){
+	  print("    ------ Delmoral et al. (2012)'s algorithm ------") 
+  }
   
   
   seed_count_ini=seed_count
@@ -2668,7 +2734,9 @@
     write.table(cbind(tab_weight2,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("step 1 completed")
+  if (progress_bar){
+	  print("step 1 completed")
+  }
   
   # following steps
   kstep=1
@@ -2844,7 +2912,9 @@
       write.table(cbind(tab_weight2,simul_below_tol),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
       write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
     }
-    print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
+    if (progress_bar){
+      print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
+    }
   }	
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
@@ -3125,7 +3195,7 @@
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=FALSE,verbose=FALSE){
+.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=FALSE,verbose=FALSE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
   if(length(alpha)>1) stop("'alpha' has to be a number.")
@@ -3143,7 +3213,9 @@
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
   
   start = Sys.time()
-  print("    ------ Lenormand et al. (2012)'s algorithm ------") 
+  if (progress_bar){
+	  print("    ------ Lenormand et al. (2012)'s algorithm ------") 
+  }
   
   seed_count_ini=seed_count
   nparam=dim(prior_matrix)[1]
@@ -3181,7 +3253,9 @@
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(tol_next),file="tolerance_step1",row.names=F,col.names=F,quote=F) 
   }
-  print("step 1 completed")
+  if (progress_bar){
+	  print("step 1 completed")
+  }
   
   ## following steps
   p_acc=p_acc_min+1
@@ -3224,7 +3298,9 @@
       write.table(as.numeric(p_acc),file=paste("p_acc_step",it,sep=""),row.names=F,col.names=F,quote=F) 
       write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F)
     }
-    print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
+    if (progress_bar){
+    		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
+    }
   }
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
@@ -3743,6 +3819,86 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 	options(scipen=0)
 	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
 list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+}
+
+## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
+###################################################################################################################################
+
+.ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Beaumont", "Drovandi", "Delmoral", "Lenormand"))) {
+        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
+    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+
+    options(scipen=50)
+
+    ## general function regrouping the different sequential algorithms     
+    ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.
+    ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
+    ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
+    ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
+    return(switch(EXPR = method,
+	    Beaumont = .ABC_PMC(model,prior_matrix,nb_simul,summary_stat_target,...),
+	    Drovandi = .ABC_Drovandi(model,prior_matrix,nb_simul,summary_stat_target,...),
+	    Delmoral = .ABC_Delmoral(model,prior_matrix,nb_simul,summary_stat_target,...),
+	    Lenormand = .ABC_Lenormand(model,prior_matrix,nb_simul,summary_stat_target,...)))
+
+    options(scipen=0)
+}
+
+.ABC_sequential_cluster <-
+function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Beaumont", "Drovandi", "Delmoral","Lenormand"))){
+        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
+    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
+
+	options(scipen=50)
+	library(parallel)
+
+	       ## general function regrouping the different sequential algorithms     
+	  ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983â??990.
+	  ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225â??233.
+	  ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
+	  ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
+	  switch(EXPR = method,
+         	 Beaumont = .ABC_PMC_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,,...),
+	         Drovandi = .ABC_Drovandi_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
+	         Delmoral = .ABC_Delmoral_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
+	         Lenormand = .ABC_Lenormand_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...))
+
+	options(scipen=0)
+
 }
 
 

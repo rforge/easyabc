@@ -25,7 +25,7 @@
   \item{n_cluster}{
     a positive integer. If larger than 1 (the default value), \code{ABC_rejection} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
   \item{progress_bar}{
-    logical. If \code{TRUE}, \code{ABC_rejection} will output a bar of progression with the estimated remaining computing time.}
+    logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_rejection} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
 }
 \details{
 }
