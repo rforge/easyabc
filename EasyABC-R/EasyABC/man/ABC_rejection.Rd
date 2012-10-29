@@ -6,7 +6,7 @@
   This function launches a series of \code{nb_simul} model simulations with model parameters drawn in the prior distribution specified in \code{prior_matrix}.
 }
 \usage{
-  ABC_rejection(model, prior_matrix, nb_simul, use_seed = TRUE, seed_count = 0)
+  ABC_rejection(model, prior_matrix, nb_simul, use_seed = TRUE, seed_count = 0, n_cluster=1, progress_bar=FALSE)
 }
 \arguments{
   \item{model}{
@@ -22,6 +22,10 @@
     If \code{FALSE} (default), \code{ABC_rejection} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
   \item{seed_count}{
     a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
+  \item{n_cluster}{
+    a positive integer. If larger than 1 (the default value), \code{ABC_rejection} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
+  \item{progress_bar}{
+    logical. If \code{TRUE}, \code{ABC_rejection} will output a bar of progression with the estimated remaining computing time.}
 }
 \details{
 }
