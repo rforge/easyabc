@@ -2,16 +2,6 @@
 ## INTERNAL FUNCTIONS
 #######################
 
-## model wrapper
-################
-.binary_model<-function(command) {
-  invoke<-function(param) {
-    write.table(param,file="input",row.names=F,col.names=F,quote=F)
-    system(command)
-    read.table("output",h=F)
-  }
-}
-
 ## function to compute a distance between a matrix of simulated statistics (row: different simulations, columns: different summary statistics) and the array of data summary statistics
 #######################################################################################################################################################################################
 .compute_dist<-function(summary_stat_target,simul,sd_simul){
@@ -281,6 +271,40 @@
   cbind(tab_param,tab_simul_summarystat)
 }
 
+
+## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
+######################################################
+.ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0,progress_bar=FALSE){
+
+    ## checking errors in the inputs
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) 			  stop("'prior_matrix' has to be a matrix or data.frame")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1")
+    if(!is.logical(use_seed)) stop("'use_seed' has to be boolean")
+    if(!is.vector(seed_count)) stop("'seed_count' has to be a number")
+    if(length(seed_count)>1) stop("'seed_count' has to be a number")
+    if (seed_count<0) stop ("'seed_count' has to be a positive number")
+    if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean")
+
+    nb_simul=floor(nb_simul)
+    seed_count=floor(seed_count)
+    pgwidth=0
+    if (progress_bar){
+	pgwidth=50
+    }
+
+    rejection = .ABC_rejection_internal(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0, progressbarwidth=pgwidth)
+
+    sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
+    
+list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simul,nb_simul), stats_normalization=sd_simul, nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, unit="secs")))
+}
+
+
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
 .ABC_PMC<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed=TRUE,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE,progress_bar=FALSE){
@@ -393,12 +417,6 @@
   }
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
-
-## test
-# linux
-# .ABC_PMC(.binary_model("./parthy"),prior_matrix,20,c(0.8,0.6,0.4),c(50,2.5),use_seed=TRUE,inside_prior=TRUE)
-# windows
-#.ABC_PMC(.binary_model("./trait_model.exe"),prior_matrix,10,sum_stat_obs,tolerance_tab=c(8,5))
 
 ## function to select the alpha quantile closest simulations
 ############################################################
@@ -661,13 +679,6 @@
   list(param=simul_below_tol2[,1:nparam],stats=simul_below_tol2[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol2[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
 
-
-## test
-# linux
-# .ABC_Drovandi(.binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5))
-# .ABC_Drovandi(.binary_model("./parthy"),prior_matrix,20,c(1,0.8),c(50,2.5),first_tolerance_level_auto=FALSE)
-# windows
-# .ABC_Drovandi(.binary_model("./trait_model.exe"),prior_matrix,20,sum_stat_obs,3)
 
 ## rejection algorithm with M simulations per parameter set
 ############################################################
@@ -1020,14 +1031,6 @@
 }
 
 
-## test
-# linux
-# .ABC_Delmoral(.binary_model("./parthy"),prior_matrix,20,0.5,1,5,0.8,c(50,2.5))
-# .ABC_Delmoral(.binary_model("./parthy"),prior_matrix,20,0.5,4,5,0.8,c(50,2.5))
-# windows
-# .ABC_Delmoral(.binary_model("./trait_model.exe"),prior_matrix,10,sum_stat_obs,0.5,1,5,5)
-
-
 ## function to sample in the prior distributions using a Latin Hypercube sample
 ###############################################################################
 .ABC_rejection_lhs<-function(model,prior_matrix,nb_simul,tab_unfixed_param,use_seed=TRUE,seed_count=0){
@@ -1297,11 +1300,45 @@
 }
 
 
-## test
-# linux
-# .ABC_Lenormand(.binary_model("./parthy"),prior_matrix,20,c(50,2.5),inside_prior=TRUE)
-# windows
-# .ABC_Lenormand(.binary_model("./trait_model.exe"),prior_matrix,10,sum_stat_obs,p_acc_min=0.4)
+
+## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
+###################################################################################################################################
+
+.ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Beaumont", "Drovandi", "Delmoral", "Lenormand"))) {
+        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
+    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+
+    options(scipen=50)
+
+    ## general function regrouping the different sequential algorithms     
+    ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.
+    ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
+    ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
+    ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
+    return(switch(EXPR = method,
+	    Beaumont = .ABC_PMC(model,prior_matrix,nb_simul,summary_stat_target,...),
+	    Drovandi = .ABC_Drovandi(model,prior_matrix,nb_simul,summary_stat_target,...),
+	    Delmoral = .ABC_Delmoral(model,prior_matrix,nb_simul,summary_stat_target,...),
+	    Lenormand = .ABC_Lenormand(model,prior_matrix,nb_simul,summary_stat_target,...)))
+
+    options(scipen=0)
+}
+
 
 
 ## function to move a particle with a unidimensional uniform jump
@@ -1450,12 +1487,6 @@
   list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=tab_normalization,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
 
-## test
-# linux
-# .ABC_MCMC(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),1,c(33,1),c(25,25,1,0,0))
-# windows
-# .ABC_MCMC(.binary_model("./trait_model.exe"),prior_matrix,10,1,sum_stat_obs,8,c(50,1,20,10000),c(0,1,0.5,0,50,1),use_seed=TRUE,seed_count=0)
-
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
 .ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
@@ -1597,13 +1628,6 @@
   }
   list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
-
-## test
-# linux
-# .ABC_MCMC2(.binary_model("./parthy"),prior_matrix,22,10,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
-# windows
-# .ABC_MCMC2(.binary_model("./trait_model.exe"),prior_matrix,10,1,sum_stat_obs,10,tolerance_quantile=0.5)
-
 
 
 ## ABC-MCMC3 algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
@@ -1842,28 +1866,10 @@
   list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
 
-## test
-# linux
-# .ABC_MCMC3(.binary_model("./parthy"),prior_matrix,22,c(50,2.5),n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
-# windows
-# .ABC_MCMC3(.binary_model("./trait_model.exe"),prior_matrix,20,n_between_sampling=1,sum_stat_obs,n_calibration=10,tolerance_quantile=0.5)
+
 
 
 ###################### parallel functions ###############
-
-## model wrapper
-################
-.binary_model_cluster<-function(command) {
-  invoke<-function(param) {
-    n_clust=param[1]
-    numclust=1+((param[2]-1)%%n_clust)
-    nparam=length(param)
-    write.table(param[2:nparam],file=paste("input",numclust,sep=""),row.names=F,col.names=F,quote=F)
-    system2(command,args=as.character(numclust))
-    read.table(paste("output",numclust,sep=""),h=F)
-  }
-}
-
 
 
 .ABC_rejection_internal_cluster<-function(model,prior_matrix,nb_simul,seed_count=0,n_cluster=1){
@@ -1919,6 +1925,94 @@
   }
   cbind(tab_param,tab_simul_summarystat)
 }
+
+
+
+
+## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
+######################################################
+
+.ABC_rejection_cluster <-function(model,prior_matrix,nb_simul,seed_count=0,n_cluster=1){
+    ## checking errors in the inputs
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
+    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
+    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
+    seed_count=floor(seed_count)
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
+    
+	library(parallel)
+
+	start = Sys.time()
+	
+	options(scipen=50)
+	cl <- makeCluster(getOption("cl.cores", n_cluster))
+
+	tab_simul_summarystat=NULL
+	tab_param=NULL
+	list_param=list(NULL)
+	npar=floor(nb_simul/n_cluster)
+	n_end=nb_simul-(npar*n_cluster)
+	for (irun in 1:npar){
+	  for (i in 1:n_cluster){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		#if (use_seed) { # NB: we force the value use_seed=TRUE
+		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		list_param[[i]]=param
+		tab_param=rbind(tab_param,param[3:(l+2)])
+	  }
+	  seed_count=seed_count+n_cluster
+	  list_simul_summarystat=parLapply(cl,list_param,model)
+	  for (i in 1:n_cluster){
+		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+	  }
+	}
+	if (n_end>0){
+	  stopCluster(cl)
+	  cl <- makeCluster(getOption("cl.cores", 1))
+	  list_param=list(NULL)
+	  for (i in 1:n_end){
+		l=dim(prior_matrix)[1]
+		param=array(0,l)
+		for (j in 1:l){
+			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+		}
+		#if (use_seed) { # NB: we force the value use_seed=TRUE
+		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		list_param[[i]]=param
+		tab_param=rbind(tab_param,param[3:(l+2)])
+	  }
+	  seed_count=seed_count+n_end
+	  list_simul_summarystat=parLapply(cl,list_param,model)
+	  for (i in 1:n_end){
+		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+	  }
+    	  stopCluster(cl)
+	}
+	else{
+	  stopCluster(cl)
+	}
+	options(scipen=0)
+	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
+list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+}
+
+
+
 
 ## function to perform ABC simulations from a non-uniform prior (derived from a set of particles)
 #################################################################################################
@@ -2223,10 +2317,6 @@
   }
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
-
-## test
-# windows
-# .ABC_PMC_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,n_cluster=2,10,sum_stat_obs,tolerance_tab=c(18,15))
 
 
 .move_drovandi_ini_cluster<-function(nb_simul_step,simul_below_tol,tab_weight,nparam,nstat,tab_unfixed_param,prior_matrix,summary_stat_target,tol_next,seed_count,n_cluster,model,sd_simul){
@@ -2615,10 +2705,6 @@
 }
 
 
-## test
-# windows
-# .ABC_Drovandi_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,n_cluster=2,seed_count=0,c(8),alpha=0.5,c=0.81,first_tolerance_level_auto=TRUE)
-
 ## rejection algorithm with M simulations per parameter set
 ############################################################
 .ABC_rejection_M_cluster<-function(model,prior_matrix,nb_simul,M,seed_count,n_cluster){
@@ -2918,14 +3004,6 @@
   }	
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
-
-
-## test
-# windows
-# .ABC_Delmoral_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,0.5,1,12,8,seed_count=0,n_cluster=2)
-# .ABC_Delmoral_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,0.5,3,12,8,seed_count=0,n_cluster=2)
-
-
 
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
@@ -3305,9 +3383,49 @@
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
 
-## test
-# windows
-# .ABC_Lenormand_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,25,sum_stat_obs,alpha=0.5,p_acc_min=0.5,seed_count=0,inside_prior=TRUE,n_cluster=2)
+
+.ABC_sequential_cluster <-
+function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(nb_simul)) stop("'nb_simul' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Beaumont", "Drovandi", "Delmoral","Lenormand"))){
+        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
+    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
+
+	options(scipen=50)
+	library(parallel)
+
+	       ## general function regrouping the different sequential algorithms     
+	  ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983â??990.
+	  ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225â??233.
+	  ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
+	  ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
+	  switch(EXPR = method,
+         	 Beaumont = .ABC_PMC_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,,...),
+	         Drovandi = .ABC_Drovandi_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
+	         Delmoral = .ABC_Delmoral_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
+	         Lenormand = .ABC_Lenormand_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...))
+
+	options(scipen=0)
+
+}
+
 
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
@@ -3416,11 +3534,6 @@
   } 		
   list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
-
-## test
-# windows
-# .ABC_MCMC2_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,22,1,sum_stat_obs,n_cluster=2,n_calibration=10,tolerance_quantile=0.2,proposal_phi=1)
-
 
 
 ## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
@@ -3623,10 +3736,6 @@
   list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
 }
 
-## test
-# windows
-# .ABC_MCMC3_cluster(.binary_model_cluster("./trait_model_clust.exe"),prior_matrix,22,1,sum_stat_obs,n_calibration=10,tolerance_quantile=0.2,proposal_phi=1,n_cluster=2)
-
 
 
 ######################### Utilities functions
@@ -3688,218 +3797,6 @@
   invisible(oldval)
 }
 
-# Example
-#pb <- .progressBar(width=30)
-#simus = 2*c(0.9, 1.2, 0.8, 0.9, 1);
-#duration = 0;
-#for(i in 1:length(simus)) {
-#  start = Sys.time()
-#  Sys.sleep(simus[i]);
-#  duration = duration + difftime(Sys.time(), start, unit="secs")
-#  text="";
-#  if (i==length(simus)) {
-#    text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-#  } else {
-#    text = paste("âˆ’ Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"âˆ’ Estimated time remaining:",format(.POSIXct(duration/i*(length(simus)-i), tz="GMT"), "%H:%M:%S"));
-#  }
-#  .updateProgressBar(pb, i/length(simus), text)
-#}
-#close(pb)
-
-
-## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
-######################################################
-.ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0,progress_bar=FALSE){
-
-    ## checking errors in the inputs
-    if(missing(model)) stop("'model' is missing")
-    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
-    if(missing(nb_simul)) stop("'nb_simul' is missing")
-    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) 			  stop("'prior_matrix' has to be a matrix or data.frame")
-    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
-    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns")
-    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1")
-    if(!is.logical(use_seed)) stop("'use_seed' has to be boolean")
-    if(!is.vector(seed_count)) stop("'seed_count' has to be a number")
-    if(length(seed_count)>1) stop("'seed_count' has to be a number")
-    if (seed_count<0) stop ("'seed_count' has to be a positive number")
-    if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean")
-
-    nb_simul=floor(nb_simul)
-    seed_count=floor(seed_count)
-    pgwidth=0
-    if (progress_bar){
-	pgwidth=50
-    }
-
-    rejection = .ABC_rejection_internal(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0, progressbarwidth=pgwidth)
-
-    sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
-    
-list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simul,nb_simul), stats_normalization=sd_simul, nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, unit="secs")))
-}
-
-## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
-######################################################
-
-.ABC_rejection_cluster <-function(model,prior_matrix,nb_simul,seed_count=0,n_cluster=1){
-    ## checking errors in the inputs
-    if(missing(model)) stop("'model' is missing")
-    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
-    if(missing(nb_simul)) stop("'nb_simul' is missing")
-    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
-    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
-    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
-    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
-    nb_simul=floor(nb_simul)
-    if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
-    if(length(seed_count)>1) stop("'seed_count' has to be a number.")
-    if (seed_count<0) stop ("'seed_count' has to be a positive number.")
-    seed_count=floor(seed_count)
-    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
-    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
-    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
-    n_cluster=floor(n_cluster)
-    
-	library(parallel)
-
-	start = Sys.time()
-	
-	options(scipen=50)
-	cl <- makeCluster(getOption("cl.cores", n_cluster))
-
-	tab_simul_summarystat=NULL
-	tab_param=NULL
-	list_param=list(NULL)
-	npar=floor(nb_simul/n_cluster)
-	n_end=nb_simul-(npar*n_cluster)
-	for (irun in 1:npar){
-	  for (i in 1:n_cluster){
-		l=dim(prior_matrix)[1]
-		param=array(0,l)
-		for (j in 1:l){
-			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
-		}
-		#if (use_seed) { # NB: we force the value use_seed=TRUE
-		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
-		list_param[[i]]=param
-		tab_param=rbind(tab_param,param[3:(l+2)])
-	  }
-	  seed_count=seed_count+n_cluster
-	  list_simul_summarystat=parLapply(cl,list_param,model)
-	  for (i in 1:n_cluster){
-		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
-	  }
-	}
-	if (n_end>0){
-	  stopCluster(cl)
-	  cl <- makeCluster(getOption("cl.cores", 1))
-	  list_param=list(NULL)
-	  for (i in 1:n_end){
-		l=dim(prior_matrix)[1]
-		param=array(0,l)
-		for (j in 1:l){
-			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
-		}
-		#if (use_seed) { # NB: we force the value use_seed=TRUE
-		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
-		list_param[[i]]=param
-		tab_param=rbind(tab_param,param[3:(l+2)])
-	  }
-	  seed_count=seed_count+n_end
-	  list_simul_summarystat=parLapply(cl,list_param,model)
-	  for (i in 1:n_end){
-		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
-	  }
-    	  stopCluster(cl)
-	}
-	else{
-	  stopCluster(cl)
-	}
-	options(scipen=0)
-	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
-list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
-}
-
-## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
-###################################################################################################################################
-
-.ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,...){
-    ## checking errors in the inputs
-    if(missing(method)) stop("'method' is missing")
-    if(missing(model)) stop("'model' is missing")
-    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
-    if(missing(nb_simul)) stop("'nb_simul' is missing")
-    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
-    if(!any(method == c("Beaumont", "Drovandi", "Delmoral", "Lenormand"))) {
-        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
-    }
-    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
-    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
-    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
-    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
-    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
-    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
-    nb_simul=floor(nb_simul)
-    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
-
-    options(scipen=50)
-
-    ## general function regrouping the different sequential algorithms     
-    ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.
-    ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
-    ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
-    ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
-    return(switch(EXPR = method,
-	    Beaumont = .ABC_PMC(model,prior_matrix,nb_simul,summary_stat_target,...),
-	    Drovandi = .ABC_Drovandi(model,prior_matrix,nb_simul,summary_stat_target,...),
-	    Delmoral = .ABC_Delmoral(model,prior_matrix,nb_simul,summary_stat_target,...),
-	    Lenormand = .ABC_Lenormand(model,prior_matrix,nb_simul,summary_stat_target,...)))
-
-    options(scipen=0)
-}
-
-.ABC_sequential_cluster <-
-function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...){
-    ## checking errors in the inputs
-    if(missing(method)) stop("'method' is missing")
-    if(missing(model)) stop("'model' is missing")
-    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
-    if(missing(nb_simul)) stop("'nb_simul' is missing")
-    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
-    if(!any(method == c("Beaumont", "Drovandi", "Delmoral","Lenormand"))){
-        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
-    }
-    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
-    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
-    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
-    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
-    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
-    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
-    nb_simul=floor(nb_simul)
-    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
-    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
-    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
-    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
-    n_cluster=floor(n_cluster)
-
-	options(scipen=50)
-	library(parallel)
-
-	       ## general function regrouping the different sequential algorithms     
-	  ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983â??990.
-	  ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225â??233.
-	  ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
-	  ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
-	  switch(EXPR = method,
-         	 Beaumont = .ABC_PMC_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,,...),
-	         Drovandi = .ABC_Drovandi_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
-	         Delmoral = .ABC_Delmoral_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
-	         Lenormand = .ABC_Lenormand_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...))
-
-	options(scipen=0)
-
-}
 
 
 

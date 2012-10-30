@@ -13,7 +13,7 @@
 
 \arguments{
   \item{method}{
-	a character string indicating the sequential algorithm to be used. Possible values are \code{"Beaumont"}, \code{"Drovandi"}, \code{"Delmoral"} and \code{"Lenormand"}.
+	a character string indicating the sequential algorithm to be used. Possible values are \code{"Beaumont"}, \code{"Drovandi"}, \code{"Delmoral"} and \code{"Lenormand"}.}
   \item{model}{
     	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
 	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
@@ -113,25 +113,25 @@ sum_stat_obs=c(100,2.5,20,30000)
 ## artificial example to perform the Beaumont et al. (2009)'s method.
 ##
 ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model, prior_matrix=priormatrix,
-nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=c(8,5))
+nb_simul=10, summary_stat_target=sum_stat_obs, n_cluster=1, tolerance_tab=c(8,5))
 ABC_Beaumont
 
 ## artificial example to perform the Drovandi and Pettitt (2011)'s method.
 ##
 ABC_Drovandi<-ABC_sequential(method="Drovandi", model=trait_model, prior_matrix=priormatrix,
-nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=3, c=0.7)
+nb_simul=10, summary_stat_target=sum_stat_obs, n_cluster=1, tolerance_tab=3, c=0.7)
 ABC_Drovandi
 
 ## artificial example to perform the Del Moral et al. (2012)'s method.
 ##
 ABC_Delmoral<-ABC_sequential(method="Delmoral", model=trait_model, prior_matrix=priormatrix,
-nb_simul=10, summary_stat_target=sum_stat_obs, alpha=0.5, tolerance_target=3)
+nb_simul=10, summary_stat_target=sum_stat_obs, n_cluster=1, alpha=0.5, tolerance_target=3)
 ABC_Delmoral
 
 ## artificial example to perform the Lenormand et al. (2012)'s method.
 ##
 ABC_Lenormand<-ABC_sequential(method="Lenormand", model=trait_model, prior_matrix=priormatrix,
-nb_simul=10, summary_stat_target=sum_stat_obs, p_acc_min=0.4)
+nb_simul=10, summary_stat_target=sum_stat_obs, n_cluster=1, p_acc_min=0.4)
 ABC_Lenormand
 }
 \keyword{abc}

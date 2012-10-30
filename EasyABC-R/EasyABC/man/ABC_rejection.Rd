@@ -62,9 +62,8 @@ n=10
 priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
 dim(priormatrix)<-c(6,2)
 priormatrix
-ABC_rej<-ABC_rejection(model=trait_model,prior_matrix=priormatrix,nb_simul=n)
+ABC_rej<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n, n_cluster=1, progress_bar=FALSE)
 ABC_rej
-ABC_rejection(model=trait_model, prior_matrix=prior_matrix, nb_simul=10, use_seed=TRUE)
 }
 \keyword{abc}
 \keyword{model}
