@@ -2,10 +2,12 @@
 \alias{EasyABC-package}
 \alias{EasyABC}
 \docType{package}
-\title{A package for ABC computation}
+\title{EasyABC: performing efficient approximate Bayesian computation sampling schemes using R}
 \description{
-More about what it does (maybe more than one line)
-~~ A concise (1-5 lines) description of the package ~~
+The package EasyABC enables to launch a series of simulations of a computer code from the R platform,
+and to retrieve the simulation outputs in an appropriate format for post-processing treatments.
+Four sequential sampling schemes and three coupled-to-MCMC schemes are implemented.
+EasyABC further enables to launch the simulations in parallel on multiple cores of a computer.
 }
 \details{
 \tabular{ll}{
@@ -16,20 +18,10 @@ Date: 2012-10-15
 License: GPL-3
 LazyLoad: yes
 }
-~~ An overview of how to use the package, including the most important ~~
-~~ functions ~~
 }
 \author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
-\references{
-in preparation
-}
-\keyword{ package, abc }
+\keyword{package}
+\keyworkd{abc}
 \seealso{
-~~ Optional links to other man pages, e.g. ~~
-~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
-}
-\examples{
-prior_matrix=c(1,1,-1,1000,10000,100,100,1,1000,10000)
-dim(prior_matrix)<-c(5,2)
-prior_matrix
+\code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}, \code{\link{binary_model}}, \code{\link{binary_model_cluster}}}
 }

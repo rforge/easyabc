@@ -2,6 +2,13 @@
 ## INTERNAL FUNCTIONS
 #######################
 
+## necessary libraries: -> imported thanks to the file NAMESPACE
+# library(mnormt)
+# library(lhs)
+# library(pls)
+# library(MASS)
+# library(parallel)
+
 ## function to compute a distance between a matrix of simulated statistics (row: different simulations, columns: different summary statistics) and the array of data summary statistics
 #######################################################################################################################################################################################
 .compute_dist<-function(summary_stat_target,simul,sd_simul){
@@ -76,7 +83,7 @@
 ##############################
 .move_particle<-function(param_picked,varcov_matrix,prior_matrix){
   # with package mnormt
-  library(mnormt)
+  #library(mnormt) 
   rmnorm(n = 1, mean = param_picked, varcov_matrix)
 }
 
@@ -84,7 +91,7 @@
 ##############################
 .move_particleb<-function(param_picked,varcov_matrix,prior_matrix){
   # with package mnormt
-  library(mnormt)
+  #library(mnormt)
   test=FALSE
   counter=0
   while ((!test)&&(counter<100)){
@@ -1034,7 +1041,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 ## function to sample in the prior distributions using a Latin Hypercube sample
 ###############################################################################
 .ABC_rejection_lhs<-function(model,prior_matrix,nb_simul,tab_unfixed_param,use_seed=TRUE,seed_count=0){
-  library(lhs)
+  #library(lhs)
   tab_simul_summarystat=NULL
   tab_param=NULL
   l=dim(prior_matrix)[1]
@@ -1362,7 +1369,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003
 #############################################
-.ABC_MCMC<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,dist_max,tab_normalization,proposal_range,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
+.ABC_MCMC<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,dist_max,tab_normalization,proposal_range,use_seed=TRUE,seed_count=0,verbose=FALSE,progress_bar=FALSE){
   
   ## checking errors in the inputs
   if(!is.vector(dist_max)) stop("'dist_max' has to be a number.")
@@ -1378,9 +1385,12 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   if (seed_count<0) stop ("'seed_count' has to be a positive number.")
   seed_count=floor(seed_count)
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
-  
+  if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean.")
+
   start = Sys.time()
-  print("    ------ Marjoram et al. (2003)'s algorithm ------") 
+  if (progress_bar){
+	  print("    ------ Marjoram et al. (2003)'s algorithm ------") 
+  }
   
   
   seed_count_ini=seed_count
@@ -1422,12 +1432,16 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   if (verbose==TRUE){
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("initial draw performed ")
+  if (progress_bar){
+	  print("initial draw performed ")
+  }
   
   # chain run
   # progress bar
-  pb <- .progressBar(width=50)
-  duration = 0;
+  if (progress_bar){
+	  pb <- .progressBar(width=50)
+	  duration = 0;
+  }
   
   tab_param=param_ini
   tab_simul_summary_stat=tab_simul_ini
@@ -1453,21 +1467,22 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-    if (is%%100==0){
-      print(paste(is," ",sep=""))
+    if (progress_bar){
+	    # for progressbar message and time evaluation
+	    duration = difftime(Sys.time(), start, unit="secs")
+	    text="";
+	    if (is==n_obs) {
+	      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+	    } 
+	    else {
+	      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
+	    }
+	    .updateProgressBar(pb, is/n_obs, text)
     }
-    # for progressbar message and time evaluation
-    duration = difftime(Sys.time(), start, unit="secs")
-    text="";
-    if (is==n_obs) {
-      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-    } 
-    else {
-      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
-    }
-    .updateProgressBar(pb, is/n_obs, text)
   }
-  close(pb)
+  if (progress_bar){
+	  close(pb)
+  }
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
   for (i in 1:dim(tab_param)[1]){
     for (j in 1:dim(tab_param)[2]){
@@ -1489,7 +1504,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
-.ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
+.ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,use_seed=TRUE,seed_count=0,verbose=FALSE,progress_bar=FALSE){
   
   
   ## checking errors in the inputs
@@ -1510,10 +1525,13 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   if (seed_count<0) stop ("'seed_count' has to be a positive number.")
   seed_count=floor(seed_count)
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
+  if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean.")
+
   
   start = Sys.time()
-  print("    ------ Marjoram et al. (2003)'s algorithm with modifications drawn from Wegmann et al. (2009) related to automatization ------") 
-  
+  if (progress_bar){
+	  print("    ------ Marjoram et al. (2003)'s algorithm with modifications drawn from Wegmann et al. (2009) related to automatization ------") 
+  }
   
   seed_count_ini=seed_count
   nparam=dim(prior_matrix)[1]
@@ -1562,13 +1580,17 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   if (verbose==TRUE){
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("initial calibration performed ")
+  if (progress_bar){
+	  print("initial calibration performed ")
+  }
   
   # chain run
   # progress bar
   startb = Sys.time()
-  pb <- .progressBar(width=50)
-  duration = 0;
+    if (progress_bar){
+	pb <- .progressBar(width=50)
+	duration = 0;
+    }
   
   tab_param=param_ini
   tab_simul_summary_stat=tab_simul_ini
@@ -1595,21 +1617,22 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-    if (is%%100==0){
-      print(paste(is," ",sep=""))
+    if (progress_bar){
+	    # for progressbar message and time evaluation
+		    duration = difftime(Sys.time(), startb, unit="secs")
+	    text="";
+	    if (is==n_obs) {
+	      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+	    } 
+	    else {
+	      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
+	    }
+	    .updateProgressBar(pb, is/n_obs, text)
     }
-    # for progressbar message and time evaluation
-    duration = difftime(Sys.time(), startb, unit="secs")
-    text="";
-    if (is==n_obs) {
-      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-    } 
-    else {
-      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
-    }
-    .updateProgressBar(pb, is/n_obs, text)
   }
-  close(pb)
+  if (progress_bar){
+	  close(pb)
+  }
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
   for (i in 1:dim(tab_param)[1]){
     for (j in 1:dim(tab_param)[2]){
@@ -1632,8 +1655,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 
 ## ABC-MCMC3 algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
-.ABC_MCMC3<-function(model,prior_matrix,n_obs,n_between_sampling=1,summary_stat_targ,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,numcomp=0,use_seed=TRUE,seed_count=0,verbose=FALSE,...){
-  
+.ABC_MCMC3<-function(model,prior_matrix,n_obs,n_between_sampling=1,summary_stat_target,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,numcomp=0,use_seed=TRUE,seed_count=0,verbose=FALSE,progress_bar=FALSE){  
   
   ## checking errors in the inputs
   if(!is.vector(n_calibration)) stop("'n_calibration' has to be a number.")
@@ -1659,11 +1681,15 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   if (seed_count<0) stop ("'seed_count' has to be a positive number.")
   seed_count=floor(seed_count)
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
-  library(pls)
-  library(MASS)
+  if(!is.logical(progress_bar)) stop("'progress_bar' has to be boolean.")
+
+  #library(pls)
+  #library(MASS)
   
   start = Sys.time()
-  print("    ------ Wegmann et al. (2009)'s algorithm ------") 
+  if (progress_bar){
+	print("    ------ Wegmann et al. (2009)'s algorithm ------") 
+  }
   
   
   ##AM1
@@ -1697,7 +1723,9 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     tab_param=tab_param[,2:(nparam+1)]
   }
   seed_count=seed_count+n_calibration
-  write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+  if (verbose){
+  	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+  }
   
   ## AM2: PLS step
   #print("AM2 ")
@@ -1779,13 +1807,17 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   for (i in 1:nparam){
     proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
   }
-  print("initial calibration performed ")
+  if (progress_bar){
+	  print("initial calibration performed ")
+  }
   
   ## AM5: chain run
   # progress bar
   startb = Sys.time()
-  pb <- .progressBar(width=50)
-  duration = 0;
+  if (progress_bar){
+	  pb <- .progressBar(width=50)
+	  duration = 0;
+  }
   
   #print("AM5 ")
   n_ini=sample(nmax,1)
@@ -1832,21 +1864,22 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-    if (is%%100==0){
-      print(paste(is," ",sep=""))
+    if (progress_bar){
+	    # for progressbar message and time evaluation
+	    duration = difftime(Sys.time(), startb, unit="secs")
+	    text="";
+	    if (is==n_obs) {
+	      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+	    } 
+	    else {
+	      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
+	    }
+	    .updateProgressBar(pb, is/n_obs, text)
     }
-    # for progressbar message and time evaluation
-    duration = difftime(Sys.time(), startb, unit="secs")
-    text="";
-    if (is==n_obs) {
-      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-    } 
-    else {
-      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
-    }
-    .updateProgressBar(pb, is/n_obs, text)
   }
-  close(pb)
+  if (progress_bar){
+	  close(pb)
+  }
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
   for (i in 1:dim(tab_param)[1]){
     for (j in 1:dim(tab_param)[2]){
@@ -1865,6 +1898,35 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   }
   list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
 }
+
+## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
+##############################################################################
+.ABC_mcmc_internal <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(n_obs)) stop("'n_obs' is missing")
+    if(missing(n_between_sampling)) stop("'n_between_sampling' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))){
+        stop("Method must be Marjoram_original, Marjoram or wegmann")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+
+	options(scipen=50)
+
+	    return(switch(EXPR = method,
+	       Marjoram_original = .ABC_MCMC(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...),
+	       Marjoram = .ABC_MCMC2(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...),
+	       Wegmann = .ABC_MCMC3(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...)))
+
+	options(scipen=0)
+}
+
 
 
 
@@ -1951,7 +2013,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
     n_cluster=floor(n_cluster)
     
-	library(parallel)
+	#library(parallel)
 
 	start = Sys.time()
 	
@@ -3009,7 +3071,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 ## function to sample in the prior distributions using a Latin Hypercube sample
 ###############################################################################
 .ABC_rejection_lhs_cluster<-function(model,prior_matrix,nb_simul,tab_unfixed_param,seed_count=0,n_cluster){
-  library(lhs)
+  #library(lhs)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
   tab_simul_summarystat=NULL
   tab_param=NULL
@@ -3409,7 +3471,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
     n_cluster=floor(n_cluster)
 
 	options(scipen=50)
-	library(parallel)
+	#library(parallel)
 
 	       ## general function regrouping the different sequential algorithms     
 	  ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983â??990.
@@ -3450,7 +3512,9 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
   
   start = Sys.time()
-  print("    ------ Marjoram et al. (2003)'s algorithm with modifications drawn from Wegmann et al. (2009) related to automatization ------")
+  if (verbose){
+  	print("    ------ Marjoram et al. (2003)'s algorithm with modifications drawn from Wegmann et al. (2009) related to automatization ------")
+  }
   
   seed_count_ini=seed_count
   nparam=dim(prior_matrix)[1]
@@ -3488,7 +3552,9 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   if (verbose==TRUE){ 
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  print("initial calibration performed ")
+  if (verbose){
+	  print("initial calibration performed ")
+  }
   
   # chain run
   tab_param=param_ini
@@ -3512,8 +3578,10 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-    if (is%%100==0){
+    if (verbose){
+     if (is%%100==0){
       print(paste(is," ",sep=""))
+     }
     }
   }
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
@@ -3564,9 +3632,11 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   if(!is.logical(verbose)) stop("'verbose' has to be boolean.")
   
   start = Sys.time()
-  print("    ------ Wegmann et al. (2009)'s algorithm ------")
-  library(pls)
-  library(MASS)
+  if (verbose){
+	  print("    ------ Wegmann et al. (2009)'s algorithm ------")
+  }
+  #library(pls)
+  #library(MASS)
   
   ##AM1
   seed_count_ini=seed_count
@@ -3669,7 +3739,9 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   for (i in 1:nparam){
     proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
   }
-  print("initial calibration performed ")
+  if (verbose){
+	  print("initial calibration performed ")
+  }
   
   ## AM5: chain run
   #print("AM5 ")
@@ -3713,8 +3785,10 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-    if (is%%100==0){
+    if (verbose){
+     if (is%%100==0){
       print(paste(is," ",sep=""))
+     }
     }
   }	
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
@@ -3734,6 +3808,42 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
     tab_dist2[i]=tab_dist[i]
   }
   list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
+}
+
+## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
+##############################################################################
+.ABC_mcmc_cluster <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster=1,...){
+    ## checking errors in the inputs
+    if(missing(method)) stop("'method' is missing")
+    if(missing(model)) stop("'model' is missing")
+    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(n_obs)) stop("'n_obs' is missing")
+    if(missing(n_between_sampling)) stop("'n_between_sampling' is missing")
+    if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
+    if(!any(method == c("Marjoram", "Wegmann"))){
+        stop("Method must be Marjoram or wegmann")
+    }
+    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
+    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
+    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
+    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
+    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
+    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
+    nb_simul=floor(nb_simul)
+    if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
+
+	options(scipen=50)
+	#library(parallel)
+## Note that we do not consider the original Marjoram's algortithm, which is not prone to parallel computing. (no calibration step)
+	    return(switch(EXPR = method,
+	       Marjoram = .ABC_MCMC2_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...),
+	       Wegmann = .ABC_MCMC3_cluster(model,prior_matrix,n_obs,summary_stat_target,n_cluster,...)))
+
+	options(scipen=0)
 }
 
 

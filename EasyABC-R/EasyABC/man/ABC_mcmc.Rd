@@ -7,11 +7,12 @@
 	This function implements three different algorithms to perform coupled to MCMC ABC.
 }
 \usage{
-	ABC_mcmc(method, model, prior_matrix, n_obs, n_between_sampling, summary_stat_target, ...)
+	ABC_mcmc(method, model, prior_matrix, n_obs, n_between_sampling, summary_stat_target, n_cluster = 1, ...)
 }
 \arguments{
   \item{method}{
 	a character string indicating the ABC-MCMC algorithm to be used. Possible values are \code{"Marjoram_original"}, \code{"Marjoram"} and \code{"Wegmann"}.
+	Note that the method \code{"Marjoram_original"} cannot be used with multiple cores.}
   \item{model}{
     	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
 	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
@@ -23,6 +24,8 @@
     	a positive integer equal to the desired spacing between sampled points along the MCMC.}
   \item{summary_stat_target}{
 	a vector containing the targeted (observed) summary statistics.}
+  \item{n_cluster}{
+    a positive integer. If larger than 1 (the default value), \code{ABC_mcmc} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
   \item{dist_max}{
 	a positive number, used when \code{method} is \code{"Marjoram_original"}.
 	This is the tolerance threshold used during the MCMC.}
@@ -56,6 +59,8 @@
     	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
   \item{verbose}{
 	logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} writes in the current directory intermediary results at the end of the calibration step of the algorithm.}
+  \item{progress_bar}{
+    logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
 }
 \details{
 See the package's vignette for details on ABC-MCMC.
@@ -120,7 +125,7 @@ proposalrange=c(0,1,0.5,0,50,1)
 ## artificial example to perform the Marjoram et al. (2003)'s method.
 ##
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model, prior_matrix=priormatrix,
-n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, dist_max=distmax,
+n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1, dist_max=distmax,
 tab_normalization=tabnormalization, proposal_range=proposalrange)
 ABC_Marjoram_original
 
@@ -129,7 +134,7 @@ ABC_Marjoram_original
 ncalib=10
 tolquantile = 0.5
 ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=trait_model, prior_matrix=priormatrix,
-n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs,
+n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1,
 n_calibration=ncalib, tolerance_quantile=tolquantile)
 ABC_Marjoram
 
@@ -137,7 +142,7 @@ ABC_Marjoram
 ## artificial example to perform the Wegmann et al. (2009)'s method.
 ##
 ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior_matrix=priormatrix,
-n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs,
+n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1,
 n_calibration=ncalib, tolerance_quantile=tolquantile)
 ABC_Wegmann
 

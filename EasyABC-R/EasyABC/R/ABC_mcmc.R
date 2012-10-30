@@ -1,6 +1,6 @@
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
 ##############################################################################
-ABC_mcmc <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...){
+ABC_mcmc <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster=1,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -15,14 +15,19 @@ ABC_mcmc <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_s
     if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
     if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
     if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
+    if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
+    if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
+    if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
+    n_cluster=floor(n_cluster)
 
-	options(scipen=50)
 
-	    return(switch(EXPR = method,
-	       Marjoram_original = .ABC_MCMC(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...),
-	       Marjoram = .ABC_MCMC2(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...),
-	       Wegmann = .ABC_MCMC3(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...)))
-
-	options(scipen=0)
+    	mcmc=NULL
+	if (n_cluster==1){
+		mcmc = .ABC_mcmc_internal(method,model,prior_matrix,n_obs,n_between_sampling,,summary_stat_target,...)
+	}
+	else{
+		mcmc = .ABC_mcmc_cluster(method,model,prior_matrix,n_obs,n_between_sampling,,summary_stat_target,n_cluster,...)
+	}
+mcmc
 }
 
