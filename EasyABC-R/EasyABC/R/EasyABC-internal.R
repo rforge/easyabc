@@ -1850,7 +1850,9 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
         simul_summary_stat[ii]<-((simul_summary_stat[ii]^lambda[ii]) - 1)/(lambda[ii]*(myGM[ii]^(lambda[ii]-1)))
         simul_summary_stat[ii]<-(simul_summary_stat[ii]-myBCMeans[ii])/myBCSDs[ii]
       }
-      simul_summary_stat=t(pls_transformation %*% t(simul_summary_stat))
+      simul_summary_stat=as.matrix(simul_summary_stat)
+      dim(simul_summary_stat)<-c(nstat,1)
+      simul_summary_stat=t(pls_transformation %*% simul_summary_stat)
       dist_simul=.compute_dist_single(summary_stat_targ,as.numeric(simul_summary_stat),rep(1,numcomp))
       ## AM8-9
       #print("AM8-9 ")
@@ -3771,7 +3773,9 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
         simul_summary_stat[ii]<-((simul_summary_stat[ii]^lambda[ii]) - 1)/(lambda[ii]*(myGM[ii]^(lambda[ii]-1)))
         simul_summary_stat[ii]<-(simul_summary_stat[ii]-myBCMeans[ii])/myBCSDs[ii]
       }
-      simul_summary_stat=t(pls_transformation %*% t(simul_summary_stat))
+      simul_summary_stat=as.matrix(simul_summary_stat)
+      dim(simul_summary_stat)<-c(nstat,1)
+      simul_summary_stat=t(pls_transformation %*% simul_summary_stat)
       dist_simul=.compute_dist_single(summary_stat_targ,as.numeric(simul_summary_stat),rep(1,numcomp))
       ## AM8-9
       #print("AM8-9 ")
