@@ -44,7 +44,7 @@ Various ways to perform this biased sampling have been proposed, and four of the
 
 \subsection{Coupled to MCMC algorithms}
 The idea of ABC-MCMC algorithms proposed by Marjoram et al. (2003) is to perform a Metropolis-Hastings algorithm to explore the parameter space, and in replacing the step of likelihood ratio computation by model simulations.
-The original algorithm of Marjoram et al. (2003) is implemented in the method "Marjoram_original" in \texttt{EasyABC}.
+The original algorithm of Marjoram et al. (2003) is implemented in the method "Marjoram\_original" in \texttt{EasyABC}.
 Wegmann et al. (2009) later proposed a number of improvements to the original scheme of Marjoram et al. (2003): they proposed to perform a calibration step so that the algorithm automatically determines the tolerance threshold, the scaling of the summary statistics and the scaling of the jumps in the parameter space during the MCMC.
 These improvements have been implemented in the method "Marjoram".
 Wegmann et al. (2009) also proposed additional modifications, among which a PLS transformation of the summary statistics. The complete Wegmann et al. (2009)'s algorithm is implemented in the method "Wegmann".
@@ -155,20 +155,20 @@ In the following, we will use the values $J=500$ and $n\_t=1$, and uniform prior
 
 \textit{NB:} Note that the fixed variables $J$ and $n\_t$ are included in the prior matrix (lines 1 and 4) with their two columns equal to their fixed values:
   
-<<>>=
+<<priormatrix>>=
 priormatrix=cbind(c(500,3,-2.3,1,-25,-0.7),c(500,5,1.6,1,125,3.2))
 priormatrix
 @
 
 We will consider an imaginary arbitrary dataset whose summary statistics are $(S,H,MTV,STV) = (100,2.5,20,30000)$:
-<<>>=
+<<sum_stat_obs>>=
 sum_stat_obs=c(100,2.5,20,30000)
 @
 
 
 \subsection{Performing a standard ABC-rejection procedure}
 A standard ABC-rejection procedure can be simply performed with the function \texttt{ABC\_rejection}, in precising the number $n$ of simulations to be performed:
-<<>>=
+<<ABC_rejection>>=
 set.seed(1)
 n=10
 ABC_rej<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n)
@@ -186,7 +186,7 @@ Note that a simulation code \texttt{My\_simulation\_code} can be passed to the f
 \end{itemize}
 
 Simulation outputs can be transparently passed to post-processing tools, like the ones proposed by the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012):
-<<eval=FALSE>>=
+<<abc,eval=FALSE>>=
 install.packages("abc")
 library(abc)
 rej<-abc(sum_stat_obs, ABC_rej$param[,c(2,3,5,6)], ABC_rej$stats, tol=0.3, method="rejection")
@@ -202,7 +202,7 @@ rej$dist
 \subsection{Performing a sequential ABC scheme}
 Other functions of the \texttt{EasyABC} package are used in a very similar manner.
 To perform the algorithm of Beaumont et al. (2009), one needs to specify the sequence of tolerance levels $tolerance\_tab$ and the number $nb\_simul$ of simulations to obtain below the tolerance level at each iteration:
-<<>>=
+<<ABC_Beaumont>>=
 n=10
 tolerance=c(8,5)
 ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model,
@@ -213,7 +213,7 @@ ABC_Beaumont
 
 To perform the algorithm of Drovandi and Pettitt (2011), one needs to specify four arguments: the initial number of simulations $nb\_simul$, the final tolerance level $tolerance\_tab$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the target proportion $c$ of unmoved particles during the MCMC jump.
 Note that default values $alpha=0.5$ and $c=0.01$ are used if not specified, following Drovandi and Pettitt (2011).
-<<>>=
+<<ABC_Drovandi>>=
 n=10
 tol=3
 alpha=0.5
@@ -226,17 +226,18 @@ ABC_Drovandi
 
 To perform the algorithm of Del Moral et al. (2012), one needs to specify five arguments: the initial number of simulations $nb\_simul$, the number $\alpha$ controlling the decrease in effective sample size of the particle set at each step, the number $M$ of simulations performed for each particle, the minimal effective sample size $nb\_threshold$ below which a resampling of particles is performed and the final tolerance level $tolerance\_target$.
 Note that default values $alpha=0.5$, $M=1$ and $nb\_threshold=nb\_simul/2$ are used if not specified.
-<<>>=
+<<ABC_Delmoral>>=
 n=10
 tol=5
-ABC_Delmoral<-ABC_sequential(method="Delmoral",model=trait_model,prior_matrix=priormatrix,
-nb_simul=n,summary_stat_target=sum_stat_obs,tolerance_target=tol)
+alpha=0.5
+ABC_Delmoral<-ABC_sequential(method="Delmoral", model=trait_model, prior_matrix=priormatrix,
+nb_simul=n, summary_stat_target=sum_stat_obs, alpha=0.5, tolerance_target=tol)
 ABC_Delmoral
 @
 
 To perform the algorithm of Lenormand et al. (2012), one needs to specify three arguments: the initial number of simulations $nb\_simul$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the stopping criterion $p\_acc\_min$.
 Note that default values $alpha=0.5$ and $p\_acc\_min=0.05$ are used if not specified, following Lenormand et al. (2012).
-<<>>=
+<<ABC_Lenormand>>=
 n=10
 alpha=0.5
 paccmin=0.4
@@ -249,7 +250,7 @@ ABC_Lenormand
 
 \subsection{Performing a ABC-MCMC scheme}
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_obs$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, an array $tab\_normalization$ precising the scale of each summary statistics, and an array $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
-<<>>=
+<<ABC_Marjoram_original>>=
 n=10
 nbetweensampling=1
 distmax=8
@@ -262,7 +263,7 @@ ABC_Marjoram_original
 To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
 These modifications are drawn from the algorithm of Wegmann et al. (2009a), without relying on PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$,$tolerance\_quantile=0.01$ and $proposal\_phi=1$.
-<<>>=
+<<ABC_Marjoram>>=
 n=10
 nbetweensampling=1
 ncalib=10
@@ -276,7 +277,7 @@ ABC_Marjoram
 
 To perform the algorithm of Wegmann et al. (2009a), one needs to specify four arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$, the scale factor $proposal\_phi$ to determine the proposal range and the number of components $numcomp$ to be used in PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$,$tolerance\_quantile=0.01$, $proposal\_phi=1$ and $numcomp=0$, this last default value encodes a choice of a number of PLS components equal to the number of summary statistics.
-<<>>=
+<<#ABC_Wegmann>>=
 n=10
 nbetweensampling=1
 ncalib=10
@@ -310,31 +311,31 @@ The \texttt{EasyABC} package makes use of a number of \texttt{R} tools, among wh
 
 
 \section{References}
-Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009) Adaptive approximate Bayesian computation. \emph{Biometrika},\bold{96}, 983--990.
+Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009) Adaptive approximate Bayesian computation. \emph{Biometrika},\textbf{96}, 983--990.
 
 Carnell, R. (2012) lhs: Latin Hypercube Samples. R package version 0.10. http://CRAN.R-project.org/package=lhs
 
-Del Moral, P., Doucet, A., and Jasra, A. (2012) An adaptive sequential Monte Carlo method for approximate Bayesian computation. \emph{Statistics and Computing}, \bold{22}, 1009--1020.
+Del Moral, P., Doucet, A., and Jasra, A. (2012) An adaptive sequential Monte Carlo method for approximate Bayesian computation. \emph{Statistics and Computing}, \textbf{22}, 1009--1020.
 
-Drovandi, C. C. and Pettitt, A. N. (2011) Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. \emph{Biometrics}, \bold{67}, 225--233.
+Drovandi, C. C. and Pettitt, A. N. (2011) Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. \emph{Biometrics}, \textbf{67}, 225--233.
 
 Genz, A., and Azzalini, A. (2012) mnormt: The multivariate normal and t distributions. R package version 1.4-5. http://CRAN.R-project.org/package=mnormt
 
-Lenormand, M., Jabot, F., Deffuant G. (2012) Adaptive approximate Bayesian computation for complex models. http://arxiv.org/pdf/1111.1308.pdf}
+Lenormand, M., Jabot, F., Deffuant G. (2012) Adaptive approximate Bayesian computation for complex models. http://arxiv.org/pdf/1111.1308.pdf
 
-Marjoram, P., Molitor, J., Plagnol, V. and Tavar\'e, S. (2003) Markov chain Monte Carlo without likelihoods. \emph{PNAS}, \bold{100}, 15324--15328.
+Marjoram, P., Molitor, J., Plagnol, V. and Tavar\'e, S. (2003) Markov chain Monte Carlo without likelihoods. \emph{PNAS}, \textbf{100}, 15324--15328.
 
 Mevik, B.-H., and Wehrens, R. (2011) pls: Partial Least Squares and Principal Component regression. R package version 2.3-0. http://CRAN.R-project.org/package=pls
 
-Pritchard, J.K., and M.T. Seielstad and A. Perez-Lezaun and M.W. Feldman (1999) Population growth of human Y chromosomes: a study of Y chromosome microsatellites. \emph{Molecular Biology and Evolution}, \bold{16}, 1791--1798.
+Pritchard, J.K., and M.T. Seielstad and A. Perez-Lezaun and M.W. Feldman (1999) Population growth of human Y chromosomes: a study of Y chromosome microsatellites. \emph{Molecular Biology and Evolution}, \textbf{16}, 1791--1798.
 
-Sisson, S.A., Fan, Y., and Tanaka, M.M. (2007) Sequential Monte Carlo without likelihoods. \emph{PNAS}, \bold{104}, 1760--1765.
+Sisson, S.A., Fan, Y., and Tanaka, M.M. (2007) Sequential Monte Carlo without likelihoods. \emph{PNAS}, \textbf{104}, 1760--1765.
 
 Venables, W.N., and Ripley, B.D. (2002) Modern Applied Statistics with S. Fourth Edition. Springer, New York.
 
-Wegmann, D., Leuenberger, C. and Excoffier, L. (2009a) Efficient approximate Bayesian computation coupled with Markov chain Monte Carlo without likelihood. \emph{Genetics}, \bold{182}, 1207-1218.
+Wegmann, D., Leuenberger, C. and Excoffier, L. (2009a) Efficient approximate Bayesian computation coupled with Markov chain Monte Carlo without likelihood. \emph{Genetics}, \textbf{182}, 1207-1218.
 
-Wegmann, D., Leuenberger, C. and Excoffier, L. (2009b) Using ABCtoolbox. http://cmpg.unibe.ch/software/abctoolbox/ABCtoolbox_manual.pdf
+Wegmann, D., Leuenberger, C. and Excoffier, L. (2009b) Using ABCtoolbox. http://cmpg.unibe.ch/software/abctoolbox/ABCtoolbox\_manual.pdf
 
 \end{document}
 
