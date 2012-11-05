@@ -1,6 +1,6 @@
 ## model wrapper
 ################
-.binary_model_cluster<-function(command) {
+binary_model_cluster<-function(command) {
   invoke<-function(param) {
     n_clust=param[1]
     numclust=1+((param[2]-1)%%n_clust)
