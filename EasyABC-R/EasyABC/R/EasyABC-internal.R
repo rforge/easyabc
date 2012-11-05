@@ -822,7 +822,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
   
   start = Sys.time()
 
-  if (progress_bar{
+  if (progress_bar){
 	  print("    ------ Delmoral et al. (2012)'s algorithm ------") 
   }
   
@@ -857,7 +857,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     write.table(as.matrix(cbind(tab_weight2,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
   }
-  if (progress_bar{
+  if (progress_bar){
 	  print("step 1 completed")
   }
   
@@ -928,7 +928,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     
     startb = Sys.time()
     # progress bar
-    if (progress_bar{
+    if (progress_bar){
 	    pb <- .progressBar(width=50)
     }
     duration = 0;
@@ -1001,7 +1001,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
         }
       }
       # for progressbar message and time evaluation
-	if (progress_bar{
+	if (progress_bar){
 	      duration = difftime(Sys.time(), startb, unit="secs")
       	text="";
 	      if (i==nb_simul) {
@@ -1013,7 +1013,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 	      .updateProgressBar(pb, i/nb_simul, text)
      	}
     }
-    if (progress_bar{
+    if (progress_bar){
 	    close(pb)
     }
     if (M>1){
@@ -1030,7 +1030,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
       write.table(as.matrix(cbind(tab_weight2,simul_below_tol)),file=paste("output_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
       write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",kstep,sep=""),row.names=F,col.names=F,quote=F)
     }
-    if (progress_bar{
+    if (progress_bar){
 	    print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
     }
   }
