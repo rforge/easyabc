@@ -23,10 +23,10 @@ ABC_mcmc <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_s
 
     	mcmc=NULL
 	if (n_cluster==1){
-		mcmc = .ABC_mcmc_internal(method,model,prior_matrix,n_obs,n_between_sampling,,summary_stat_target,...)
+		mcmc = .ABC_mcmc_internal(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,...)
 	}
 	else{
-		mcmc = .ABC_mcmc_cluster(method,model,prior_matrix,n_obs,n_between_sampling,,summary_stat_target,n_cluster,...)
+		mcmc = .ABC_mcmc_cluster(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...)
 	}
 mcmc
 }

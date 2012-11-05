@@ -186,16 +186,16 @@ Note that a simulation code \texttt{My\_simulation\_code} can be passed to the f
 \end{itemize}
 
 Simulation outputs can be transparently passed to post-processing tools, like the ones proposed by the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012):
-<<>>=
-#install.packages("abc")
-#library(abc)
-#rej<-abc(sum_stat_obs, ABC_rej$param[,c(2,3,5,6)], ABC_rej$$stats, tol=0.3, method="rejection")
+<<eval=FALSE>>=
+install.packages("abc")
+library(abc)
+rej<-abc(sum_stat_obs, ABC_rej$param[,c(2,3,5,6)], ABC_rej$$stats, tol=0.3, method="rejection")
 # simulations selected:
-#rej$unadj.values
+rej$unadj.values
 # their associated summary statistics:
-#rej$ss
+rej$ss
 # their normalized euclidean distance to the data summary statistics:
-#rej$dist
+rej$dist
 @
 
 
