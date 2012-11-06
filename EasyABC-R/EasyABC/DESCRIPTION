@@ -5,8 +5,7 @@ Version: 0.99
 Date: 2012-10-12
 Author: Franck Jabot, Thierry Faure, Nicolas Dumoullin
 Maintainer: Nicolas Dumoulin <nicolas.dumoulin@irstea.fr>
-Depends: R (>= 2.14.0), lhs, pls, mnormt, MASS
-Suggests: parallel
+Depends: R (>= 2.14.0), lhs, pls, mnormt, MASS, parallel
 Description: More about what it does (maybe more than one line)
 License: GPL-3
 LazyLoad: yes
