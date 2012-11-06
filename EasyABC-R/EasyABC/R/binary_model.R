@@ -4,6 +4,8 @@ binary_model<-function(command) {
   invoke<-function(param) {
     write.table(param,file="input",row.names=F,col.names=F,quote=F)
     system(command)
+    file.remove("input")
     read.table("output",h=F)
+    file.remove("output")
   }
 }
