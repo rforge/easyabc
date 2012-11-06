@@ -1953,7 +1953,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
         param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
       }
       #if (use_seed) { # NB: we force the value use_seed=TRUE
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -1974,7 +1974,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
         param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
       }
       #if (use_seed) { # NB: we force the value use_seed=TRUE
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -2036,7 +2036,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
 		}
 		#if (use_seed) { # NB: we force the value use_seed=TRUE
-		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		param=c((seed_count+i),param)
 		list_param[[i]]=param
 		tab_param=rbind(tab_param,param[3:(l+2)])
 	  }
@@ -2057,7 +2057,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
 		}
 		#if (use_seed) { # NB: we force the value use_seed=TRUE
-		param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+		param=c((seed_count+i),param)
 		list_param[[i]]=param
 		tab_param=rbind(tab_param,param[3:(l+2)])
 	  }
@@ -2115,7 +2115,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         }
         param=param_previous_step[1,]
         param[tab_unfixed_param]=param_moved
-        param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+        param=c((seed_count+i),param)
         list_param[[i]]=param
         tab_param=rbind(tab_param,param[3:(l+2)])
       }
@@ -2155,7 +2155,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
       param=param_previous_step[1,]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -2216,7 +2216,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         }
         param=param_previous_step[1,]
         param[tab_unfixed_param]=param_moved
-        param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+        param=c((seed_count+i),param)
         list_param[[i]]=param
         tab_param=rbind(tab_param,param[3:(l+2)])
       }
@@ -2255,7 +2255,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
       param=param_previous_step[1,]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -2402,7 +2402,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       tab_param=rbind(tab_param,param[3:(l+2)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
@@ -2433,7 +2433,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       tab_param=rbind(tab_param,param[3:(l+2)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
@@ -2476,7 +2476,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       tab_param=rbind(tab_param,param[3:(l+2)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
@@ -2507,7 +2507,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       tab_param=rbind(tab_param,param[3:(l+2)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
@@ -2550,7 +2550,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       tab_param=rbind(tab_param,param[3:(l+2)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
@@ -2581,7 +2581,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       tab_param=rbind(tab_param,param[3:(l+2)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
@@ -2786,7 +2786,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
     }
     #if (use_seed) { # NB: we force the value use_seed=TRUE
-    param=c(n_cluster,(seed_count+irun),param) # the first parameter is the number of cores/clusters used
+    param=c((seed_count+irun),param)
     if (npar>0){
       for (i2 in 1:npar){
         for (i in 1:n_cluster){
@@ -2965,7 +2965,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param_moved=.move_particleb_uni(as.numeric(particles[ip,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
         param=particles[ip,]
         param[tab_unfixed_param]=param_moved
-        param=c(n_cluster,(seed_count+ip),param) # the first parameter is the number of cores/clusters used
+        param=c((seed_count+ip),param)
         cl <- makeCluster(getOption("cl.cores", n_cluster))
         if (npar>0){
           for (i2 in 1:npar){
@@ -3092,7 +3092,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param[tab_unfixed_param][j]=prior_matrix[tab_unfixed_param,][j,1]+(prior_matrix[tab_unfixed_param,][j,2]-prior_matrix[tab_unfixed_param,][j,1])*random_tab[((irun-1)*n_cluster+i),j]
       }
       #if (use_seed) { # NB: we force the value use_seed=TRUE
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -3112,7 +3112,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param[tab_unfixed_param][j]=prior_matrix[tab_unfixed_param,][j,1]+(prior_matrix[tab_unfixed_param,][j,2]-prior_matrix[tab_unfixed_param,][j,1])*random_tab[(npar*n_cluster+i),j]
       }
       #if (use_seed) { # NB: we force the value use_seed=TRUE
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -3171,7 +3171,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         }
         param=param_previous_step[1,]
         param[tab_unfixed_param]=param_moved
-        param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+        param=c((seed_count+i),param)
         list_param[[i]]=param
         tab_param=rbind(tab_param,param[3:(l+2)])
       }
@@ -3213,7 +3213,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
       param=param_previous_step[1,]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -3276,7 +3276,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         }
         param=param_previous_step[1,]
         param[tab_unfixed_param]=param_moved
-        param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+        param=c((seed_count+i),param)
         list_param[[i]]=param
         tab_param=rbind(tab_param,param[3:(l+2)])
       }
@@ -3317,7 +3317,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
       param=param_previous_step[1,]
       param[tab_unfixed_param]=param_moved
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[3:(l+2)])
     }
@@ -3567,7 +3567,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       simul_summary_stat=model(param)
       param=param[3:(nparam+2)]
       dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),sd_simul)
@@ -3762,7 +3762,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
       ## AM6
       #print("AM6 ")
       param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
-      param=c(n_cluster,(seed_count+i),param) # the first parameter is the number of cores/clusters used
+      param=c((seed_count+i),param)
       ## AM7	
       #print("AM7 ")
       simul_summary_stat=model(param)
