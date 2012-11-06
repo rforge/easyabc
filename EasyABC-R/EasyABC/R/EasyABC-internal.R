@@ -1764,6 +1764,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
     
     save(dmat,file="dmat.RData")
     load("dmat.RData",.GlobalEnv)
+    file.remove("dmat.RData")
     
     mylm<-lm(as.formula(as.data.frame(dmat)),data=as.data.frame(dmat))
     #mylm<-lm(as.formula(as.data.frame(dmat)))
@@ -3698,6 +3699,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
     
     save(dmat,file="dmat.RData")
     load("dmat.RData",.GlobalEnv)
+    file.remove("dmat.RData")
     
     mylm<-lm(as.formula(as.data.frame(dmat)),data=as.data.frame(dmat))
     #mylm<-lm(as.formula(as.data.frame(dmat)))
