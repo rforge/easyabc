@@ -64,6 +64,9 @@ dim(priormatrix)<-c(6,2)
 priormatrix
 ABC_rej<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n, n_cluster=1, progress_bar=FALSE)
 ABC_rej
+
+## To use the ABC_rejection function with multiple cores, simply change the value of n_cluster:
+## ABC_rejb<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n, n_cluster=2, progress_bar=FALSE)
 }
 \keyword{abc}
 \keyword{model}
