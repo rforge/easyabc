@@ -1,7 +1,7 @@
 \name{ABC_mcmc}
 \alias{ABC_mcmc}
 \title{
-	Coupled to MCMC scheme for ABC
+	Coupled to MCMC schemes for ABC
 }
 \description{
 	This function implements three different algorithms to perform coupled to MCMC ABC.
@@ -14,8 +14,8 @@
 	a character string indicating the ABC-MCMC algorithm to be used. Possible values are \code{"Marjoram_original"}, \code{"Marjoram"} and \code{"Wegmann"}.
 	Note that the method \code{"Marjoram_original"} cannot be used with multiple cores.}
   \item{model}{
-    	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
-	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
+    	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE}) and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
+	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} and \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
   \item{prior_matrix}{
     	a matrix or data frame containing the ranges of the prior distribution for each of the \eqn{p} model parameters. It has \eqn{p} lines and 2 columns. The first (second) column contains the lower (upper) bound of the prior distribution of the \eqn{p} parameters.}
   \item{n_obs}{
@@ -56,7 +56,7 @@
     	The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
     	If \code{FALSE} (default), \code{ABC_mcmc} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
   \item{seed_count}{
-    	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
+    	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \code{model}.}
   \item{verbose}{
 	logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} writes in the current directory intermediary results at the end of the calibration step of the algorithm.}
   \item{progress_bar}{
@@ -89,7 +89,7 @@ The returned value is a list containing the following components:
   \item{min_stats}{
   	The minimal values of each summary statistics during the calibration step, given when \code{method} is \code{"Wegmann"}.}
   \item{max_stats}{
-  	The minimal values of each summary statistics during the calibration step, given when \code{method} is \code{"Wegmann"}.}
+  	The maximal values of each summary statistics during the calibration step, given when \code{method} is \code{"Wegmann"}.}
   \item{lambda}{
   	The lambda values of the Box-Cox transformation, given when \code{method} is \code{"Wegmann"}.}
   \item{geometric_mean}{
