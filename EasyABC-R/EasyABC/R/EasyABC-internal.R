@@ -1955,7 +1955,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
       #if (use_seed) { # NB: we force the value use_seed=TRUE
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_cluster
     list_simul_summarystat=parLapply(cl,list_param,model)
@@ -1976,7 +1976,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
       #if (use_seed) { # NB: we force the value use_seed=TRUE
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
     list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2038,7 +2038,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 		#if (use_seed) { # NB: we force the value use_seed=TRUE
 		param=c((seed_count+i),param)
 		list_param[[i]]=param
-		tab_param=rbind(tab_param,param[3:(l+2)])
+		tab_param=rbind(tab_param,param[2:(l+1)])
 	  }
 	  seed_count=seed_count+n_cluster
 	  list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2059,7 +2059,7 @@ list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simu
 		#if (use_seed) { # NB: we force the value use_seed=TRUE
 		param=c((seed_count+i),param)
 		list_param[[i]]=param
-		tab_param=rbind(tab_param,param[3:(l+2)])
+		tab_param=rbind(tab_param,param[2:(l+1)])
 	  }
 	  seed_count=seed_count+n_end
 	  list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2117,7 +2117,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param[tab_unfixed_param]=param_moved
         param=c((seed_count+i),param)
         list_param[[i]]=param
-        tab_param=rbind(tab_param,param[3:(l+2)])
+        tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
       list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2157,7 +2157,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
     list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2218,7 +2218,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param[tab_unfixed_param]=param_moved
         param=c((seed_count+i),param)
         list_param[[i]]=param
-        tab_param=rbind(tab_param,param[3:(l+2)])
+        tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
       list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2257,7 +2257,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
     list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2403,7 +2403,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
     }
@@ -2434,7 +2434,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
     }
@@ -2477,7 +2477,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
     }
@@ -2508,7 +2508,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
     }
@@ -2551,7 +2551,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
     }
@@ -2582,7 +2582,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
       list_param[[i]]=param
       tab_picked=rbind(tab_picked,as.numeric(simul_picked))
     }
@@ -2791,7 +2791,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       for (i2 in 1:npar){
         for (i in 1:n_cluster){
           list_param[[i]]=param
-          tab_param=rbind(tab_param,param[3:(l+2)])
+          tab_param=rbind(tab_param,param[2:(l+1)])
         }
         seed_count=seed_count+n_cluster
         list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2806,7 +2806,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       list_param=list(NULL)
       for (i in 1:n_end){
         list_param[[i]]=param
-        tab_param=rbind(tab_param,param[3:(l+2)])
+        tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_end
       list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2971,7 +2971,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           for (i2 in 1:npar){
             for (i in 1:n_cluster){
               list_param[[i]]=param
-              tab_param=rbind(tab_param,param[3:(l+2)])
+              tab_param=rbind(tab_param,param[2:(l+1)])
             }
             seed_count=seed_count+n_cluster
             list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2986,7 +2986,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           list_param=list(NULL)
           for (i in 1:n_end){
             list_param[[i]]=param
-            tab_param=rbind(tab_param,param[3:(l+2)])
+            tab_param=rbind(tab_param,param[2:(l+1)])
           }
           seed_count=seed_count+n_end
           list_simul_summarystat=parLapply(cl,list_param,model)
@@ -3094,7 +3094,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       #if (use_seed) { # NB: we force the value use_seed=TRUE
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_cluster
     list_simul_summarystat=parLapply(cl,list_param,model)
@@ -3114,7 +3114,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       #if (use_seed) { # NB: we force the value use_seed=TRUE
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
     list_simul_summarystat=parLapply(cl,list_param,model)
@@ -3173,7 +3173,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param[tab_unfixed_param]=param_moved
         param=c((seed_count+i),param)
         list_param[[i]]=param
-        tab_param=rbind(tab_param,param[3:(l+2)])
+        tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
       list_simul_summarystat=parLapply(cl,list_param,model)
@@ -3215,7 +3215,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
     list_simul_summarystat=parLapply(cl,list_param,model)
@@ -3278,7 +3278,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param[tab_unfixed_param]=param_moved
         param=c((seed_count+i),param)
         list_param[[i]]=param
-        tab_param=rbind(tab_param,param[3:(l+2)])
+        tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
       list_simul_summarystat=parLapply(cl,list_param,model)
@@ -3319,7 +3319,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
       list_param[[i]]=param
-      tab_param=rbind(tab_param,param[3:(l+2)])
+      tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
     list_simul_summarystat=parLapply(cl,list_param,model)
