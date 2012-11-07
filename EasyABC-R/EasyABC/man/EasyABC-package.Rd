@@ -21,7 +21,7 @@ LazyLoad: yes
 }
 \author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
 \keyword{package}
-\keywork{abc}
+\keyword{abc}
 \seealso{
 \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}, \code{\link{binary_model}}, \code{\link{binary_model_cluster}}}
 }
