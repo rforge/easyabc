@@ -15,8 +15,8 @@
   \item{method}{
 	a character string indicating the sequential algorithm to be used. Possible values are \code{"Beaumont"}, \code{"Drovandi"}, \code{"Delmoral"} and \code{"Lenormand"}.}
   \item{model}{
-    	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE} and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
-	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} or \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
+    	a \code{R} function implementing the model to be simulated. It must take as arguments an array containing a seed value (if \code{use_seed=TRUE}) and the model parameters and returning an array of summary statistics obtained at the end of the simulation.
+	A tutorial is provided in the package's vignette to dynamically link a binary code to a \code{R} function.  Users may alternatively wish to wrap their binary executables using the provided functions \code{\link{binary_model}} and \code{\link{binary_model_cluster}}. The use of these functions is associated with slightly different constraints on the design of the binary code (see \code{\link{binary_model}} and \code{\link{binary_model_cluster}}).}
   \item{prior_matrix}{
     	a matrix or data frame containing the ranges of the prior distribution for each of the \eqn{p} model parameters. It has \eqn{p} lines and 2 columns. The first (second) column contains the lower (upper) bound of the prior distribution of the \eqn{p} parameters.}
   \item{nb_simul}{
@@ -31,7 +31,7 @@
     	The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
     	If \code{FALSE} (default), \code{ABC_sequential} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
   \item{seed_count}{
-    	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \{model}.}
+    	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \code{model}.}
   \item{inside_prior}{
 	logical used when \code{method} is \code{"Beaumont"} or \code{"Lenormand"}. \code{TRUE} by default.
 	If \code{FALSE}, parameter sampling is not restricted to the initial ranges of the prior distribution during the subsequent algorithm steps.}
