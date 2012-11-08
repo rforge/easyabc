@@ -77,9 +77,7 @@ write.table(cbind(ABC_Delmoral$weights,ABC_Delmoral$param,ABC_Delmoral$stats),fi
 ## Delmoral - multiple cores
 set.seed(1)
 tolerance=2.25
-n=100
 ABC_Delmoralb<-ABC_sequential(method="Delmoral", model=trait_model,prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,tolerance_target=tolerance, n_cluster=2)
-n=1000
 ABC_Delmoralb$computime
 write.table(cbind(ABC_Delmoralb$weights,ABC_Delmoralb$param,ABC_Delmoralb$stats),file="ABC_Delmoral_multiple_cores",col.names=F,row.names=F,quote=F)
 
@@ -95,7 +93,9 @@ write.table(cbind(ABC_Delmoral15$weights,ABC_Delmoral15$param,ABC_Delmoral15$sta
 ## Delmoral - M=15 - multiple cores
 set.seed(1)
 tolerance=3.5
-ABC_Delmoral15b<-ABC_sequential(method="Delmoral", model=trait_model,prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,tolerance_target=tolerance, M=15, n_cluster=2)
+n=100
+ABC_Delmoral15b<-ABC_sequential(method="Delmoral", model=trait_model,prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,tolerance_target=tolerance, M=15, n_cluster=2,verbose=TRUE)
+n=1000
 ABC_Delmoral15b$computime
 write.table(cbind(ABC_Delmoral15b$weights,ABC_Delmoral15b$param,ABC_Delmoral15b$stats),file="ABC_Delmoral_M15_multiple_cores",col.names=F,row.names=F,quote=F)
 
