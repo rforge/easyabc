@@ -7,6 +7,7 @@
 
 \title{\texttt{EasyABC}: a \texttt{R} package to perform efficient approximate Bayesian computation sampling schemes}
 \author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
+\date{\pkg{EasyABC} version \Sexpr{packageDescription("EasyABC")[["Version"]]} , \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
 % \SweaveOpts{eval=FALSE}
@@ -16,6 +17,11 @@
 \maketitle
 
 \tableofcontents
+\setcounter{footnote}{1} \footnotetext{This document is included as a
+  vignette (a \LaTeX\ document created using the \R function
+  \code{Sweave}) of the package \pkg{EasyABC}. It is automatically
+  dowloaded together with the package and can be accessed through \R
+  typing \code{vignette("EasyABC")}.}  \newpage
 
 \section{Summary}
 The aim of this vignette is to present the features of the \texttt{EasyABC} package.
@@ -34,7 +40,7 @@ Details on how to implement these various algorithms with \texttt{EasyABC} are g
 \subsection{The standard rejection algorithm of Pritchard et al. (1999)}
 This sampling scheme consists in drawing the model parameters in the prior distributions, in using these model parameter values to launch a model simulation and in repeating this two-step procedure \texttt{nb\_simul} times.
 At the end of the \texttt{nb\_simul} simulations, the simulations closest to the target (or at a distance smaller than a tolerance threshold) in the space of the summary statistics are retained to form an approximate posterior distribution of the model parameters.
-This last step of simulation rejection can be performed with the \texttt{R} package \texttt{abc}. A worked example demonstrating how the \texttt{EasyABC} and \texttt{abc} functions can be pipelined is provided in section \ref{example}.
+This last step of simulation rejection can be performed with the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012). A worked example demonstrating how the \texttt{EasyABC} and \texttt{abc} functions can be pipelined is provided in section \ref{example}.
 
 \subsection{Sequential algorithms}
 Sequential algorithms for ABC have first been proposed by Sisson et al. (2007). These algorithms aim at reducing the required number of simulations to reach a given quality of the posterior approximation.
@@ -58,9 +64,20 @@ install.packages("EasyABC")
 @
 
 Once the package is installed, it needs to be loaded in the current \texttt{R} session to be used:
-<<>>=
+<<eval=FALSE>>=
 library(EasyABC)
 @
+
+For online help on the package content, simply type:
+<<eval=FALSE>>=
+help(package="EasyABC")
+@
+
+For online help on a particular command (such as the function \code{ABC_sequential}), simply type:
+<<eval=FALSE>>=
+help(ABC_sequential)
+@
+
 
 \subsection{The simulation code - for use on a single core}
 \label{simulator_single_core}
@@ -71,17 +88,19 @@ If the code is a \texttt{R} function, its argument must be an array of parameter
 If the code is a binary executable file, it needs to read the parameter values in a file named 'input' in which each line contains one parameter value, and to output the summary statistics in a file named 'output' in which each summary statistics must be separated by a space or a tabulation.
 If the code is a binary executable file, a wrapper \texttt{R} function named 'binary\_model' is available to interface the executable file with the \texttt{R} functions of the \texttt{EasyABC} package (see section \ref{example} below).
 
+Alternatively, users may prefer building a \code{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \code{C/C++} program.
 
 \subsection{The simulation code - for use with multiple cores}
 \label{simulator_several_cores}
 Users need to develop a simulation code with minimal compatibility constraints. The code can either be a \texttt{R} function or a binary executable file.
 
-If the code is a \texttt{R} function, its argument must be an array of parameter values and it must return an array of summary statistics. The first parameter value passed to the simulation code corresponds to the number of cores used by the \texttt{EasyABC} function, the second parameter corresponds to the seed value to be used by the simulation code to initialize the pseudo-random number generator. The following parameters are the model parameters.
-Note that the \texttt{R} function is unlikely to make use of the first parameter (the number of cores used by the \texttt{EasyABC} function). This constraint is useful to deal with the case where a binary executable file is provided.
+If the code is a \texttt{R} function, its argument must be an array of parameter values and it must return an array of summary statistics. The first parameter value passed to the simulation code corresponds to the seed value to be used by the simulation code to initialize the pseudo-random number generator. The following parameters are the model parameters.
 
 If the code is a binary executable file, it needs to have as its single argument a positive integer \texttt{k}. It has to read the parameter values in a file named 'inputk' (where k is the integer passed as argument to the binary code: 'input1', 'input2'...) in which each line contains one parameter value, and to output the summary statistics in a file named 'outputk' (where k is the integer passed as argument to the binary code: 'output1', 'output2'...) in which each summary statistics must be separated by a space or a tabulation.
 This construction avoids multiple cores to read/write in the same files.
 If the code is a binary executable file, a wrapper \texttt{R} function named 'binary\_model\_cluster' is available to interface the executable file with the \texttt{R} functions of the \texttt{EasyABC} package (see section \ref{example} below).
+
+Alternatively, users may prefer building a \code{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \code{C/C++} program.
 
 \subsection{Management of pseudo-random number generators}
 To insure that stochastic simulations are independent, the simulation code must either possess an internal way of initializing the seeds of its pseudo-random number generators each time the simulation code is launched.
@@ -106,6 +125,7 @@ For instance, in the example below (section \ref{example}), three parameters are
 An array containing the summary statistics of the data must be supplied (for the sequential and MCMC schemes, not for the simple rejection scheme). The statistics must be in the same order as in the simulation outputs.
 
 \subsection{Building a \texttt{R} function calling a \texttt{C/C++} program}
+\label{RC_link}
 Users having a \texttt{C/C++} simulation code may wish to construct a \texttt{R} function calling their \texttt{C/C++} program, instead of using the provided wrappers (see sections \ref{simulator_single_core} and \ref{simulator_several_cores}).
 The procedure is abundantly described in the \href{http://cran.r-project.org/doc/manuals/R-exts.html}{`Writing R Extensions' manual}.
 In short, this can be done by:
@@ -157,7 +177,6 @@ In the following, we will use the values $J=500$ and $n\_t=1$, and uniform prior
   
 <<priormatrix>>=
 priormatrix=cbind(c(500,3,-2.3,1,-25,-0.7),c(500,5,1.6,1,125,3.2))
-priormatrix
 @
 
 We will consider an imaginary arbitrary dataset whose summary statistics are $(S,H,MTV,STV) = (100,2.5,20,30000)$:
@@ -172,16 +191,15 @@ A standard ABC-rejection procedure can be simply performed with the function \te
 set.seed(1)
 n=10
 ABC_rej<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n)
-ABC_rej
 @
 
 Note that a simulation code \texttt{My\_simulation\_code} can be passed to the function \texttt{ABC\_rejection} in several ways depending of its nature:
 \begin{itemize}
   \item if it is a \texttt{R} function \\
     \texttt{ABC\_rejection(My\_simulation\_code, prior\_matrix=priormatrix, nb\_simul=n)} 
-  \item  if it is a binary executable file and a single core is used\\
+  \item  if it is a binary executable file and a single core is used (see section \ref{simulator_single_core} for compatibility constraints)\\
     \texttt{ABC\_rejection(binary\_model("./My\_simulation\_code"), prior\_matrix=priormatrix, nb\_simul=n)}
-  \item  if it is a binary executable file and multiple cores are used\\
+  \item  if it is a binary executable file and multiple cores are used (see section \ref{simulator_several_cores} for compatibility constraints)\\
     \texttt{ABC\_rejection(binary\_model\_cluster("./My\_simulation\_code"), prior\_matrix=priormatrix, nb\_simul=n, n\_cluster=2)}
 \end{itemize}
 
@@ -208,7 +226,6 @@ tolerance=c(8,5)
 ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model,
 prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,
 tolerance_tab=tolerance)
-ABC_Beaumont
 @
 
 To perform the algorithm of Drovandi and Pettitt (2011), one needs to specify four arguments: the initial number of simulations $nb\_simul$, the final tolerance level $tolerance\_tab$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the target proportion $c$ of unmoved particles during the MCMC jump.
@@ -221,7 +238,6 @@ c=0.7
 ABC_Drovandi<-ABC_sequential(method="Drovandi", model=trait_model,
 prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,
 tolerance_tab=tol, alpha=alpha, c=c)
-ABC_Drovandi
 @
 
 To perform the algorithm of Del Moral et al. (2012), one needs to specify five arguments: the initial number of simulations $nb\_simul$, the number $\alpha$ controlling the decrease in effective sample size of the particle set at each step, the number $M$ of simulations performed for each particle, the minimal effective sample size $nb\_threshold$ below which a resampling of particles is performed and the final tolerance level $tolerance\_target$.
@@ -232,7 +248,6 @@ tol=5
 alpha=0.5
 ABC_Delmoral<-ABC_sequential(method="Delmoral", model=trait_model, prior_matrix=priormatrix,
 nb_simul=n, summary_stat_target=sum_stat_obs, alpha=0.5, tolerance_target=tol)
-ABC_Delmoral
 @
 
 To perform the algorithm of Lenormand et al. (2012), one needs to specify three arguments: the initial number of simulations $nb\_simul$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the stopping criterion $p\_acc\_min$.
@@ -244,7 +259,6 @@ paccmin=0.4
 n_t=5
 ABC_Lenormand<-ABC_sequential(method="Lenormand",model=trait_model,prior_matrix=priormatrix,
 nb_simul=n,summary_stat_target=sum_stat_obs,alpha=alpha,p_acc_min=paccmin)
-ABC_Lenormand
 @
 
 
@@ -257,12 +271,11 @@ distmax=8
 tabnormalization=c(50,1,20,10000)
 proposalrange=c(0,1,0.5,0,50,1)
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original",model=trait_model,prior_matrix=priormatrix,n_obs=n,n_between_sampling=nbetweensampling,summary_stat_target=sum_stat_obs,dist_max=distmax,tab_normalization=tabnormalization,proposal_range=proposalrange)
-ABC_Marjoram_original
 @
 
-To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
+To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm via an initial calibration step, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
 These modifications are drawn from the algorithm of Wegmann et al. (2009a), without relying on PLS regressions.
-The arguments are set by default to: $n\_calibration=10000$,$tolerance\_quantile=0.01$ and $proposal\_phi=1$.
+The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantile=0.01$ and $proposal\_phi=1$.
 <<ABC_Marjoram>>=
 n=10
 nbetweensampling=1
@@ -272,19 +285,17 @@ proposalphi=1
 ABC_Marjoram<-ABC_mcmc(method="Marjoram",model=trait_model,prior_matrix=priormatrix,
 n_obs=n,n_between_sampling=nbetweensampling,summary_stat_target=sum_stat_obs,
 n_calibration=ncalib,tolerance_quantile=tolquantile,proposal_phi=proposalphi)
-ABC_Marjoram
 @
 
 To perform the algorithm of Wegmann et al. (2009a), one needs to specify four arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$, the scale factor $proposal\_phi$ to determine the proposal range and the number of components $numcomp$ to be used in PLS regressions.
-The arguments are set by default to: $n\_calibration=10000$,$tolerance\_quantile=0.01$, $proposal\_phi=1$ and $numcomp=0$, this last default value encodes a choice of a number of PLS components equal to the number of summary statistics.
+The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantile=0.01$, $proposal\_phi=1$ and $numcomp=0$, this last default value encodes a choice of a number of PLS components equal to the number of summary statistics.
 <<#ABC_Wegmann>>=
 n=10
 nbetweensampling=1
 ncalib=10
 tolquantile = 0.5
 proposalphi=1
-#ABC_Wegmann<-ABC_mcmc(method="Wegmann",model=trait_model,prior_matrix=priormatrix,n_obs=n,n_between_sampling=nbetweensampling,summary_stat_target=sum_stat_obs,n_calibration=ncalib,tolerance_quantile=tolquantile,proposal_phi=proposalphi,numcomp=0)
-#ABC_Wegmann
+ABC_Wegmann<-ABC_mcmc(method="Wegmann",model=trait_model,prior_matrix=priormatrix,n_obs=n,n_between_sampling=nbetweensampling,summary_stat_target=sum_stat_obs,n_calibration=ncalib,tolerance_quantile=tolquantile,proposal_phi=proposalphi,numcomp=0)
 @
 
 
@@ -315,6 +326,8 @@ Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009) Adaptive appro
 
 Carnell, R. (2012) lhs: Latin Hypercube Samples. R package version 0.10. http://CRAN.R-project.org/package=lhs
 
+Csill\'ery, K., Fran\c cois, O., and Blum, M.G.B. (2012) abc: an r package for approximate bayesian computation (abc). \emph{Methods in Ecology and Evolution}, \textbf{3}, 475--479.
+
 Del Moral, P., Doucet, A., and Jasra, A. (2012) An adaptive sequential Monte Carlo method for approximate Bayesian computation. \emph{Statistics and Computing}, \textbf{22}, 1009--1020.
 
 Drovandi, C. C. and Pettitt, A. N. (2011) Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. \emph{Biometrics}, \textbf{67}, 225--233.
@@ -335,7 +348,7 @@ Venables, W.N., and Ripley, B.D. (2002) Modern Applied Statistics with S. Fourth
 
 Wegmann, D., Leuenberger, C. and Excoffier, L. (2009a) Efficient approximate Bayesian computation coupled with Markov chain Monte Carlo without likelihood. \emph{Genetics}, \textbf{182}, 1207-1218.
 
-Wegmann, D., Leuenberger, C. and Excoffier, L. (2009b) Using ABCtoolbox. http://cmpg.unibe.ch/software/abctoolbox/ABCtoolbox\_manual.pdf
+Wegmann, D., Leuenberger, C. and Excoffier, L. (2009b) Using ABCtoolbox. http://cmpg.unibe.ch/software/ abctoolbox/ABCtoolbox\_manual.pdf
 
 \end{document}
 
