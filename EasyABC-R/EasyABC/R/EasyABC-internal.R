@@ -124,7 +124,7 @@
       param=c((seed_count+i),param)
     }
     simul_summarystat=model(param)
-    tab_simul_summarystat=rbind(tab_simul_summarystat,simul_summarystat)
+    tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(simul_summarystat))
     if (use_seed) {
       tab_param=rbind(tab_param,param[2:(l+1)])
     } else {
@@ -147,7 +147,7 @@
   }
   options(scipen=0)
   
-  list(param=tab_param, summarystat=tab_simul_summarystat, start=start)
+  list(param=tab_param, summarystat=as.matrix(tab_simul_summarystat), start=start)
 }
 
 ## function to compute particle weights
@@ -308,7 +308,7 @@
 
     sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
     
-list(param=rejection$param, stats=rejection$summarystat, weights=array(1/nb_simul,nb_simul), stats_normalization=sd_simul, nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, unit="secs")))
+list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=array(1/nb_simul,nb_simul), stats_normalization=sd_simul, nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, unit="secs")))
 }
 
 
