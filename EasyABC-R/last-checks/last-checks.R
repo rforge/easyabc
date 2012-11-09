@@ -38,8 +38,8 @@ write.table(cbind(ABC_Beaumont$weights,ABC_Beaumont$param,ABC_Beaumont$stats),fi
 
 ## Beaumont - multiple cores
 set.seed(1)
-tolerance=c(2.5,2,1.75)
-ABC_Beaumontb<-ABC_sequential(method="Beaumont", model=trait_model,prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,tolerance_tab=tolerance,n_cluster=2)
+tolerance=c(5,4,3)
+ABC_Beaumontb<-ABC_sequential(method="Beaumont", model=trait_model,prior_matrix=priormatrix, nb_simul=n, summary_stat_target=sum_stat_obs,tolerance_tab=tolerance,n_cluster=2,verbose=TRUE,progress_bar=TRUE)
 ABC_Beaumontb$computime
 write.table(cbind(ABC_Beaumontb$weights,ABC_Beaumontb$param,ABC_Beaumontb$stats),file="ABC_Beaumont_multiple_cores",col.names=F,row.names=F,quote=F)
 
