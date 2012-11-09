@@ -1945,7 +1945,8 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   list_param=list(NULL)
   npar=floor(nb_simul/n_cluster)
   n_end=nb_simul-(npar*n_cluster)
-  for (irun in 1:npar){
+  if (npar>0){
+   for (irun in 1:npar){
     for (i in 1:n_cluster){
       l=dim(prior_matrix)[1]
       param=array(0,l)
@@ -1962,6 +1963,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     for (i in 1:n_cluster){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
+   }
   }
   if (n_end>0){
     stopCluster(cl)
@@ -2028,7 +2030,8 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	list_param=list(NULL)
 	npar=floor(nb_simul/n_cluster)
 	n_end=nb_simul-(npar*n_cluster)
-	for (irun in 1:npar){
+	if (npar>0){
+	 for (irun in 1:npar){
 	  for (i in 1:n_cluster){
 		l=dim(prior_matrix)[1]
 		param=array(0,l)
@@ -2045,6 +2048,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	  for (i in 1:n_cluster){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
 	  }
+         }
 	}
 	if (n_end>0){
 	  stopCluster(cl)
@@ -2392,7 +2396,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   l=dim(prior_matrix)[1]
   list_param=list(NULL)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
-  for (irun in 1:npar){
+  if (npar>0){
+   for (irun in 1:npar){
     tab_param=NULL
     tab_picked=NULL
     for (i in 1:n_cluster){
@@ -2419,6 +2424,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
     }
     res=rbind(res,tab_picked)
+   }
   }
   if (n_end>0){
     stopCluster(cl)
@@ -2466,7 +2472,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   l=dim(prior_matrix)[1]
   list_param=list(NULL)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
-  for (irun in 1:npar){
+  if (npar>0){
+   for (irun in 1:npar){
     tab_param=NULL
     tab_picked=NULL
     for (i in 1:n_cluster){
@@ -2493,6 +2500,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
     }
     res=rbind(res,tab_picked)
+   }
   }
   if (n_end>0){
     stopCluster(cl)
@@ -2540,7 +2548,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   l=dim(prior_matrix)[1]
   list_param=list(NULL)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
-  for (irun in 1:npar){
+  if (npar>0){
+   for (irun in 1:npar){
     tab_param=NULL
     tab_picked=NULL
     for (i in 1:n_cluster){
@@ -2567,6 +2576,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
     }
     res=rbind(res,tab_picked)
+   }
   }
   if (n_end>0){
     stopCluster(cl)
@@ -3085,7 +3095,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   l=dim(prior_matrix)[1]
   random_tab=randomLHS(nb_simul,nparam)
   
-  for (irun in 1:npar){
+  if (npar>0){
+   for (irun in 1:npar){
     for (i in 1:n_cluster){
       param=prior_matrix[,1]
       for (j in 1:nparam){
@@ -3101,6 +3112,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     for (i in 1:n_cluster){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
+   }
   }
   if (n_end>0){
     stopCluster(cl)
