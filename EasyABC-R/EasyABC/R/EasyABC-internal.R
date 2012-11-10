@@ -3350,7 +3350,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=FALSE,verbose=FALSE,progress_bar=FALSE){
+.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=TRUE,verbose=FALSE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
   if(length(alpha)>1) stop("'alpha' has to be a number.")
