@@ -138,15 +138,7 @@ ABC_Marjoram_original$computime
 write.table(cbind(ABC_Marjoram_original$param,ABC_Marjoram_original$stats),file="ABC_Marjoram_original_simple_core",col.names=F,row.names=F,quote=F)
 
 ## Marjoram original- multiple cores
-set.seed(1)
-nbetweensampling=1
-distmax=2.5
-tabnormalization=c(50,1,20,10000)
-proposalrange=c(0,1,0.5,0,50,1)
-ABC_Marjoram_originalb<-ABC_mcmc(method="Marjoram_original",model=trait_model,prior_matrix=priormatrix,n_obs=n,n_between_sampling=nbetweensampling,summary_stat_target=sum_stat_obs,dist_max=distmax,tab_normalization=tabnormalization,proposal_range=proposalrange,n_cluster=2)
-ABC_Marjoram_originalb$computime
-write.table(cbind(ABC_Marjoram_originalb$param,ABC_Marjoram_originalb$stats),file="ABC_Marjoram_original_multiple_cores",col.names=F,row.names=F,quote=F)
-
+# does not exist
 
 ### Marjoram
 #############
