@@ -99,7 +99,7 @@ The returned value is a list containing the following components:
 
 	Drovandi, C. C. and Pettitt, A. N. (2011) Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. \emph{Biometrics}, \bold{67}, 225--233.
 
-	Lenormand, M., Jabot, F., Deffuant G. (2012) Adaptive approximate Bayesian computation for complex models. http://arxiv.org/pdf/1111.1308.pdf}
+	Lenormand, M., Jabot, F., Deffuant G. (2012) Adaptive approximate Bayesian computation for complex models. http://arxiv.org/pdf/1111.1308.pdf
 }
 \author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
