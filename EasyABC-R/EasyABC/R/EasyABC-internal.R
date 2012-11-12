@@ -945,6 +945,9 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
         # perform M simulations
         for (j in 1:M){
           new_simul=c(param,model(param))
+	  if (use_seed) {
+	    param[1]=param[1]+1
+	  }
           seed_count=seed_count+1
           if (use_seed) {
             new_simul=new_simul[2:(l+1)]
@@ -2795,12 +2798,14 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
     }
     #if (use_seed) { # NB: we force the value use_seed=TRUE
-    param=c((seed_count+irun),param)
+    param=c((seed_count+1),param)
+    list_param=list(NULL)
     if (npar>0){
       for (i2 in 1:npar){
         for (i in 1:n_cluster){
           list_param[[i]]=param
           tab_param=rbind(tab_param,param[2:(l+1)])
+	  param[1]=param[1]+1
         }
         seed_count=seed_count+n_cluster
         list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2816,6 +2821,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       for (i in 1:n_end){
         list_param[[i]]=param
         tab_param=rbind(tab_param,param[2:(l+1)])
+	param[1]=param[1]+1
       }
       seed_count=seed_count+n_end
       list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2974,13 +2980,14 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param_moved=.move_particleb_uni(as.numeric(particles[ip,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
         param=particles[ip,]
         param[tab_unfixed_param]=param_moved
-        param=c((seed_count+ip),param)
+        param=c((seed_count+1),param)
         cl <- makeCluster(getOption("cl.cores", n_cluster))
         if (npar>0){
           for (i2 in 1:npar){
             for (i in 1:n_cluster){
               list_param[[i]]=param
               tab_param=rbind(tab_param,param[2:(l+1)])
+	      param[1]=param[1]+1
             }
             seed_count=seed_count+n_cluster
             list_simul_summarystat=parLapply(cl,list_param,model)
@@ -2996,6 +3003,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           for (i in 1:n_end){
             list_param[[i]]=param
             tab_param=rbind(tab_param,param[2:(l+1)])
+	    param[1]=param[1]+1
           }
           seed_count=seed_count+n_end
           list_simul_summarystat=parLapply(cl,list_param,model)
