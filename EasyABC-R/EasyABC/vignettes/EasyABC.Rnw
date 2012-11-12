@@ -11,7 +11,7 @@
 \date{\texttt{EasyABC} version \Sexpr{packageDescription("EasyABC")[["Version"]]} , \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
- \SweaveOpts{eval=FALSE}
+%\SweaveOpts{eval=FALSE}
 
 \begin{document}
 
