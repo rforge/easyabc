@@ -334,6 +334,8 @@ Drovandi, C. C. and Pettitt, A. N. (2011) Estimation of parameters for macropara
 
 Genz, A., and Azzalini, A. (2012) mnormt: The multivariate normal and t distributions. R package version 1.4-5. http://CRAN.R-project.org/package=mnormt
 
+Jabot, F. (2010) A stochastic dispersal-limited trait-based model of community dynamics. \emph{Journal of Theoretical Biology}, \textbf{262}, 650--661.
+
 Lenormand, M., Jabot, F., Deffuant G. (2012) Adaptive approximate Bayesian computation for complex models. http://arxiv.org/pdf/1111.1308.pdf
 
 Marjoram, P., Molitor, J., Plagnol, V. and Tavar\'e, S. (2003) Markov chain Monte Carlo without likelihoods. \emph{PNAS}, \textbf{100}, 15324--15328.
