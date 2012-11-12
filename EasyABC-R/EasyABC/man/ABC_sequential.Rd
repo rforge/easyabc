@@ -8,7 +8,7 @@
 	Sequential sampling schemes have been shown to be more efficient than standard rejection-based procedures.
 }
 \usage{
-	ABC_sequential(method, model, prior_matrix, nb_simul, tolerance_tab, summary_stat_target, n_cluster = 1,...)
+	ABC_sequential(method, model, prior_matrix, nb_simul, summary_stat_target, n_cluster = 1,...)
 }
 
 \arguments{

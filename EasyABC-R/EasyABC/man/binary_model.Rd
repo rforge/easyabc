@@ -6,9 +6,9 @@
   This function enables to link a binary executable to a \code{R} function.
 }
 \usage{
-  binary_model(executable_string)}
+  binary_model(command)}
 \arguments{
-  \item{executable_string}{
+  \item{command}{
 	a character string indicating the command to launch the executable on your system.}
 }
 \details{
