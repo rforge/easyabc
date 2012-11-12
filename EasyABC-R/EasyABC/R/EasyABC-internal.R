@@ -131,7 +131,7 @@
       tab_param=rbind(tab_param,param)
     }
     if (!is.null(pb)) {
-      duration = difftime(Sys.time(), start, unit="secs")
+      duration = difftime(Sys.time(), start, units="secs")
       text = "";
       if (i == nb_simul) {
         text = paste("Completed  in", format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
@@ -308,7 +308,7 @@
 
     sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
     
-list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=array(1/nb_simul,nb_simul), stats_normalization=sd_simul, nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, unit="secs")))
+list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=array(1/nb_simul,nb_simul), stats_normalization=sd_simul, nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, units="secs")))
 }
 
 
@@ -422,7 +422,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	    print(paste("step ",it," completed",sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## function to select the alpha quantile closest simulations
@@ -617,7 +617,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       simul_below_tol2=rbind(simul_below_tol2,simul_picked)
       # for progressbar message and time evaluation
 	if (progress_bar){
-      	duration = difftime(Sys.time(), startb, unit="secs")
+      	duration = difftime(Sys.time(), startb, units="secs")
       	text="";
       	if (i==nb_simul_step) {
         		text = paste("Step ",it," completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
@@ -683,7 +683,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     seed_count=seed_count+R
     simul_below_tol2=rbind(simul_below_tol2,as.numeric(simul_picked))
   }
-  list(param=simul_below_tol2[,1:nparam],stats=simul_below_tol2[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol2[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=simul_below_tol2[,1:nparam],stats=simul_below_tol2[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol2[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -868,7 +868,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     # determination of the new tolerance
     ESS_target=alpha*ESS
     
-    tolerance_list=sort(as.numeric(names(table(particle_dist_mat))),dec=TRUE)
+    tolerance_list=sort(as.numeric(names(table(particle_dist_mat))),decreasing=TRUE)
     i=1
     test=FALSE
     while((!test)&&(i<length(tolerance_list))){
@@ -1000,21 +1000,20 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
           }
         }
       }
-      # for progressbar message and time evaluation
-	if (progress_bar){
-	      duration = difftime(Sys.time(), startb, unit="secs")
-      	text="";
-	      if (i==nb_simul) {
-      	 text = paste("Step ",kstep," completed in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-      	} 
-      	else {
-        	 text = paste("Time elapsed during step ",kstep,":",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining for step ",kstep,":",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
-      	}
-	      .updateProgressBar(pb, i/nb_simul, text)
-     	}
+    # for progressbar message and time evaluation
+    if (progress_bar){
+      duration = difftime(Sys.time(), startb, units="secs")
+      text="";
+      if (i==nb_simul) {
+	text = paste("Step ",kstep," completed in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+      } else {
+	text = paste("Time elapsed during step ",kstep,":",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining for step ",kstep,":",format(.POSIXct(duration/i*(nb_simul-i), tz="GMT"), "%H:%M:%S"));
+      }
+	.updateProgressBar(pb, i/nb_simul, text)
+      }
     }
     if (progress_bar){
-	    close(pb)
+      close(pb)
     }
     if (M>1){
       particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
@@ -1034,7 +1033,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	    print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1172,7 +1171,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     }
     # for progressbar message and time evaluation
     if (progress_bar){
-    	duration = difftime(Sys.time(), startb, unit="secs")
+    	duration = difftime(Sys.time(), startb, units="secs")
     	text="";
     	if (i==nb_simul) {
       	text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
@@ -1303,7 +1302,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     	print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1469,7 +1468,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (progress_bar){
 	    # for progressbar message and time evaluation
-	    duration = difftime(Sys.time(), start, unit="secs")
+	    duration = difftime(Sys.time(), start, units="secs")
 	    text="";
 	    if (is==n_obs) {
 	      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
@@ -1499,7 +1498,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=tab_normalization,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=tab_normalization,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
@@ -1619,7 +1618,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (progress_bar){
 	    # for progressbar message and time evaluation
-		    duration = difftime(Sys.time(), startb, unit="secs")
+		    duration = difftime(Sys.time(), startb, units="secs")
 	    text="";
 	    if (is==n_obs) {
 	      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
@@ -1649,7 +1648,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1869,7 +1868,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (progress_bar){
 	    # for progressbar message and time evaluation
-	    duration = difftime(Sys.time(), startb, unit="secs")
+	    duration = difftime(Sys.time(), startb, units="secs")
 	    text="";
 	    if (is==n_obs) {
 	      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
@@ -1899,7 +1898,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
@@ -2077,7 +2076,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	}
 	options(scipen=0)
 	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
-list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -2384,7 +2383,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    	 print(paste("step ",it," completed",sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs")))
+  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -2776,7 +2775,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     seed_count=seed_count+nb_simul
   }
   
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
+  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -2907,7 +2906,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     # determination of the new tolerance
     ESS_target=alpha*ESS
     
-    tolerance_list=sort(as.numeric(names(table(particle_dist_mat))),dec=TRUE)
+    tolerance_list=sort(as.numeric(names(table(particle_dist_mat))),decreasing=TRUE)
     i=1
     test=FALSE
     while((!test)&&(i<length(tolerance_list))){
@@ -3077,7 +3076,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
     }
   }	
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
+  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -3457,7 +3456,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
+  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -3615,7 +3614,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   } 		
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
+  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -3825,7 +3824,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, unit="secs"))) 
+  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
