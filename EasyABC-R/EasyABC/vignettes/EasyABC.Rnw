@@ -1,16 +1,17 @@
 \documentclass[a4paper]{article}
 
 \usepackage[utf8]{inputenc}
+\usepackage{amssymb}
 \usepackage{url}
 \usepackage[colorlinks=true]{hyperref}
 \usepackage{a4wide}
 
 \title{\texttt{EasyABC}: a \texttt{R} package to perform efficient approximate Bayesian computation sampling schemes}
 \author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
-\date{\pkg{EasyABC} version \Sexpr{packageDescription("EasyABC")[["Version"]]} , \Sexpr{Sys.Date()} }
+\date{\texttt{EasyABC} version \Sexpr{packageDescription("EasyABC")[["Version"]]} , \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
-% \SweaveOpts{eval=FALSE}
+ \SweaveOpts{eval=FALSE}
 
 \begin{document}
 
@@ -18,10 +19,10 @@
 
 \tableofcontents
 \setcounter{footnote}{1} \footnotetext{This document is included as a
-  vignette (a \LaTeX\ document created using the \R function
-  \code{Sweave}) of the package \pkg{EasyABC}. It is automatically
-  dowloaded together with the package and can be accessed through \R
-  typing \code{vignette("EasyABC")}.}  \newpage
+  vignette (a \LaTeX\ document created using the \texttt{R} function
+  \texttt{Sweave}) of the package \texttt{EasyABC}. It is automatically
+  dowloaded together with the package and can be accessed through \texttt{R}
+  typing \texttt{vignette("EasyABC")}.}  \newpage
 
 \section{Summary}
 The aim of this vignette is to present the features of the \texttt{EasyABC} package.
@@ -73,7 +74,7 @@ For online help on the package content, simply type:
 help(package="EasyABC")
 @
 
-For online help on a particular command (such as the function \code{ABC_sequential}), simply type:
+For online help on a particular command (such as the function \texttt{ABC\_sequential}), simply type:
 <<eval=FALSE>>=
 help(ABC_sequential)
 @
@@ -88,7 +89,7 @@ If the code is a \texttt{R} function, its argument must be an array of parameter
 If the code is a binary executable file, it needs to read the parameter values in a file named 'input' in which each line contains one parameter value, and to output the summary statistics in a file named 'output' in which each summary statistics must be separated by a space or a tabulation.
 If the code is a binary executable file, a wrapper \texttt{R} function named 'binary\_model' is available to interface the executable file with the \texttt{R} functions of the \texttt{EasyABC} package (see section \ref{example} below).
 
-Alternatively, users may prefer building a \code{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \code{C/C++} program.
+Alternatively, users may prefer building a \texttt{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \texttt{C/C++} program.
 
 \subsection{The simulation code - for use with multiple cores}
 \label{simulator_several_cores}
@@ -100,7 +101,7 @@ If the code is a binary executable file, it needs to have as its single argument
 This construction avoids multiple cores to read/write in the same files.
 If the code is a binary executable file, a wrapper \texttt{R} function named 'binary\_model\_cluster' is available to interface the executable file with the \texttt{R} functions of the \texttt{EasyABC} package (see section \ref{example} below).
 
-Alternatively, users may prefer building a \code{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \code{C/C++} program.
+Alternatively, users may prefer building a \texttt{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \texttt{C/C++} program.
 
 \subsection{Management of pseudo-random number generators}
 To insure that stochastic simulations are independent, the simulation code must either possess an internal way of initializing the seeds of its pseudo-random number generators each time the simulation code is launched.
