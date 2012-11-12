@@ -2834,7 +2834,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha,M,nb_threshold,tolerance_target,seed_count=0,verbose=FALSE,progress_bar=FALSE){
+.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.9,M=1,nb_threshold=floor(nb_simul/2),tolerance_target=-1,seed_count=0,verbose=FALSE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
   if(length(alpha)>1) stop("'alpha' has to be a number.")
@@ -3574,21 +3574,20 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   tab_param=param_ini
   tab_simul_summary_stat=tab_simul_ini
   tab_dist=as.numeric(dist_ini)
-  seed_count=seed_count+1
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior_matrix)
       param=c((seed_count+i),param)
       simul_summary_stat=model(param)
-      param=param[3:(nparam+2)]
+      param=param[2:(nparam+1)]
       dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),sd_simul)
       if (dist_simul<dist_max){
         param_ini=param
         tab_simul_ini=as.numeric(simul_summary_stat)
         dist_ini=dist_simul
-      }
-      seed_count=seed_count+1
+      } 
     }
+    seed_count=seed_count+n_between_sampling
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
@@ -3667,11 +3666,13 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   }
   
   # initial draw of a particle
-  initial=.ABC_rejection_internal_cluster(model,prior_matrix,n_calibration,seed_count,n_cluster)
+  initial=.ABC_rejection_internal_cluster(model,prior_matrix,nb_simul=n_calibration,seed_count,n_cluster)
   seed_count=seed_count+n_calibration
   tab_param=as.matrix(initial[,1:nparam])
   tab_simul_summary_stat=as.matrix(initial[,(nparam+1):(nparam+nstat)])
-  write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+  if (verbose){
+    write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+  }
   
   ## AM2: PLS step
   #print("AM2 ")
@@ -3767,7 +3768,6 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   tab_simul_summary_stat=tab_simul_ini
   dist_ini=simuldist[(ord_sim[n_ini])]
   tab_dist=as.numeric(dist_ini)
-  seed_count=seed_count+1
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       ## AM6
@@ -3777,7 +3777,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
       ## AM7	
       #print("AM7 ")
       simul_summary_stat=model(param)
-      param=param[3:(nparam+2)]
+      param=param[2:(nparam+1)]
       simul_summary_stat_output=simul_summary_stat
       for (ii in 1:nstat){
         simul_summary_stat[ii]=1+(simul_summary_stat[ii]-myMin[ii])/(myMax[ii]-myMin[ii])
@@ -3797,8 +3797,8 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
         tab_simul_ini=as.numeric(simul_summary_stat_output)
         dist_ini=dist_simul
       }
-      seed_count=seed_count+1
     }
+    seed_count=seed_count+n_between_sampling
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
@@ -3843,10 +3843,10 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
     if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
     if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
     if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
-    if(!is.vector(nb_simul)) stop("'nb_simul' has to be a number.")
-    if(length(nb_simul)>1) stop("'nb_simul' has to be a number.")
-    if (nb_simul<1) stop("'nb_simul' must be a number larger than 1.")
-    nb_simul=floor(nb_simul)
+    if(!is.vector(n_obs)) stop("'n_obs' has to be a number.")
+    if(length(n_obs)>1) stop("'n_obs' has to be a number.")
+    if (n_obs<1) stop("'n_obs' must be a number larger than 1.")
+    n_obs=floor(n_obs)
     if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
     if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
     if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
@@ -3858,7 +3858,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
 ## Note that we do not consider the original Marjoram's algortithm, which is not prone to parallel computing. (no calibration step)
 	    return(switch(EXPR = method,
 	       Marjoram = .ABC_MCMC2_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...),
-	       Wegmann = .ABC_MCMC3_cluster(model,prior_matrix,n_obs,summary_stat_target,n_cluster,...)))
+	       Wegmann = .ABC_MCMC3_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...)))
 
 	options(scipen=0)
 }
