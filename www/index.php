@@ -88,5 +88,21 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 
 <!--p>Version 1.0 released on 13-12-2012.</p-->
 
+<!-- phpmyvisites -->
+<a href="http://www.phpmyvisites.net/" title="phpMyVisites | Open source web analytics" 
+onclick="window.open(this.href);return(false);"><script type="text/javascript">
+<!--
+var a_vars = Array();
+var pagename='';
+var phpmyvisitesSite = 5;
+var phpmyvisitesURL = "http://mann.clermont.cemagref.fr/phpmv2/phpmyvisites.php";
+//-->
+</script>
+<script language="javascript" src="http://mann.clermont.cemagref.fr/phpmv2/phpmyvisites.js" type="text/javascript"></script>
+<noscript><p>phpMyVisites | Open source web analytics
+<img src="http://mann.clermont.cemagref.fr/phpmv2/phpmyvisites.php" alt="Statistics" style="border:0" />
+</p></noscript></a>
+<!-- /phpmyvisites --> 
+
 </body>
 </html>
