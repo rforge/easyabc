@@ -88,21 +88,18 @@ echo '<?xml version="1.0" encoding="UTF-8"?>';
 
 <!--p>Version 1.0 released on 13-12-2012.</p-->
 
-<!-- phpmyvisites -->
-<a href="http://www.phpmyvisites.net/" title="phpMyVisites | Open source web analytics" 
-onclick="window.open(this.href);return(false);"><script type="text/javascript">
-<!--
-var a_vars = Array();
-var pagename='';
-var phpmyvisitesSite = 5;
-var phpmyvisitesURL = "http://mann.clermont.cemagref.fr/phpmv2/phpmyvisites.php";
-//-->
-</script>
-<script language="javascript" src="http://mann.clermont.cemagref.fr/phpmv2/phpmyvisites.js" type="text/javascript"></script>
-<noscript><p>phpMyVisites | Open source web analytics
-<img src="http://mann.clermont.cemagref.fr/phpmv2/phpmyvisites.php" alt="Statistics" style="border:0" />
-</p></noscript></a>
-<!-- /phpmyvisites --> 
+<!-- Piwik --> 
+<script type="text/javascript">
+var pkBaseURL = (("https:" == document.location.protocol) ? "https://trac.clermont.cemagref.fr/piwik/" : "http://trac.clermont.cemagref.fr/piwik/");
+document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
+</script><script type="text/javascript">
+try {
+var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", 1);
+piwikTracker.trackPageView();
+piwikTracker.enableLinkTracking();
+} catch( err ) {}
+</script><noscript><p><img src="http://trac.clermont.cemagref.fr/piwik/piwik.php?idsite=1" style="border:0" alt="" /></p></noscript>
+<!-- End Piwik Tracking Code -->
 
 </body>
 </html>
