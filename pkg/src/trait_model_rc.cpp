@@ -14,12 +14,11 @@ Last modified on 31th december 2008.
 #include <limits>
 #include <string>
 #include <math.h>
-#include <malloc.h>
 #include <list>
 #include <R.h>
 #include <Rmath.h>
 
-using namespace std; // peut-être à enlever, je ne sais pas.
+using namespace std; // peut-Ãªtr Ã  enlever, je ne sais pas.
 
 //Random number generator
 double genrand2(void);
