@@ -1945,11 +1945,11 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   tab_simul_summarystat=NULL
   tab_param=NULL
   list_param=list(NULL)
-  npar=floor(nb_simul/n_cluster)
-  n_end=nb_simul-(npar*n_cluster)
+  npar=floor(nb_simul/(100*n_cluster))
+  n_end=nb_simul-(npar*100*n_cluster)
   if (npar>0){
    for (irun in 1:npar){
-    for (i in 1:n_cluster){
+    for (i in 1:(100*n_cluster)){
       l=dim(prior_matrix)[1]
       param=array(0,l)
       for (j in 1:l){
@@ -1960,16 +1960,16 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       list_param[[i]]=param
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
-    seed_count=seed_count+n_cluster
-    list_simul_summarystat=parLapply(cl,list_param,model)
-    for (i in 1:n_cluster){
+    seed_count=seed_count+100*n_cluster
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
+    for (i in 1:(100*n_cluster)){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
    }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     for (i in 1:n_end){
       l=dim(prior_matrix)[1]
@@ -1983,7 +1983,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
@@ -2030,11 +2030,11 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	tab_simul_summarystat=NULL
 	tab_param=NULL
 	list_param=list(NULL)
-	npar=floor(nb_simul/n_cluster)
-	n_end=nb_simul-(npar*n_cluster)
+	npar=floor(nb_simul/(100*n_cluster))
+	n_end=nb_simul-(npar*100*n_cluster)
 	if (npar>0){
 	 for (irun in 1:npar){
-	  for (i in 1:n_cluster){
+	  for (i in 1:(100*n_cluster)){
 		l=dim(prior_matrix)[1]
 		param=array(0,l)
 		for (j in 1:l){
@@ -2046,15 +2046,15 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 		tab_param=rbind(tab_param,param[2:(l+1)])
 	  }
 	  seed_count=seed_count+n_cluster
-	  list_simul_summarystat=parLapply(cl,list_param,model)
-	  for (i in 1:n_cluster){
+	  list_simul_summarystat=parLapplyLB(cl,list_param,model)
+	  for (i in 1:(100*n_cluster)){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
 	  }
          }
 	}
 	if (n_end>0){
-	  stopCluster(cl)
-	  cl <- makeCluster(getOption("cl.cores", 1))
+	  #stopCluster(cl)
+	  #cl <- makeCluster(getOption("cl.cores", 1))
 	  list_param=list(NULL)
 	  for (i in 1:n_end){
 		l=dim(prior_matrix)[1]
@@ -2068,7 +2068,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 		tab_param=rbind(tab_param,param[2:(l+1)])
 	  }
 	  seed_count=seed_count+n_end
-	  list_simul_summarystat=parLapply(cl,list_param,model)
+	  list_simul_summarystat=parLapplyLB(cl,list_param,model)
 	  for (i in 1:n_end){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
 	  }
@@ -2092,11 +2092,11 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   tab_param=NULL
   cl <- makeCluster(getOption("cl.cores", n_cluster))
   list_param=list(NULL)
-  npar=floor(nb_simul/n_cluster)
-  n_end=nb_simul-(npar*n_cluster)
+  npar=floor(nb_simul/(100*n_cluster))
+  n_end=nb_simul-(npar*100*n_cluster)
   if (npar>0){
     for (irun in 1:npar){
-      for (i in 1:n_cluster){
+      for (i in 1:(100*n_cluster)){
         l=dim(param_previous_step)[2]
         if (!inside_prior){
           # pick a particle
@@ -2126,15 +2126,15 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
-      list_simul_summarystat=parLapply(cl,list_param,model)
-      for (i in 1:n_cluster){
+      list_simul_summarystat=parLapplyLB(cl,list_param,model)
+      for (i in 1:(100*n_cluster)){
         tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
       }
     }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     for (i in 1:n_end){
       l=dim(param_previous_step)[2]
@@ -2166,7 +2166,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
@@ -2186,8 +2186,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   tab_param=NULL
   cl <- makeCluster(getOption("cl.cores", n_cluster))
   list_param=list(NULL)
-  npar=floor(nb_simul/n_cluster)
-  n_end=nb_simul-(npar*n_cluster)
+  npar=floor(nb_simul/(100*n_cluster))
+  n_end=nb_simul-(npar*100*n_cluster)
   l=dim(param_previous_step)[2]
   l_array=dim(param_previous_step[,tab_unfixed_param])[2]
   sd_array=array(1,l_array)
@@ -2198,7 +2198,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   }
   if (npar>0){
     for (irun in 1:npar){
-      for (i in 1:n_cluster){
+      for (i in 1:(100*n_cluster)){
         if (!inside_prior){
           # pick a particle
           param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
@@ -2227,15 +2227,15 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
-      list_simul_summarystat=parLapply(cl,list_param,model)
-      for (i in 1:n_cluster){
+      list_simul_summarystat=parLapplyLB(cl,list_param,model)
+      for (i in 1:(100*n_cluster)){
         tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
       }
     }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     for (i in 1:n_end){
       if (!inside_prior){
@@ -2266,7 +2266,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
@@ -2393,8 +2393,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 .move_drovandi_ini_cluster<-function(nb_simul_step,simul_below_tol,tab_weight,nparam,nstat,tab_unfixed_param,prior_matrix,summary_stat_target,tol_next,seed_count,n_cluster,model,sd_simul){
   i_acc=0
   res=NULL
-  npar=floor(nb_simul_step/n_cluster)
-  n_end=nb_simul_step-(npar*n_cluster)
+  npar=floor(nb_simul_step/(100*n_cluster))
+  n_end=nb_simul_step-(npar*100*n_cluster)
   l=dim(prior_matrix)[1]
   list_param=list(NULL)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
@@ -2402,7 +2402,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    for (irun in 1:npar){
     tab_param=NULL
     tab_picked=NULL
-    for (i in 1:n_cluster){
+    for (i in 1:(100*n_cluster)){
       # pick a particle
       simul_picked=.particle_pick(simul_below_tol,tab_weight)
       # move it
@@ -2416,8 +2416,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     seed_count=seed_count+n_cluster
     # perform simulations
-    list_simul_summarystat=parLapply(cl,list_param,model)
-    for (i in 1:n_cluster){
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
+    for (i in 1:(100*n_cluster)){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
       if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
@@ -2429,8 +2429,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     tab_picked=NULL
     tab_param=NULL
@@ -2448,7 +2448,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     seed_count=seed_count+n_end
     # perform simulations
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
@@ -2469,8 +2469,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 .move_drovandi_end_cluster<-function(nb_simul_step,new_particles,nparam,nstat,tab_unfixed_param,prior_matrix,summary_stat_target,tol_next,seed_count,n_cluster,model,sd_simul){
   i_acc=0
   res=NULL
-  npar=floor(nb_simul_step/n_cluster)
-  n_end=nb_simul_step-(npar*n_cluster)
+  npar=floor(nb_simul_step/(100*n_cluster))
+  n_end=nb_simul_step-(npar*100*n_cluster)
   l=dim(prior_matrix)[1]
   list_param=list(NULL)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
@@ -2478,7 +2478,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    for (irun in 1:npar){
     tab_param=NULL
     tab_picked=NULL
-    for (i in 1:n_cluster){
+    for (i in 1:(100*n_cluster)){
       # pick a particle
       simul_picked=new_particles[((irun-1)*n_cluster+i),]
       # move it
@@ -2492,8 +2492,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     seed_count=seed_count+n_cluster
     # perform simulations
-    list_simul_summarystat=parLapply(cl,list_param,model)
-    for (i in 1:n_cluster){
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
+    for (i in 1:(100*n_cluster)){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
       if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
@@ -2505,8 +2505,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     tab_picked=NULL
     tab_param=NULL
@@ -2524,7 +2524,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     seed_count=seed_count+n_end
     # perform simulations
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
@@ -2545,8 +2545,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 .move_drovandi_diversify_cluster<-function(nb_simul_step,new_particles,nparam,nstat,tab_unfixed_param,prior_matrix,summary_stat_target,tol_next,seed_count,n_cluster,model,sd_simul){
   i_acc=0
   res=NULL
-  npar=floor(nb_simul_step/n_cluster)
-  n_end=nb_simul_step-(npar*n_cluster)
+  npar=floor(nb_simul_step/(100*n_cluster))
+  n_end=nb_simul_step-(npar*100*n_cluster)
   l=dim(prior_matrix)[1]
   list_param=list(NULL)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
@@ -2554,7 +2554,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    for (irun in 1:npar){
     tab_param=NULL
     tab_picked=NULL
-    for (i in 1:n_cluster){
+    for (i in 1:(100*n_cluster)){
       # pick a particle
       simul_picked=new_particles[((irun-1)*n_cluster+i),]
       # move it
@@ -2568,8 +2568,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     seed_count=seed_count+n_cluster
     # perform simulations
-    list_simul_summarystat=parLapply(cl,list_param,model)
-    for (i in 1:n_cluster){
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
+    for (i in 1:(100*n_cluster)){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
       if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
@@ -2581,8 +2581,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     tab_picked=NULL
     tab_param=NULL
@@ -2600,7 +2600,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     seed_count=seed_count+n_end
     # perform simulations
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
@@ -2790,9 +2790,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   list_param=list(NULL)
   npar=floor(M/n_cluster)
   n_end=M-(npar*n_cluster)
+  cl <- makeCluster(getOption("cl.cores", n_cluster))
   for (irun in 1:nb_simul){
-    cl <- makeCluster(getOption("cl.cores", n_cluster))
-    l=dim(prior_matrix)[1]
+     l=dim(prior_matrix)[1]
     param=array(0,l)
     for (j in 1:l){
       param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
@@ -2815,8 +2815,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
     }
     if (n_end>0){
-      stopCluster(cl)
-      cl <- makeCluster(getOption("cl.cores", 1))
+      #stopCluster(cl)
+      #cl <- makeCluster(getOption("cl.cores", 1))
       list_param=list(NULL)
       for (i in 1:n_end){
         list_param[[i]]=param
@@ -2828,14 +2828,13 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       for (i in 1:n_end){
         tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
       }
-      stopCluster(cl)
-    }
-    else{
-      stopCluster(cl)
+      #stopCluster(cl)
     }
   }
+  stopCluster(cl)
   cbind(tab_param,tab_simul_summarystat)
 }
+
 
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
@@ -2907,6 +2906,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   # following steps
   kstep=1
   l=dim(prior_matrix)[1]
+  cl <- makeCluster(getOption("cl.cores", n_cluster))
   while(new_tolerance>tolerance_target){	
     kstep=kstep+1
     # determination of the new tolerance
@@ -2981,7 +2981,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         param=particles[ip,]
         param[tab_unfixed_param]=param_moved
         param=c((seed_count+1),param)
-        cl <- makeCluster(getOption("cl.cores", n_cluster))
+        #cl <- makeCluster(getOption("cl.cores", n_cluster))
         if (npar>0){
           for (i2 in 1:npar){
             for (i in 1:n_cluster){
@@ -2997,8 +2997,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           }
         }
         if (n_end>0){
-          stopCluster(cl)
-          cl <- makeCluster(getOption("cl.cores", 1))
+          #stopCluster(cl)
+          #cl <- makeCluster(getOption("cl.cores", 1))
           list_param=list(NULL)
           for (i in 1:n_end){
             list_param[[i]]=param
@@ -3012,9 +3012,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           }
           stopCluster(cl)
         }
-        else{
-          stopCluster(cl)
-        }
+        #else{
+        #  stopCluster(cl)
+        #}
         tab_new_simul=cbind(tab_param,tab_new_simul)
         
         tab_new_simul2=matrix(0,M,(nparam+nstat))
@@ -3065,7 +3065,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           }
         }
       }
-    }	
+    }
     if (M>1){
       particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
     }
@@ -3083,7 +3083,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     if (progress_bar){
       print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
     }
-  }	
+  }
+  stopCluster(cl)	
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
@@ -3096,15 +3097,15 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   tab_simul_summarystat=NULL
   tab_param=NULL
   list_param=list(NULL)
-  npar=floor(nb_simul/n_cluster)
-  n_end=nb_simul-(npar*n_cluster)
+  npar=floor(nb_simul/(100*n_cluster))
+  n_end=nb_simul-(npar*100*n_cluster)
   nparam=length(tab_unfixed_param[tab_unfixed_param])
   l=dim(prior_matrix)[1]
   random_tab=randomLHS(nb_simul,nparam)
   
   if (npar>0){
    for (irun in 1:npar){
-    for (i in 1:n_cluster){
+    for (i in 1:(100*n_cluster)){
       param=prior_matrix[,1]
       for (j in 1:nparam){
         param[tab_unfixed_param][j]=prior_matrix[tab_unfixed_param,][j,1]+(prior_matrix[tab_unfixed_param,][j,2]-prior_matrix[tab_unfixed_param,][j,1])*random_tab[((irun-1)*n_cluster+i),j]
@@ -3115,15 +3116,15 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_cluster
-    list_simul_summarystat=parLapply(cl,list_param,model)
-    for (i in 1:n_cluster){
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
+    for (i in 1:(100*n_cluster)){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
    }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     for (i in 1:n_end){
       param=prior_matrix[,1]
@@ -3136,7 +3137,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
@@ -3159,11 +3160,11 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   k_acc=0
   cl <- makeCluster(getOption("cl.cores", n_cluster))
   list_param=list(NULL)
-  npar=floor(nb_simul/n_cluster)
-  n_end=nb_simul-(npar*n_cluster)
+  npar=floor(nb_simul/(100*n_cluster))
+  n_end=nb_simul-(npar*100*n_cluster)
   if (npar>0){
     for (irun in 1:npar){
-      for (i in 1:n_cluster){
+      for (i in 1:(100*n_cluster)){
         l=dim(param_previous_step)[2]
         if (!inside_prior){
           k_acc=k_acc+1
@@ -3195,15 +3196,15 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
-      list_simul_summarystat=parLapply(cl,list_param,model)
-      for (i in 1:n_cluster){
+      list_simul_summarystat=parLapplyLB(cl,list_param,model)
+      for (i in 1:(100*n_cluster)){
         tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
       }
     }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     for (i in 1:n_end){
       l=dim(param_previous_step)[2]
@@ -3237,7 +3238,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
@@ -3257,8 +3258,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   k_acc=0
   cl <- makeCluster(getOption("cl.cores", n_cluster))
   list_param=list(NULL)
-  npar=floor(nb_simul/n_cluster)
-  n_end=nb_simul-(npar*n_cluster)
+  npar=floor(nb_simul/(100*n_cluster))
+  n_end=nb_simul-(npar*100*n_cluster)
   l=dim(param_previous_step)[2]
   l_array=dim(param_previous_step[,tab_unfixed_param])[2]
   sd_array=array(1,l_array)
@@ -3269,7 +3270,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   }
   if (npar>0){
     for (irun in 1:npar){
-      for (i in 1:n_cluster){
+      for (i in 1:(100*n_cluster)){
         if (!inside_prior){
           k_acc=k_acc+1
           # pick a particle
@@ -3300,15 +3301,15 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         tab_param=rbind(tab_param,param[2:(l+1)])
       }
       seed_count=seed_count+n_cluster
-      list_simul_summarystat=parLapply(cl,list_param,model)
-      for (i in 1:n_cluster){
+      list_simul_summarystat=parLapplyLB(cl,list_param,model)
+      for (i in 1:(100*n_cluster)){
         tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
       }
     }
   }
   if (n_end>0){
-    stopCluster(cl)
-    cl <- makeCluster(getOption("cl.cores", 1))
+    #stopCluster(cl)
+    #cl <- makeCluster(getOption("cl.cores", 1))
     list_param=list(NULL)
     for (i in 1:n_end){
       if (!inside_prior){
@@ -3341,7 +3342,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       tab_param=rbind(tab_param,param[2:(l+1)])
     }
     seed_count=seed_count+n_end
-    list_simul_summarystat=parLapply(cl,list_param,model)
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
     for (i in 1:n_end){
       tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
     }
