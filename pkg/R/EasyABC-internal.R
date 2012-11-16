@@ -2797,7 +2797,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     for (irun in 1:npar){
       for (irun2 in 1:(100*n_cluster)){
 	ii=(100*n_cluster*(irun-1)+irun2)%%M
-	if (ii==1){
+	if ((ii==1)||(M==1)){
 		param=array(0,l)
     		for (j in 1:l){
       			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
@@ -2822,7 +2822,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     list_param=list(NULL)
     for (irun2 in 1:n_end){
 	ii=(100*n_cluster*npar+irun2)%%M
-        if (ii==1){
+        if ((ii==1)||(M==1)){
 		param=array(0,l)
     		for (j in 1:l){
       			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
@@ -2990,7 +2990,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 		ii=(100*n_cluster*(irun-1)+irun2)%%M
 		ii2=ceiling((100*n_cluster*(irun-1)+irun2)/M)
 		if (tab_weight[ii2]>0){
-			if (ii==1){
+			if ((ii==1)||(M==1)){
 				param_moved=.move_particleb_uni(as.numeric(particles[ii2,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
         			param=particles[ii2,]
         			param[tab_unfixed_param]=param_moved
@@ -3020,7 +3020,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 		ii=(100*n_cluster*npar+irun2)%%M
 		ii2=ceiling((100*n_cluster*npar+irun2)/M)
 		if (tab_weight[ii2]>0){
-			if (ii==1){
+			if ((ii==1)||(M==1)){
 				param_moved=.move_particleb_uni(as.numeric(particles[ii2,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
         			param=particles[ii2,]
         			param[tab_unfixed_param]=param_moved
