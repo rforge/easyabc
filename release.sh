@@ -10,7 +10,7 @@ read -p "Are you sure? (y/n) " REPLY
   read -p "Give the wanted version: " VERSION
 }
 
-sed -i -e 's/^Date:.*$/Date: '${DATE}'/' pkg/DESCRIPTION EasyABC/man/EasyABC-package.Rd
-sed -i -e 's/^Version:.*$/Version: '${VERSION}'/' pkg/DESCRIPTION EasyABC/man/EasyABC-package.Rd
+sed -i -e 's/^Date:.*$/Date: '${DATE}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
+sed -i -e 's/^Version:.*$/Version: '${VERSION}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
 
 R CMD check pkg && R CMD build pkg
