@@ -912,11 +912,11 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       ESS=nb_simul
     }
     else{
-      particles=simul_below_tol[uu,1:nparam]
+      particles=simul_below_tol[,1:nparam]
     }
     
     # MCMC move
-    covmat=2*cov.wt(particles[,tab_unfixed_param][tab_weight>0,],as.vector(tab_weight[tab_weight>0]))$cov
+    covmat=2*cov.wt(particles[uu,tab_unfixed_param][tab_weight>0,],as.vector(tab_weight[tab_weight>0]))$cov
     l_array=dim(particles[,tab_unfixed_param])[2]
     sd_array=array(1,l_array)
     for (j in 1:l_array){
@@ -936,8 +936,8 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       if (tab_weight[i]>0){
         tab_new_simul=NULL
         # move it
-        param_moved=.move_particleb_uni(as.numeric(particles[i,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
-        param=particles[i,]
+        param_moved=.move_particleb_uni(as.numeric(particles[(i*M),tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+        param=particles[(i*M),]
         param[tab_unfixed_param]=param_moved
         if (use_seed) {
           param=c((seed_count+1),param)
@@ -2965,13 +2965,13 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       ESS=nb_simul
     }
     else{
-      particles=simul_below_tol[uu,1:nparam]
+      particles=simul_below_tol[,1:nparam]
     }
     
     # MCMC move
     npar=floor(nb_simul*M/(100*n_cluster))
     n_end=nb_simul*M-(npar*100*n_cluster)
-    covmat=2*cov.wt(particles[,tab_unfixed_param][tab_weight>0,],as.vector(tab_weight[tab_weight>0]))$cov
+    covmat=2*cov.wt(particles[uu,tab_unfixed_param][tab_weight>0,],as.vector(tab_weight[tab_weight>0]))$cov
     l_array=dim(particles[,tab_unfixed_param])[2]
     sd_array=array(1,l_array)
     for (j in 1:l_array){
@@ -2982,6 +2982,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     simul_below_tol=matrix(0,nb_simul*M,(nparam+nstat))
 
     param2=array(0,(l+1))
+    tab_param=NULL
+    tab_simul_summarystat=NULL
     if (npar>0){
       for (irun in 1:npar){
         list_param=list(NULL)
@@ -2991,8 +2993,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 		ii2=ceiling((100*n_cluster*(irun-1)+irun2)/M)
 		if (tab_weight[ii2]>0){
 			if ((ii==1)||(M==1)){
-				param_moved=.move_particleb_uni(as.numeric(particles[ii2,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
-        			param=particles[ii2,]
+				param_moved=.move_particleb_uni(as.numeric(particles[(ii2*M),tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+        			param=particles[(ii2*M),]
         			param[tab_unfixed_param]=param_moved
         			param2=c((seed_count+1),param)
 				seed_count=seed_count+1
@@ -3021,8 +3023,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 		ii2=ceiling((100*n_cluster*npar+irun2)/M)
 		if (tab_weight[ii2]>0){
 			if ((ii==1)||(M==1)){
-				param_moved=.move_particleb_uni(as.numeric(particles[ii2,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
-        			param=particles[ii2,]
+				param_moved=.move_particleb_uni(as.numeric(particles[(ii2*M),tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+        			param=particles[(ii2*M),]
         			param[tab_unfixed_param]=param_moved
         			param2=c((seed_count+1),param)
 				seed_count=seed_count+1
@@ -3042,9 +3044,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[ii]]))
       	}
     }
-    tab_new_simul=cbind(tab_param,tab_new_simul)
+    tab_new_simul=cbind(tab_param,tab_simul_summarystat)
     tab_new_simul2=matrix(0,dim(tab_new_simul)[1],dim(tab_new_simul)[2])
-    for (i1 in 1:M){
+    for (i1 in 1:(dim(tab_new_simul)[1])){
    	for (i2 in 1:(nparam+nstat)){
         	tab_new_simul2[i1,i2]=as.numeric(tab_new_simul[i1,i2])
         }
