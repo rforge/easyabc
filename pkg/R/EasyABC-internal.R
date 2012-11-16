@@ -2788,54 +2788,63 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   tab_simul_summarystat=NULL
   tab_param=NULL
   list_param=list(NULL)
-  npar=floor(M/n_cluster)
-  n_end=M-(npar*n_cluster)
+  npar=floor(nb_simul*M/(100*n_cluster))
+  n_end=nb_simul*M-(npar*100*n_cluster)
   cl <- makeCluster(getOption("cl.cores", n_cluster))
-  for (irun in 1:nb_simul){
-     l=dim(prior_matrix)[1]
-    param=array(0,l)
-    for (j in 1:l){
-      param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
-    }
-    #if (use_seed) { # NB: we force the value use_seed=TRUE
-    param=c((seed_count+1),param)
-    list_param=list(NULL)
-    if (npar>0){
-      for (i2 in 1:npar){
-        for (i in 1:n_cluster){
-          list_param[[i]]=param
-          tab_param=rbind(tab_param,param[2:(l+1)])
-	  param[1]=param[1]+1
-        }
-        seed_count=seed_count+n_cluster
-        list_simul_summarystat=parLapply(cl,list_param,model)
-        for (i in 1:n_cluster){
+  l=dim(prior_matrix)[1]
+  param2=array(0,(l+1))
+  if (npar>0){
+    for (irun in 1:npar){
+      for (irun2 in 1:(100*n_cluster)){
+	ii=(100*n_cluster*(irun-1)+irun2)%%M
+	if (ii==1){
+		param=array(0,l)
+    		for (j in 1:l){
+      			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+    		}
+		param2=c((seed_count+1),param)
+		seed_count=seed_count+1
+	}
+	else{
+		param2[1]=param2[1]+1
+		seed_count=seed_count+1
+  	}
+	list_param[[irun2]]=param2
+        tab_param=rbind(tab_param,param2[2:(l+1)])
+      }
+      list_simul_summarystat=parLapplyLB(cl,list_param,model)
+      for (i in 1:(100*n_cluster)){
           tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
-        }
       }
     }
-    if (n_end>0){
-      #stopCluster(cl)
-      #cl <- makeCluster(getOption("cl.cores", 1))
-      list_param=list(NULL)
-      for (i in 1:n_end){
-        list_param[[i]]=param
-        tab_param=rbind(tab_param,param[2:(l+1)])
-	param[1]=param[1]+1
-      }
-      seed_count=seed_count+n_end
-      list_simul_summarystat=parLapply(cl,list_param,model)
-      for (i in 1:n_end){
+  }
+  if (n_end>0){
+    list_param=list(NULL)
+    for (irun2 in 1:n_end){
+	ii=(100*n_cluster*npar+irun2)%%M
+        if (ii==1){
+		param=array(0,l)
+    		for (j in 1:l){
+      			param[j]=runif(1,min=prior_matrix[j,1],max=prior_matrix[j,2])
+    		}
+		param2=c((seed_count+1),param)
+		seed_count=seed_count+1
+	}
+	else{
+		param2[1]=param2[1]+1
+		seed_count=seed_count+1
+  	}
+	list_param[[irun2]]=param2
+        tab_param=rbind(tab_param,param2[2:(l+1)])
+    }
+    list_simul_summarystat=parLapplyLB(cl,list_param,model)
+    for (i in 1:n_end){
         tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
-      }
-      #stopCluster(cl)
-    }
+     }
   }
   stopCluster(cl)
   cbind(tab_param,tab_simul_summarystat)
 }
-
-
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
@@ -2867,7 +2876,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 	  print("    ------ Delmoral et al. (2012)'s algorithm ------") 
   }
   
-  
+
   seed_count_ini=seed_count
   nparam=dim(prior_matrix)[1]
   nstat=length(summary_stat_target)
@@ -2960,6 +2969,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     
     # MCMC move
+    npar=floor(nb_simul*M/(100*n_cluster))
+    n_end=nb_simul*M-(npar*100*n_cluster)
     covmat=2*cov.wt(particles[,tab_unfixed_param][tab_weight>0,],as.vector(tab_weight[tab_weight>0]))$cov
     l_array=dim(particles[,tab_unfixed_param])[2]
     sd_array=array(1,l_array)
@@ -2969,102 +2980,114 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
     simul_below_tol2=simul_below_tol
     simul_below_tol=matrix(0,nb_simul*M,(nparam+nstat))
-    for (ip in 1:nb_simul){
-      if (tab_weight[ip]>0){
-        tab_new_simul=NULL
-        tab_param=NULL
+
+    param2=array(0,(l+1))
+    if (npar>0){
+      for (irun in 1:npar){
         list_param=list(NULL)
-        npar=floor(M/n_cluster)
-        n_end=M-(npar*n_cluster)
-        # move it
-        param_moved=.move_particleb_uni(as.numeric(particles[ip,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
-        param=particles[ip,]
-        param[tab_unfixed_param]=param_moved
-        param=c((seed_count+1),param)
-        #cl <- makeCluster(getOption("cl.cores", n_cluster))
-        if (npar>0){
-          for (i2 in 1:npar){
-            for (i in 1:n_cluster){
-              list_param[[i]]=param
-              tab_param=rbind(tab_param,param[2:(l+1)])
-	      param[1]=param[1]+1
-            }
-            seed_count=seed_count+n_cluster
-            list_simul_summarystat=parLapply(cl,list_param,model)
-            for (i in 1:n_cluster){
-              tab_new_simul=rbind(tab_new_simul,as.numeric(list_simul_summarystat[[i]]))
-            }
-          }
-        }
-        if (n_end>0){
-          #stopCluster(cl)
-          #cl <- makeCluster(getOption("cl.cores", 1))
-          list_param=list(NULL)
-          for (i in 1:n_end){
-            list_param[[i]]=param
-            tab_param=rbind(tab_param,param[2:(l+1)])
-	    param[1]=param[1]+1
-          }
-          seed_count=seed_count+n_end
-          list_simul_summarystat=parLapply(cl,list_param,model)
-          for (i in 1:n_end){
-            tab_new_simul=rbind(tab_new_simul,as.numeric(list_simul_summarystat[[i]]))
-          }
-          stopCluster(cl)
-        }
-        #else{
-        #  stopCluster(cl)
-        #}
-        tab_new_simul=cbind(tab_param,tab_new_simul)
-        
-        tab_new_simul2=matrix(0,M,(nparam+nstat))
-        if (M>1){
-          for (i1 in 1:M){
-            for (i2 in 1:(nparam+nstat)){
-              tab_new_simul2[i1,i2]=as.numeric(tab_new_simul[i1,i2])
-            }
-          }
-        }
-        else{
-          tab_new_simul2[1,]=as.numeric(tab_new_simul)
-        }
-        # check whether the move is accepted
-        n_acc=1
-        if (M>1){
-          new_dist=.compute_dist_M(M,summary_stat_target,tab_new_simul2[,(nparam+1):(nparam+nstat)],sd_simul)
-          n_acc=length(new_dist[new_dist<new_tolerance])
-        }
-        else{
-          new_dist=.compute_dist(summary_stat_target,rbind(tab_new_simul2[(nparam+1):(nparam+nstat)],tab_new_simul2[(nparam+1):(nparam+nstat)]),sd_simul)
-          if (new_dist[1]>new_tolerance){
-            n_acc=0
-          }
-        }
-        MH=min(1,(n_acc/tab_below[ip]))
-        uuu=runif(1)
-        if (uuu<=MH){
-          for (i1 in 1:M){
-            for (i2 in 1:(nparam+nstat)){
-              simul_below_tol[((i1)+(ip-1)*M),i2]=as.numeric(tab_new_simul2[i1,i2])
-            }
-          }
-          
-        }
-        else{
-          for (i1 in 1:M){
-            for (i2 in 1:(nparam+nstat)){
-              simul_below_tol[((i1)+(ip-1)*M),i2]=as.numeric(simul_below_tol2[((i1)+(ip-1)*M),i2])
-            }
-          }
-        }
+	ic=1
+	for (irun2 in 1:(100*n_cluster)){
+		ii=(100*n_cluster*(irun-1)+irun2)%%M
+		ii2=ceiling((100*n_cluster*(irun-1)+irun2)/M)
+		if (tab_weight[ii2]>0){
+			if (ii==1){
+				param_moved=.move_particleb_uni(as.numeric(particles[ii2,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+        			param=particles[ii2,]
+        			param[tab_unfixed_param]=param_moved
+        			param2=c((seed_count+1),param)
+				seed_count=seed_count+1
+			}
+			else{
+				param2[1]=param2[1]+1
+				seed_count=seed_count+1
+  			}
+			list_param[[ic]]=param2
+			ic=ic+1
+        		tab_param=rbind(tab_param,param2[2:(l+1)])
+		}
+	}
+	list_simul_summarystat=parLapplyLB(cl,list_param,model)
+	ic=ic-1
+	for (ii in 1:ic){
+          tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[ii]]))
+      	}
       }
-      else{
-        for (i1 in 1:M){
-          for (i2 in 1:(nparam+nstat)){
-            simul_below_tol[((i1)+(ip-1)*M),i2]=as.numeric(simul_below_tol2[((i1)+(ip-1)*M),i2])
-          }
+    }
+    if (n_end>0){
+	list_param=list(NULL)
+ 	ic=1
+	for (irun2 in 1:n_end){
+		ii=(100*n_cluster*npar+irun2)%%M
+		ii2=ceiling((100*n_cluster*npar+irun2)/M)
+		if (tab_weight[ii2]>0){
+			if (ii==1){
+				param_moved=.move_particleb_uni(as.numeric(particles[ii2,tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+        			param=particles[ii2,]
+        			param[tab_unfixed_param]=param_moved
+        			param2=c((seed_count+1),param)
+				seed_count=seed_count+1
+			}
+			else{
+				param2[1]=param2[1]+1
+				seed_count=seed_count+1
+  			}
+			list_param[[ic]]=param2
+			ic=ic+1
+        		tab_param=rbind(tab_param,param2[2:(l+1)])
+		}
+	}
+	list_simul_summarystat=parLapplyLB(cl,list_param,model)
+	ic=ic-1
+	for (ii in 1:ic){
+          tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[ii]]))
+      	}
+    }
+    tab_new_simul=cbind(tab_param,tab_new_simul)
+    tab_new_simul2=matrix(0,dim(tab_new_simul)[1],dim(tab_new_simul)[2])
+    for (i1 in 1:M){
+   	for (i2 in 1:(nparam+nstat)){
+        	tab_new_simul2[i1,i2]=as.numeric(tab_new_simul[i1,i2])
         }
-      }
+    }
+    iii=0
+    for (i in 1:nb_simul){
+	if (tab_weight[i]>0){
+		iii=iii+1
+		n_acc=1
+		if (M>1){
+			new_dist=.compute_dist_M(M,summary_stat_target,tab_new_simul2[(((iii-1)*M+1):(iii*M)),(nparam+1):(nparam+nstat)],sd_simul)
+			n_acc=length(new_dist[new_dist<new_tolerance])
+		}
+		else{
+			new_dist=.compute_dist(summary_stat_target,rbind(tab_new_simul2[iii,(nparam+1):(nparam+nstat)],tab_new_simul2[iii,(nparam+1):(nparam+nstat)]),sd_simul)
+			if (new_dist[1]>new_tolerance){
+           			n_acc=0
+		        }
+		}
+		MH=min(1,(n_acc/tab_below[i]))
+		uuu=runif(1)
+		if (uuu<=MH){
+          		for (i1 in 1:M){
+           			for (i2 in 1:(nparam+nstat)){
+              				simul_below_tol[((i1)+(i-1)*M),i2]=as.numeric(tab_new_simul2[((iii-1)*M+i1),i2])
+            			}
+          		}
+        	}
+		else{
+          		for (i1 in 1:M){
+            			for (i2 in 1:(nparam+nstat)){
+              				simul_below_tol[((i1)+(i-1)*M),i2]=as.numeric(simul_below_tol2[((i1)+(i-1)*M),i2])
+            			}
+          		}
+        	}
+	}
+	else{
+        	for (i1 in 1:M){
+          		for (i2 in 1:(nparam+nstat)){
+            			simul_below_tol[((i1)+(i-1)*M),i2]=as.numeric(simul_below_tol2[((i1)+(i-1)*M),i2])
+          		}
+        	}
+      	}
     }
     if (M>1){
       particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
@@ -3087,7 +3110,6 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   stopCluster(cl)	
   list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
-
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
 ###############################################################################
