@@ -23,16 +23,19 @@
 \value{
 	A \code{R} function wrapping the binary executable, to be used with the \code{EasyABC} functions.
 }
-\references{
-}
+%\references{}
 \author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
-\code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
+  \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
 }
 \examples{
-## artificial example to show how to use the binary_model function with an executable "My_Executable"
-# ABC_rej<-ABC_rejection(model=binary_model("./My_Executable"), prior_matrix=..., n_cluster=1,...)
-# NB: on windows, "My_Executable" should be of the form "My_Executable.exe" : ABC_rej<-ABC_rejection(model=binary_model("./My_Executable.exe"), prior_matrix=..., n_cluster=1,...)
+  \dontrun{
+    ## artificial example to show how to use the binary_model function with an executable "My_Executable"
+    ABC_rej<-ABC_rejection(model=binary_model("./My_Executable"), prior_matrix=..., n_cluster=1,...)
+
+    # NB: on windows, "My_Executable" should be of the form "My_Executable.exe" :
+    ABC_rej<-ABC_rejection(model=binary_model("./My_Executable.exe"), prior_matrix=..., n_cluster=1,...)
+  }
 }
 \keyword{abc}
 \keyword{model}

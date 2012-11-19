@@ -26,47 +26,54 @@
 	a vector containing the targeted (observed) summary statistics.}
   \item{n_cluster}{
     a positive integer. If larger than 1 (the default value), \code{ABC_mcmc} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
-  \item{dist_max}{
-	a positive number, used when \code{method} is \code{"Marjoram_original"}.
-	This is the tolerance threshold used during the MCMC.}
-  \item{tab_normalization}{
-	a vector of the same length as \code{summary_stat_target}, used when \code{method} is \code{"Marjoram_original"}.
-	Each element contains a positive number by which each summary statistics must be divided before the computation of the Euclidean distance between simulations and data.}
-  \item{proposal_range}{
-	a vector of the same length as the number of model parameters, used when \code{method} is \code{"Marjoram_original"}.
-	Each element contains a positive number defining the range of MCMC jumps for each model parameter.}
-  \item{n_calibration}{
-    	a positive integer, used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
-	This is the number of simulations performed during the calibration step.
-	Default value is 10000.}
-  \item{tolerance_quantile}{
-    	a positive number between 0 and 1 (strictly), used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
-	This is the percentage of simulations retained during the calibration step to determine the tolerance threshold to be used during the MCMC.
-	Default value is 0.01.}
-  \item{proposal_phi}{
-    	a positive number, used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
-	This is a scaling factor defining the range of MCMC jumps.
-	Default value is 1.}
-  \item{numcomp}{
-    	a positive integer, used when \code{method} is \code{"Wegmann"}.
-	This is the number of components to be used for PLS transformations.
-	Default value is 0 which encodes that this number is equal to the number of summary statistics.}
-  \item{use_seed}{
-    	logical. If \code{TRUE} (default), \code{ABC_mcmc} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
-    	The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
-    	If \code{FALSE} (default), \code{ABC_mcmc} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
-  \item{seed_count}{
-    	a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \code{model}.}
-  \item{verbose}{
-	logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} writes in the current directory intermediary results at the end of the calibration step of the algorithm.}
-  \item{progress_bar}{
-    logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
+  \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
+}
+
+\section{Additional paramaters}{
+  Depending on the choosen method, you can specify the following arguments:
+  \describe{
+    \item{dist_max}{
+	  a positive number, used when \code{method} is \code{"Marjoram_original"}.
+	  This is the tolerance threshold used during the MCMC.}
+    \item{tab_normalization}{
+	  a vector of the same length as \code{summary_stat_target}, used when \code{method} is \code{"Marjoram_original"}.
+	  Each element contains a positive number by which each summary statistics must be divided before the computation of the Euclidean distance between simulations and data.}
+    \item{proposal_range}{
+	  a vector of the same length as the number of model parameters, used when \code{method} is \code{"Marjoram_original"}.
+	  Each element contains a positive number defining the range of MCMC jumps for each model parameter.}
+    \item{n_calibration}{
+	  a positive integer, used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
+	  This is the number of simulations performed during the calibration step.
+	  Default value is 10000.}
+    \item{tolerance_quantile}{
+	  a positive number between 0 and 1 (strictly), used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
+	  This is the percentage of simulations retained during the calibration step to determine the tolerance threshold to be used during the MCMC.
+	  Default value is 0.01.}
+    \item{proposal_phi}{
+	  a positive number, used when \code{method} is \code{"Marjoram"} or \code{"Wegmann"}.
+	  This is a scaling factor defining the range of MCMC jumps.
+	  Default value is 1.}
+    \item{numcomp}{
+	  a positive integer, used when \code{method} is \code{"Wegmann"}.
+	  This is the number of components to be used for PLS transformations.
+	  Default value is 0 which encodes that this number is equal to the number of summary statistics.}
+    \item{use_seed}{
+	  logical. If \code{TRUE} (default), \code{ABC_mcmc} provides as input to the function \code{model} an array containing an integer seed value and the model parameters used for the simulation.
+	  The seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).
+	  If \code{FALSE} (default), \code{ABC_mcmc} provides as input to the function \code{model} an array containing solely the model parameters used for the simulation.}
+    \item{seed_count}{
+	  a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \code{model}.}
+    \item{verbose}{
+	  logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} writes in the current directory intermediary results at the end of the calibration step of the algorithm.}
+    \item{progress_bar}{
+      logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
+  }
 }
 \details{
-See the package's vignette for details on ABC-MCMC.
+  See the package's vignette for details on ABC-MCMC.
 }
 \value{
-The returned value is a list containing the following components: 
+  The returned value is a list containing the following components: 
   \item{param}{
   	The model parameters used in the \code{model} simulations.}
   \item{stats}{
@@ -110,42 +117,42 @@ The returned value is a list containing the following components:
 }
 \author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
-\code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}
+  \code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}
 }
 \examples{
-priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
-dim(priormatrix)<-c(6,2)
-sum_stat_obs=c(100,2.5,20,30000)
-n=10
-nbetweensampling=1
-distmax=8
-tabnormalization=c(50,1,20,10000)
-proposalrange=c(0,1,0.5,0,50,1)
+  \dontrun{
+    priormatrix=cbind(c(500,3,-2.3,1,-25,-0.7),c(500,5,1.6,1,125,3.2))
+    sum_stat_obs=c(100,2.5,20,30000)
+    n=10
+    nbetweensampling=1
+    distmax=8
+    tabnormalization=c(50,1,20,10000)
+    proposalrange=c(0,1,0.5,0,50,1)
 
-## artificial example to perform the Marjoram et al. (2003)'s method.
-##
-ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model, prior_matrix=priormatrix,
-n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1, dist_max=distmax,
-tab_normalization=tabnormalization, proposal_range=proposalrange)
-ABC_Marjoram_original
+    ## artificial example to perform the Marjoram et al. (2003)'s method.
+    ##
+    ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model, prior_matrix=priormatrix,
+    n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1, dist_max=distmax,
+    tab_normalization=tabnormalization, proposal_range=proposalrange)
+    ABC_Marjoram_original
 
-## artificial example to perform the Marjoram et al. (2003)'s method, with modifications drawn from Wegmann et al. (2009) without Box-Cox and PLS transformations.
-##
-ncalib=10
-tolquantile = 0.5
-ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=trait_model, prior_matrix=priormatrix,
-n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1,
-n_calibration=ncalib, tolerance_quantile=tolquantile)
-ABC_Marjoram
+    ## artificial example to perform the Marjoram et al. (2003)'s method, with modifications drawn from Wegmann et al. (2009) without Box-Cox and PLS transformations.
+    ##
+    ncalib=10
+    tolquantile = 0.5
+    ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=trait_model, prior_matrix=priormatrix,
+    n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1,
+    n_calibration=ncalib, tolerance_quantile=tolquantile)
+    ABC_Marjoram
 
 
-## artificial example to perform the Wegmann et al. (2009)'s method.
-##
-ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior_matrix=priormatrix,
-n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1,
-n_calibration=ncalib, tolerance_quantile=tolquantile)
-ABC_Wegmann
-
+    ## artificial example to perform the Wegmann et al. (2009)'s method.
+    ##
+    ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior_matrix=priormatrix,
+    n_obs=n, n_between_sampling=nbetweensampling, summary_stat_target=sum_stat_obs, n_cluster=1,
+    n_calibration=ncalib, tolerance_quantile=tolquantile)
+    ABC_Wegmann
+  }
 }
 \keyword{abc}
 \keyword{model}

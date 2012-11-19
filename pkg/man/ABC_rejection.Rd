@@ -27,10 +27,9 @@
   \item{progress_bar}{
     logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_rejection} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
 }
-\details{
-}
+%\details{}
 \value{
-The returned value is a list containing the following components: 
+  The returned value is a list containing the following components: 
   \item{param}{
   	The model parameters used in the \code{model} simulations.}
   \item{stats}{
@@ -52,21 +51,21 @@ The returned value is a list containing the following components:
 }
 \author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
-\code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
+  \code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
 }
 \examples{
-## artificial example to show how to use the ABC_rejection function
-##
-set.seed(1)
-n=10
-priormatrix=c(500,3,-2.3,1,-25,-0.7,500,5,1.6,1,125,3.2)
-dim(priormatrix)<-c(6,2)
-priormatrix
-ABC_rej<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n, n_cluster=1, progress_bar=FALSE)
-ABC_rej
+  \dontrun{
+    ## artificial example to show how to use the ABC_rejection function
+    set.seed(1)
+    n=10
+    priormatrix=cbind(c(500,3,-2.3,1,-25,-0.7),c(500,5,1.6,1,125,3.2))
+    priormatrix
+    ABC_rej<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n, n_cluster=1, progress_bar=FALSE)
+    ABC_rej
 
-## To use the ABC_rejection function with multiple cores, simply change the value of n_cluster:
-## ABC_rejb<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n, n_cluster=2, progress_bar=FALSE)
+    ## To use the ABC_rejection function with multiple cores, simply change the value of n_cluster:
+    ABC_rejb<-ABC_rejection(model=trait_model, prior_matrix=priormatrix, nb_simul=n, n_cluster=2, progress_bar=FALSE)
+  }
 }
 \keyword{abc}
 \keyword{model}
