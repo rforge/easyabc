@@ -12,5 +12,8 @@ read -p "Are you sure? (y/n) " REPLY
 
 sed -i -e 's/^Date:.*$/Date: '${DATE}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
 sed -i -e 's/^Version:.*$/Version: '${VERSION}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
+sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}'/' vignettes/EasyABC.Rnw
 
-R CMD check pkg && R CMD build pkg
+./updateVignette.sh && \
+  R CMD build pkg && \
+  R CMD check --as-cran EasyABC_${VERSION}.tar.gz
