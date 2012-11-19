@@ -304,7 +304,7 @@
 	pgwidth=50
     }
 
-    rejection = .ABC_rejection_internal(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0, progressbarwidth=pgwidth)
+    rejection = .ABC_rejection_internal(model,prior_matrix,nb_simul,use_seed,seed_count,progressbarwidth=pgwidth)
 
     sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
     
