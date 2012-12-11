@@ -118,6 +118,7 @@
   else{
 	res=param[p]
   }
+res
 }
 
 
@@ -214,7 +215,7 @@
   }
   options(scipen=0)
   
-  list(param=tab_param, summarystat=as.matrix(tab_simul_summarystat), start=start)
+  list(param=as.matrix(tab_param), summarystat=as.matrix(tab_simul_summarystat), start=start)
 }
 
 ## function to compute particle weights
@@ -531,7 +532,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     while (nb_simul_step>0){
       if (nb_simul_step>1){
         # Sampling of parameters around the previous particles
-	tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
+	tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,as.matrix(simul_below_tol[,1:nparam]),tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
         seed_count=seed_count+nb_simul_step
         simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[it]))
         if (length(simul_below_tol2)>0){
@@ -539,7 +540,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
         }
       }
       else{
-        tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
+        tab_ini=.ABC_launcher_not_uniform_uni(model,prior_matrix,as.matrix(simul_below_tol[,1:nparam]),tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
         seed_count=seed_count+nb_simul_step
         if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
           simul_below_tol2=rbind(simul_below_tol2,tab_ini)
@@ -548,7 +549,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       }
     } # until we get nb_simul simulations below the it-th tolerance threshold
     # update of particle weights
-    tab_weight2=.compute_weight_uni(simul_below_tol2[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight)
+    tab_weight2=.compute_weight_uni(as.matrix(as.matrix(simul_below_tol2[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),tab_weight)
     # update of the set of particles and of the associated weights for the next ABC sequence
     tab_weight=tab_weight2
     simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
@@ -565,7 +566,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	    print(paste("step ",it," completed",sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(simul_below_tol[,1:nparam]),stats=as.matrix(simul_below_tol[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(simul_below_tol[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## function to select the alpha quantile closest simulations
@@ -719,7 +720,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     seed_count=seed_count+nb_simul_step
     # selection of simulations below the first tolerance level
     simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini$param,tab_ini$summarystat,sd_simul,(1-alpha)))
-    simul_below_tol=simul_below_tol[1:nb_simul,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
+    simul_below_tol=as.matrix(simul_below_tol[1:nb_simul,]) # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
   }
   else{
     nb_simul_step=nb_simul
@@ -760,7 +761,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   ## following steps until tol_end is reached
   tol_next=tolerance_tab[1]
   if (first_tolerance_level_auto){
-    tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+    tol_next=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul))
   } 
   R=1
   l=dim(simul_below_tol)[2]
@@ -770,9 +771,9 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     i_acc=0
     nb_simul_step=n_alpha
     # compute epsilon_next
-    tol_next=sort(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))[(nb_simul-n_alpha)]
+    tol_next=sort(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul))[(nb_simul-n_alpha)]
     # drop the n_alpha poorest particles
-    simul_below_tol2=.selec_simulb(summary_stat_target,simul_below_tol[,1:nparam],simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul,tol_next) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+    simul_below_tol2=.selec_simulb(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul,tol_next) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
     simul_below_tol=matrix(0,(nb_simul-n_alpha),(nparam+nstat))
     for (i1 in 1:(nb_simul-n_alpha)){
       for (i2 in 1:(nparam+nstat)){
@@ -793,7 +794,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       simul_picked=.particle_pick(simul_below_tol,tab_weight[1:(nb_simul-n_alpha)])
       for (j in 1:R){
         # move it
-        param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),as.matrix(prior_matrix)[tab_unfixed_param,])
+        param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         param=simul_picked[1:nparam]
         param[tab_unfixed_param]=param_moved
         if (use_seed) {
@@ -849,7 +850,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
       write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
     }
-    tol_next=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))
+    tol_next=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul))
     if (progress_bar){
 	    print(paste("step ",it," completed - R used = ",Rp," - tol = ",tol_next," - next R used will be ",R,sep=""))
     }
@@ -861,7 +862,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     simul_picked=simul_below_tol[i,]
     for (j in 1:R){
       # move it
-      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       if (use_seed) {
@@ -880,7 +881,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     seed_count=seed_count+R
     simul_below_tol2=rbind(simul_below_tol2,as.numeric(simul_picked))
   }
-  list(param=simul_below_tol2[,1:nparam],stats=simul_below_tol2[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol2[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(simul_below_tol2[,1:nparam]),stats=as.matrix(simul_below_tol2[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol2)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1065,10 +1066,10 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   sd_simul=sapply(as.data.frame(simul_below_tol[uu,(nparam+1):(nparam+nstat)]),sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
   l=dim(simul_below_tol)[2]
   if (M>1){
-    particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+    particle_dist_mat=.compute_dist_M(M,summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
   }
   else{
-    particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+    particle_dist_mat=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
   }
   dim(particle_dist_mat)<-c(nb_simul,M)
   new_tolerance=max(particle_dist_mat)
@@ -1121,10 +1122,10 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       }
       particles=as.matrix(particles[uu,1:nparam])
       if (M>1){
-        particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+        particle_dist_mat=.compute_dist_M(M,summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
       }
       else{
-        particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+        particle_dist_mat=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
       }
       dim(particle_dist_mat)<-c(nb_simul,M)
       tab_below=.compute_below(particle_dist_mat,new_tolerance)
@@ -1160,7 +1161,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       if (tab_weight[i]>0){
         tab_new_simul=NULL
         # move it
-        param_moved=.move_particleb_uni(as.numeric(particles[(i*M),tab_unfixed_param]),sd_array,as.matrix(prior_matrix)[tab_unfixed_param,])
+        param_moved=.move_particleb_uni(as.numeric(particles[(i*M),tab_unfixed_param]),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         param=particles[(i*M),]
         param[tab_unfixed_param]=param_moved
         if (use_seed) {
@@ -1193,7 +1194,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
         # check whether the move is accepted
         n_acc=1
         if (M>1){
-          new_dist=.compute_dist_M(M,summary_stat_target,tab_new_simul2[,(nparam+1):(nparam+nstat)],sd_simul)
+          new_dist=.compute_dist_M(M,summary_stat_target,as.matrix(as.matrix(tab_new_simul2)[,(nparam+1):(nparam+nstat)]),sd_simul)
           n_acc=length(new_dist[new_dist<new_tolerance])
         }
         else{
@@ -1243,10 +1244,10 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       close(pb)
     }
     if (M>1){
-      particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+      particle_dist_mat=.compute_dist_M(M,summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
     }
     else{
-      particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+      particle_dist_mat=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
     }
     dim(particle_dist_mat)<-c(nb_simul,M)
     tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
@@ -1260,7 +1261,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	    print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1472,13 +1473,13 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   
   # selection of the alpha quantile closest simulations
   simul_below_tol=NULL
-  simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,alpha))
+  simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,as.matrix(as.matrix(tab_ini)[,1:nparam]),as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul,alpha))
   simul_below_tol=simul_below_tol[1:n_alpha,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
   
   # initially, weights are equal
   tab_weight=array(1,n_alpha)
   
-  tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+  tab_dist=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
   tol_next=max(tab_dist)
   if (verbose==TRUE){
     write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
@@ -1496,7 +1497,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   while (p_acc>p_acc_min){
     it=it+1
     simul_below_tol2=NULL
-    tab_inic=.ABC_launcher_not_uniformc(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior,progress_bar)
+    tab_inic=.ABC_launcher_not_uniformc(model,prior_matrix,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior,progress_bar)
     tab_ini=as.matrix(tab_inic[[1]])
     tab_ini=as.numeric(tab_ini)
     dim(tab_ini)=c(nb_simul_step,(nparam+nstat))
@@ -1509,7 +1510,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     }
     simul_below_tol2=rbind(as.matrix(simul_below_tol),as.matrix(tab_ini))
     tab_weight=c(tab_weight,tab_weight2)
-    tab_dist2=.compute_dist(summary_stat_target,tab_ini[,(nparam+1):(nparam+nstat)],sd_simul)
+    tab_dist2=.compute_dist(summary_stat_target,as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul)
     p_acc=length(tab_dist2[tab_dist2<=tol_next])/nb_simul_step
     tab_dist=c(tab_dist,tab_dist2)
     tol_next=sort(tab_dist)[n_alpha]
@@ -1534,7 +1535,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     	print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1735,7 +1736,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=tab_normalization,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=tab_normalization,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
@@ -1885,7 +1886,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -2147,7 +2148,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
@@ -2335,7 +2336,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	}
 	options(scipen=0)
 	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
-list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -2356,9 +2357,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         l=dim(param_previous_step)[2]
         if (!inside_prior){
           # pick a particle
-          param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+          param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
           # move it
-          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
         }
         else{
           test=FALSE
@@ -2366,10 +2367,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           while ((!test)&&(counter<100)){
             counter=counter+1
             # pick a particle
-            param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+            param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
             # move it
-            param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
-            test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+            param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
+            test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
           }
           if (counter==100){
             stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -2396,9 +2397,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       l=dim(param_previous_step)[2]
       if (!inside_prior){
         # pick a particle
-        param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+        param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
         # move it
-        param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+        param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
       }
       else{
         test=FALSE
@@ -2406,10 +2407,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         while ((!test)&&(counter<100)){
           counter=counter+1
           # pick a particle
-          param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+          param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
           # move it
-          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
-          test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
+          test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         }
         if (counter==100){
           stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -2460,9 +2461,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       for (i in 1:(100*n_cluster)){
         if (!inside_prior){
           # pick a particle
-          param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+          param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
           # move it
-          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
         }
         else{
           test=FALSE
@@ -2470,10 +2471,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           while ((!test)&&(counter<100)){
             counter=counter+1
             # pick a particle
-            param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+            param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
             # move it
-            param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
-            test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+            param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
+            test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
           }
           if (counter==100){
             stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -2499,9 +2500,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     for (i in 1:n_end){
       if (!inside_prior){
         # pick a particle
-        param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+        param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
         # move it
-        param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+        param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
       }
       else{
         test=FALSE
@@ -2509,10 +2510,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         while ((!test)&&(counter<100)){
           counter=counter+1
           # pick a particle
-          param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+          param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
           # move it
-          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
-          test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
+          test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         }
         if (counter==100){
           stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -2581,7 +2582,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
       seed_count=seed_count+nb_simul_step
       # selection of simulations below the first tolerance level
-      simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1]))
+      simul_below_tol=rbind(simul_below_tol,.selec_simul(summary_stat_target,as.matrix(as.matrix(tab_ini)[,1:nparam]),as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul,tolerance_tab[1]))
       if (length(simul_below_tol)>0){
         nb_simul_step=nb_simul-dim(simul_below_tol)[1]
       }
@@ -2611,15 +2612,15 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     while (nb_simul_step>0){
       if (nb_simul_step>1){
         # Sampling of parameters around the previous particles
-        tab_ini=.ABC_launcher_not_uniform_uni_cluster(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,seed_count,inside_prior,n_cluster)
+        tab_ini=.ABC_launcher_not_uniform_uni_cluster(model,prior_matrix,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),tab_unfixed_param,tab_weight,nb_simul_step,seed_count,inside_prior,n_cluster)
         seed_count=seed_count+nb_simul_step
-        simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[it]))
+        simul_below_tol2=rbind(simul_below_tol2,.selec_simul(summary_stat_target,as.matrix(as.matrix(tab_ini)[,1:nparam]),as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul,tolerance_tab[it]))
         if (length(simul_below_tol2)>0){
           nb_simul_step=nb_simul-dim(simul_below_tol2)[1]
         }
       }
       else{
-        tab_ini=.ABC_launcher_not_uniform_uni_cluster(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight,nb_simul_step,seed_count,inside_prior,n_cluster)
+        tab_ini=.ABC_launcher_not_uniform_uni_cluster(model,prior_matrix,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),tab_unfixed_param,tab_weight,nb_simul_step,seed_count,inside_prior,n_cluster)
         seed_count=seed_count+nb_simul_step
         if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
           simul_below_tol2=rbind(simul_below_tol2,tab_ini)
@@ -2628,7 +2629,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
     } # until we get nb_simul simulations below the it-th tolerance threshold
     # update of particle weights
-    tab_weight2=.compute_weight_uni(simul_below_tol2[,1:nparam][,tab_unfixed_param],simul_below_tol[,1:nparam][,tab_unfixed_param],tab_weight)
+    tab_weight2=.compute_weight_uni(as.matrix(as.matrix(as.matrix(simul_below_tol2)[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(as.matrix(simul_below_tol)[,1:nparam])[,tab_unfixed_param]),tab_weight)
     # update of the set of particles and of the associated weights for the next ABC sequence
     tab_weight=tab_weight2
     simul_below_tol=matrix(0,nb_simul,(nparam+nstat))
@@ -2645,7 +2646,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
    	 print(paste("step ",it," completed",sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(as.matrix(simul_below_tol))[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -2665,7 +2666,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       # pick a particle
       simul_picked=.particle_pick(simul_below_tol,tab_weight)
       # move it
-      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(as.matrix(simul_below_tol)[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
@@ -2697,7 +2698,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       # pick a particle
       simul_picked=.particle_pick(simul_below_tol,tab_weight)
       # move it
-      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(simul_below_tol[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(as.matrix(simul_below_tol)[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
@@ -2741,7 +2742,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       # pick a particle
       simul_picked=new_particles[((irun-1)*n_cluster+i),]
       # move it
-      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(as.matrix(new_particles)[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
@@ -2773,7 +2774,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       # pick a particle
       simul_picked=new_particles[(npar*n_cluster+i),]
       # move it
-      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(as.matrix(new_particles)[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
@@ -2817,7 +2818,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       # pick a particle
       simul_picked=new_particles[((irun-1)*n_cluster+i),]
       # move it
-      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(as.matrix(new_particles)[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
@@ -2849,7 +2850,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       # pick a particle
       simul_picked=new_particles[(npar*n_cluster+i),]
       # move it
-      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(new_particles[,1:nparam][,tab_unfixed_param]),prior_matrix[tab_unfixed_param,])
+      param_moved=.move_particleb(simul_picked[1:nparam][tab_unfixed_param],2*var(as.matrix(as.matrix(as.matrix(new_particles)[,1:nparam])[,tab_unfixed_param])),as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
       param=simul_picked[1:nparam]
       param[tab_unfixed_param]=param_moved
       param=c((seed_count+i),param)
@@ -2929,7 +2930,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
     seed_count=seed_count+nb_simul_step
     # selection of simulations below the first tolerance level
-    simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,(1-alpha)))
+    simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,as.matrix(as.matrix(tab_ini)[,1:nparam]),as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul,(1-alpha)))
     simul_below_tol=simul_below_tol[1:nb_simul,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
   }
   else{
@@ -2943,7 +2944,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         }
         seed_count=seed_count+nb_simul_step
         # selection of simulations below the first tolerance level
-        simul_below_tol=rbind(simul_below_tol,.selec_simulb(summary_stat_target,tab_ini[,1:nparam],tab_ini[,(nparam+1):(nparam+nstat)],sd_simul,tolerance_tab[1])) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+        simul_below_tol=rbind(simul_below_tol,.selec_simulb(summary_stat_target,as.matrix(as.matrix(tab_ini)[,1:nparam]),as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul,tolerance_tab[1])) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         if (length(simul_below_tol)>0){
           nb_simul_step=nb_simul-dim(simul_below_tol)[1]
         }
@@ -2981,9 +2982,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     i_acc=0
     nb_simul_step=n_alpha
     # compute epsilon_next
-    tol_next=sort(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul))[(nb_simul-n_alpha)]
+    tol_next=sort(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul))[(nb_simul-n_alpha)]
     # drop the n_alpha poorest particles
-    simul_below_tol2=.selec_simulb(summary_stat_target,simul_below_tol[,1:nparam],simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul,tol_next) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+    simul_below_tol2=.selec_simulb(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul,tol_next) # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
     simul_below_tol=matrix(0,(nb_simul-n_alpha),(nparam+nstat))
     for (i1 in 1:(nb_simul-n_alpha)){
       for (i2 in 1:(nparam+nstat)){
@@ -3037,7 +3038,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     seed_count=seed_count+nb_simul
   }
   
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -3154,10 +3155,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   sd_simul=sapply(as.data.frame(simul_below_tol[uu,(nparam+1):(nparam+nstat)]),sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
   l=dim(simul_below_tol)[2]
   if (M>1){
-    particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+    particle_dist_mat=.compute_dist_M(M,summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
   }
   else{
-    particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+    particle_dist_mat=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
   }
   dim(particle_dist_mat)<-c(nb_simul,M)
   new_tolerance=max(particle_dist_mat)
@@ -3212,10 +3213,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       }
       particles=as.matrix(particles[uu,1:nparam])
       if (M>1){
-        particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+        particle_dist_mat=.compute_dist_M(M,summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
       }
       else{
-        particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+        particle_dist_mat=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
       }
       dim(particle_dist_mat)<-c(nb_simul,M)
       tab_below=.compute_below(particle_dist_mat,new_tolerance)
@@ -3255,7 +3256,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 		ii2=ceiling((100*n_cluster*(irun-1)+irun2)/M)
 		if (tab_weight[ii2]>0){
 			if ((ii==1)||(M==1)){
-				param_moved=.move_particleb_uni(as.numeric(particles[(ii2*M),tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+				param_moved=.move_particleb_uni(as.numeric(particles[(ii2*M),tab_unfixed_param]),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         			param=particles[(ii2*M),]
         			param[tab_unfixed_param]=param_moved
         			param2=c((seed_count+1),param)
@@ -3285,7 +3286,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
 		ii2=ceiling((100*n_cluster*npar+irun2)/M)
 		if (tab_weight[ii2]>0){
 			if ((ii==1)||(M==1)){
-				param_moved=.move_particleb_uni(as.numeric(particles[(ii2*M),tab_unfixed_param]),sd_array,prior_matrix[tab_unfixed_param,])
+				param_moved=.move_particleb_uni(as.numeric(particles[(ii2*M),tab_unfixed_param]),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         			param=particles[(ii2*M),]
         			param[tab_unfixed_param]=param_moved
         			param2=c((seed_count+1),param)
@@ -3354,10 +3355,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       	}
     }
     if (M>1){
-      particle_dist_mat=.compute_dist_M(M,summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+      particle_dist_mat=.compute_dist_M(M,summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
     }
     else{
-      particle_dist_mat=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+      particle_dist_mat=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
     }
     dim(particle_dist_mat)<-c(nb_simul,M)
     tab_weight=.compute_weight_delmoral(particle_dist_mat,new_tolerance)
@@ -3372,7 +3373,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     }
   }
   stopCluster(cl)	
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
@@ -3465,9 +3466,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         if (!inside_prior){
           k_acc=k_acc+1
           # pick a particle
-          param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+          param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
           # move it
-          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
         }
         else{
           test=FALSE
@@ -3476,10 +3477,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
             counter=counter+1
             k_acc=k_acc+1
             # pick a particle
-            param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+            param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
             # move it
-            param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
-            test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+            param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
+            test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
           }
           if (counter==100){
             stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -3509,7 +3510,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         # pick a particle
         param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
         # move it
-        param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
+        param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
       }
       else{
         test=FALSE
@@ -3520,8 +3521,8 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           # pick a particle
           param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
           # move it
-          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved, computation of a WEIGHTED variance
-          test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+          param_moved=.move_particle(as.numeric(param_picked),2*cov.wt(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),as.vector(tab_weight))$cov,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved, computation of a WEIGHTED variance
+          test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         }
         if (counter==100){
           stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -3573,9 +3574,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
         if (!inside_prior){
           k_acc=k_acc+1
           # pick a particle
-          param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+          param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
           # move it
-          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
         }
         else{
           test=FALSE
@@ -3584,10 +3585,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
             k_acc=k_acc+1
             counter=counter+1
             # pick a particle
-            param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+            param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
             # move it
-            param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
-            test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+            param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
+            test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
           }
           if (counter==100){
             stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -3614,9 +3615,9 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
       if (!inside_prior){
         k_acc=k_acc+1
         # pick a particle
-        param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+        param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
         # move it
-        param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
+        param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
       }
       else{
         test=FALSE
@@ -3625,10 +3626,10 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
           counter=counter+1
           k_acc=k_acc+1
           # pick a particle
-          param_picked=.particle_pick(param_previous_step[,tab_unfixed_param],tab_weight)
+          param_picked=.particle_pick(as.matrix(as.matrix(param_previous_step)[,tab_unfixed_param]),tab_weight)
           # move it
-          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,prior_matrix[tab_unfixed_param,]) # only variable parameters are moved
-          test=.is_included(param_moved,prior_matrix[tab_unfixed_param,])
+          param_moved=.move_particle_uni(as.numeric(param_picked),sd_array,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,])) # only variable parameters are moved
+          test=.is_included(param_moved,as.matrix(as.matrix(prior_matrix)[tab_unfixed_param,]))
         }
         if (counter==100){
           stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -3708,7 +3709,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   # initially, weights are equal
   tab_weight=array(1,n_alpha)
   
-  tab_dist=.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)
+  tab_dist=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
   tol_next=max(tab_dist)
   if (verbose==TRUE){ 
     write.table(cbind(tab_weight,simul_below_tol),file="output_step1",row.names=F,col.names=F,quote=F)
@@ -3726,20 +3727,20 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
   while (p_acc>p_acc_min){
     it=it+1
     simul_below_tol2=NULL
-    tab_inic=.ABC_launcher_not_uniformc_cluster(model,prior_matrix,simul_below_tol[,1:nparam],tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,seed_count,inside_prior,n_cluster)
+    tab_inic=.ABC_launcher_not_uniformc_cluster(model,prior_matrix,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,seed_count,inside_prior,n_cluster)
     tab_ini=as.matrix(tab_inic[[1]])
     tab_ini=as.numeric(tab_ini)
     dim(tab_ini)=c(nb_simul_step,(nparam+nstat))
     seed_count=seed_count+nb_simul_step
     if (!inside_prior){
-      tab_weight2=.compute_weightb(as.matrix(as.matrix(tab_ini[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior_density)
+      tab_weight2=.compute_weightb(as.matrix(as.matrix(as.matrix(tab_ini)[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(as.matrix(simul_below_tol)[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior_density)
     }
     else{
-      tab_weight2=tab_inic[[2]]*(.compute_weightb(as.matrix(as.matrix(tab_ini[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol)[,1:nparam][,tab_unfixed_param]),tab_weight/sum(tab_weight),prior_density))
+      tab_weight2=tab_inic[[2]]*(.compute_weightb(as.matrix(as.matrix(as.matrix(tab_ini)[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(as.matrix(simul_below_tol)[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior_density))
     }
     simul_below_tol2=rbind(as.matrix(simul_below_tol),as.matrix(tab_ini))
     tab_weight=c(tab_weight,tab_weight2)
-    tab_dist2=.compute_dist(summary_stat_target,tab_ini[,(nparam+1):(nparam+nstat)],sd_simul)
+    tab_dist2=.compute_dist(summary_stat_target,as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul)
     p_acc=length(tab_dist2[tab_dist2<=tol_next])/nb_simul_step
     tab_dist=c(tab_dist,tab_dist2)
     tol_next=sort(tab_dist)[n_alpha]
@@ -3764,7 +3765,7 @@ list(param=tab_param,stats=tab_simul_summarystat,weights=array(1/nb_simul,nb_sim
     		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
     }
   }
-  list(param=simul_below_tol[,1:nparam],stats=simul_below_tol[,(nparam+1):(nparam+nstat)],weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,simul_below_tol[,(nparam+1):(nparam+nstat)],sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -3926,7 +3927,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   } 		
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -4146,7 +4147,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,...)
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=tab_param2,stats=tab_simul_summary_stat2,dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,min_stats=myMin,max_stats=myMax,lambda=lambda,geometric_mean=myGM,boxcox_mean=myBCMeans,boxcox_sd=myBCSDs,pls_transform=pls_transformation,n_component=numcomp,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
