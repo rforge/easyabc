@@ -25,6 +25,9 @@ ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=FALSE,seed_count=0,
     	rejection=.ABC_rejection(model,prior_matrix,nb_simul,use_seed,seed_count,progress_bar)
     }
     else{
+	if (use_seed==FALSE){
+		stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
+	}
 	rejection=.ABC_rejection_cluster(model,prior_matrix,nb_simul,seed_count,n_cluster)
     }
 list(param=rejection$param, stats=rejection$stats, weights=rejection$weights, stats_normalization=rejection$stats_normalization, nsim=rejection$nsim, computime=rejection$computime)
