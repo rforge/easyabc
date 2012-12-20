@@ -8,6 +8,7 @@
 # library(pls)
 # library(MASS)
 # library(parallel)
+# library(abc)
 
 ## function to compute a distance between a matrix of simulated statistics (row: different simulations, columns: different summary statistics) and the array of data summary statistics
 #######################################################################################################################################################################################
@@ -167,7 +168,7 @@ res
   res
 }
 
-.ABC_rejection_internal<-function(model, prior_matrix, nb_simul, use_seed, seed_count, progressbarwidth=0){
+.ABC_rejection_internal<-function(model, prior_matrix, nb_simul, use_seed, seed_count, verbose=FALSE, progressbarwidth=0){
   options(scipen=50)
   tab_simul_summarystat=NULL
   tab_param=NULL
@@ -175,6 +176,10 @@ res
   if (progressbarwidth>0) {
     pb = .progressBar(width=progressbarwidth)
   }
+  if (verbose){
+     write.table(NULL,file="output",row.names=F,col.names=F,quote=F)
+  }
+
   start = Sys.time()
   for (i in 1:nb_simul){
     l=dim(prior_matrix)[1]
@@ -195,8 +200,14 @@ res
     tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(simul_summarystat))
     if (use_seed) {
       tab_param=rbind(tab_param,param[2:(l+1)])
+      if (verbose){
+	write.table(c(param[2:(l+1)],simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
+      }
     } else {
       tab_param=rbind(tab_param,param)
+      if (verbose){
+	write.table(c(param,simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
+      }
     }
     if (!is.null(pb)) {
       duration = difftime(Sys.time(), start, units="secs")
@@ -412,7 +423,7 @@ res
 
 ## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
 ######################################################
-.ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed,seed_count,progress_bar=FALSE){
+.ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed,seed_count,verbose,progress_bar){
 
     ## checking errors in the inputs
     if(missing(model)) stop("'model' is missing")
@@ -440,7 +451,7 @@ res
 	pgwidth=50
     }
 
-    rejection = .ABC_rejection_internal(model,prior_matrix,nb_simul,use_seed,seed_count,progressbarwidth=pgwidth)
+    rejection = .ABC_rejection_internal(model,prior_matrix,nb_simul,use_seed,seed_count,verbose,progressbarwidth=pgwidth)
 
     sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
     
@@ -450,7 +461,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE,progress_bar=FALSE){
+.ABC_PMC<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.logical(use_seed)) stop("'use_seed' has to be boolean.")
   if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
@@ -469,6 +480,9 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   
   if (progress_bar){
 	  print("    ------ Beaumont et al. (2009)'s algorithm ------")
+  }
+  if (verbose){
+    write.table(NULL,file="output",row.names=F,col.names=F,quote=F)
   }
 
 
@@ -497,7 +511,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     if (nb_simul_step>1){
       # classic ABC step
       tab_ini=.ABC_rejection_internal(model,prior_matrix,nb_simul_step,use_seed,seed_count)
-      if (nb_simul_step==nb_simul){
+      if (nb_simul_step==nb_simul){     
         sd_simul=sapply(as.data.frame(tab_ini$summarystat),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
       }
       seed_count=seed_count+nb_simul_step
@@ -649,7 +663,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
 ######################################################################################################################################################
-.ABC_Drovandi<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,seed_count=0,verbose=FALSE,progress_bar=FALSE){
+.ABC_Drovandi<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,seed_count=0,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(tolerance_tab)) stop("'tolerance_tab' has to be a vector.")
   if(tolerance_tab[1]==-1) stop("'tolerance_tab' is missing")
@@ -1008,7 +1022,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,alpha=0.9,M=1,nb_threshold=floor(nb_simul/2),tolerance_target=-1,seed_count=0,verbose=FALSE,progress_bar=FALSE){
+.ABC_Delmoral<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,alpha=0.9,M=1,nb_threshold=floor(nb_simul/2),tolerance_target=-1,seed_count=0,progress_bar=FALSE){
   
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
@@ -1424,7 +1438,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=TRUE,verbose=FALSE,progress_bar=FALSE){  
+.ABC_Lenormand<-function(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=TRUE,progress_bar=FALSE){  
   
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
@@ -1543,7 +1557,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 ## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
 ###################################################################################################################################
 
-.ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,use_seed,...){
+.ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -1575,10 +1589,10 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
     ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
     return(switch(EXPR = method,
-	    Beaumont = .ABC_PMC(model,prior_matrix,nb_simul,summary_stat_target,use_seed,...),
-	    Drovandi = .ABC_Drovandi(model,prior_matrix,nb_simul,summary_stat_target,use_seed,...),
-	    Delmoral = .ABC_Delmoral(model,prior_matrix,nb_simul,summary_stat_target,use_seed,...),
-	    Lenormand = .ABC_Lenormand(model,prior_matrix,nb_simul,summary_stat_target,use_seed,...)))
+	    Beaumont = .ABC_PMC(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,...),
+	    Drovandi = .ABC_Drovandi(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,...),
+	    Delmoral = .ABC_Delmoral(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,...),
+	    Lenormand = .ABC_Lenormand(model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,...)))
 
     options(scipen=0)
 }
@@ -1606,7 +1620,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003
 #############################################
-.ABC_MCMC<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,dist_max=0,tab_normalization=summary_stat_target,proposal_range=array(0,dim(prior_matrix)[1]),seed_count=0,verbose=FALSE,progress_bar=FALSE){
+.ABC_MCMC<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,dist_max=0,tab_normalization=summary_stat_target,proposal_range=array(0,dim(prior_matrix)[1]),seed_count=0,progress_bar=FALSE){
   
   ## checking errors in the inputs
   if(!is.vector(dist_max)) stop("'dist_max' has to be a number.")
@@ -1706,6 +1720,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   dist_ini=dist_simul
   if (verbose==TRUE){
     write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+    write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
   }
   if (progress_bar){
 	  print("initial draw performed ")
@@ -1742,6 +1757,9 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
+    if (verbose==TRUE){
+    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    }
     if (progress_bar){
 	    # for progressbar message and time evaluation
 	    duration = difftime(Sys.time(), start, units="secs")
@@ -1779,7 +1797,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
-.ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,seed_count=0,verbose=FALSE,progress_bar=FALSE){
+.ABC_MCMC2<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,seed_count=0,progress_bar=FALSE){
   
   
   ## checking errors in the inputs
@@ -1854,6 +1872,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   param_ini=tab_param[n_ini,]
   if (verbose==TRUE){
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+    write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
   }
   if (progress_bar){
 	  print("initial calibration performed ")
@@ -1892,6 +1911,9 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
+    if (verbose==TRUE){
+    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    }
     if (progress_bar){
 	    # for progressbar message and time evaluation
 		    duration = difftime(Sys.time(), startb, units="secs")
@@ -1930,7 +1952,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## ABC-MCMC3 algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
-.ABC_MCMC3<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,numcomp=0,seed_count=0,verbose=FALSE,progress_bar=FALSE){  
+.ABC_MCMC3<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,numcomp=0,seed_count=0,progress_bar=FALSE){  
   
   ## checking errors in the inputs
   if(!is.vector(n_calibration)) stop("'n_calibration' has to be a number.")
@@ -2009,6 +2031,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   seed_count=seed_count+n_calibration
   if (verbose){
   	write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+    	write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
   }
   
   ## AM2: PLS step
@@ -2154,6 +2177,9 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
+    if (verbose==TRUE){
+    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    }
     if (progress_bar){
 	    # for progressbar message and time evaluation
 	    duration = difftime(Sys.time(), startb, units="secs")
@@ -2191,7 +2217,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
 ##############################################################################
-.ABC_mcmc_internal <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,...){
+.ABC_mcmc_internal <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -2215,9 +2241,9 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	options(scipen=50)
 
 	    return(switch(EXPR = method,
-	       Marjoram_original = .ABC_MCMC(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,...),
-	       Marjoram = .ABC_MCMC2(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,...),
-	       Wegmann = .ABC_MCMC3(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,...)))
+	       Marjoram_original = .ABC_MCMC(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,...),
+	       Marjoram = .ABC_MCMC2(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,,...),
+	       Wegmann = .ABC_MCMC3(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,...)))
 
 	options(scipen=0)
 }
@@ -2291,7 +2317,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 ## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
 ######################################################
 
-.ABC_rejection_cluster <-function(model,prior_matrix,nb_simul,seed_count=0,n_cluster=1){
+.ABC_rejection_cluster <-function(model,prior_matrix,nb_simul,seed_count=0,n_cluster=1,verbose){
     ## checking errors in the inputs
     if(missing(model)) stop("'model' is missing")
     if(missing(prior_matrix)) stop("'prior_matrix' is missing")
@@ -2314,7 +2340,10 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
     if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
     n_cluster=floor(n_cluster)
-    
+    if (verbose){
+	write.table(NULL,file="output",row.names=F,col.names=F,quote=F)
+    }
+     
 	#library(parallel)
 
 	start = Sys.time()
@@ -2329,6 +2358,8 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	n_end=nb_simul-(npar*100*n_cluster)
 	if (npar>0){
 	 for (irun in 1:npar){
+	  paramtemp=NULL
+	  simultemp=NULL
 	  for (i in 1:(100*n_cluster)){
 		l=dim(prior_matrix)[1]
 		param=array(0,l)
@@ -2339,11 +2370,16 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 		param=c((seed_count+i),param)
 		list_param[[i]]=param
 		tab_param=rbind(tab_param,param[2:(l+1)])
+		paramtemp=rbind(paramtemp,param[2:(l+1)])
 	  }
 	  seed_count=seed_count+n_cluster
 	  list_simul_summarystat=parLapplyLB(cl,list_param,model)
 	  for (i in 1:(100*n_cluster)){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+		simultemp=rbind(simultemp,as.numeric(list_simul_summarystat[[i]]))
+	  }
+	  if (verbose){
+		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp),file="output",row.names=F,col.names=F,quote=F,append=T)
 	  }
          }
 	}
@@ -2351,6 +2387,8 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	  #stopCluster(cl)
 	  #cl <- makeCluster(getOption("cl.cores", 1))
 	  list_param=list(NULL)
+	  paramtemp=NULL
+	  simultemp=NULL
 	  for (i in 1:n_end){
 		l=dim(prior_matrix)[1]
 		param=array(0,l)
@@ -2361,11 +2399,16 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 		param=c((seed_count+i),param)
 		list_param[[i]]=param
 		tab_param=rbind(tab_param,param[2:(l+1)])
+		paramtemp=rbind(paramtemp,param[2:(l+1)])
 	  }
 	  seed_count=seed_count+n_end
 	  list_simul_summarystat=parLapplyLB(cl,list_param,model)
 	  for (i in 1:n_end){
 		tab_simul_summarystat=rbind(tab_simul_summarystat,as.numeric(list_simul_summarystat[[i]]))
+		simultemp=rbind(simultemp,as.numeric(list_simul_summarystat[[i]]))
+	  }
+ 	  if (verbose){
+		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp),file="output",row.names=F,col.names=F,quote=F,append=T)
 	  }
     	  stopCluster(cl)
 	}
@@ -2578,7 +2621,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
 #####################################################
-.ABC_PMC_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,verbose=FALSE,progress_bar=FALSE){
+.ABC_PMC_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,seed_count=0,inside_prior=TRUE,tolerance_tab=-1,progress_bar=FALSE){
   
   ## checking errors in the inputs
   if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
@@ -2919,7 +2962,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
 ######################################################################################################################################################
-.ABC_Drovandi_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,seed_count=0,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,verbose=FALSE,progress_bar=FALSE){
+.ABC_Drovandi_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,seed_count=0,tolerance_tab=-1,alpha=0.5,c=0.01,first_tolerance_level_auto=TRUE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(seed_count)) stop("'seed_count' has to be a number.")
   if(length(seed_count)>1) stop("'seed_count' has to be a number.")
@@ -3146,7 +3189,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 ##############################################################################################################################################
-.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.9,M=1,nb_threshold=floor(nb_simul/2),tolerance_target=-1,seed_count=0,verbose=FALSE,progress_bar=FALSE){
+.ABC_Delmoral_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,alpha=0.9,M=1,nb_threshold=floor(nb_simul/2),tolerance_target=-1,seed_count=0,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
   if(length(alpha)>1) stop("'alpha' has to be a number.")
@@ -3696,7 +3739,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=TRUE,verbose=FALSE,progress_bar=FALSE){
+.ABC_Lenormand_cluster<-function(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=TRUE,progress_bar=FALSE){
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
   if(length(alpha)>1) stop("'alpha' has to be a number.")
@@ -3808,7 +3851,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
 
 
 .ABC_sequential_cluster <-
-function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_seed,...){
+function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_seed,verbose,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -3849,10 +3892,10 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
 	  ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
 	  ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
 	  return(switch(EXPR = method,
-         	 Beaumont = .ABC_PMC_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,,...),
-	         Drovandi = .ABC_Drovandi_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
-	         Delmoral = .ABC_Delmoral_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...),
-	         Lenormand = .ABC_Lenormand_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,...)))
+         	 Beaumont = .ABC_PMC_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,,...),
+	         Drovandi = .ABC_Drovandi_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,...),
+	         Delmoral = .ABC_Delmoral_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,...),
+	         Lenormand = .ABC_Lenormand_cluster(model,prior_matrix,nb_simul,summary_stat_target,n_cluster,verbose,...)))
 
 	options(scipen=0)
 
@@ -3862,7 +3905,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
-.ABC_MCMC2_cluster<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,seed_count=0,verbose=FALSE){
+.ABC_MCMC2_cluster<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,verbose,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,seed_count=0){
   ## checking errors in the inputs
   if(!is.vector(n_calibration)) stop("'n_calibration' has to be a number.")
   if(length(n_calibration)>1) stop("'n_calibration' has to be a number.")
@@ -3921,11 +3964,10 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
   param_ini=tab_param[n_ini,]
   if (verbose==TRUE){ 
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+    write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
+    print("initial calibration performed ")
   }
-  if (verbose){
-	  print("initial calibration performed ")
-  }
-  
+
   # chain run
   tab_param=param_ini
   tab_simul_summary_stat=tab_simul_ini
@@ -3947,10 +3989,11 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-    if (verbose){
-     if (is%%100==0){
-      print(paste(is," ",sep=""))
-     }
+    if (verbose==TRUE){
+    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+     	if (is%%100==0){
+      		print(paste(is," ",sep=""))
+     	}
     }
   }
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
@@ -3975,7 +4018,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
 
 ## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
-.ABC_MCMC3_cluster<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,numcomp=0,seed_count=0,verbose=FALSE){
+.ABC_MCMC3_cluster<-function(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,verbose,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,numcomp=0,seed_count=0){
   ## checking errors in the inputs
   if(!is.vector(n_calibration)) stop("'n_calibration' has to be a number.")
   if(length(n_calibration)>1) stop("'n_calibration' has to be a number.")
@@ -4035,8 +4078,9 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
   seed_count=seed_count+n_calibration
   tab_param=as.matrix(initial[,1:nparam])
   tab_simul_summary_stat=as.matrix(initial[,(nparam+1):(nparam+nstat)])
-  if (verbose){
+  if (verbose==TRUE){ 
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+    write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
   }
   
   ## AM2: PLS step
@@ -4167,10 +4211,11 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
     tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
-    if (verbose){
-     if (is%%100==0){
-      print(paste(is," ",sep=""))
-     }
+    if (verbose==TRUE){
+    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+     	if (is%%100==0){
+      		print(paste(is," ",sep=""))
+     	}
     }
   }	
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
@@ -4194,7 +4239,7 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
 ##############################################################################
-.ABC_mcmc_cluster <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster=1,use_seed,...){
+.ABC_mcmc_cluster <-function(method,model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster=1,use_seed,verbose,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -4231,8 +4276,8 @@ function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_se
 	#library(parallel)
 ## Note that we do not consider the original Marjoram's algortithm, which is not prone to parallel computing. (no calibration step)
 	    return(switch(EXPR = method,
-	       Marjoram = .ABC_MCMC2_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...),
-	       Wegmann = .ABC_MCMC3_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,...)))
+	       Marjoram = .ABC_MCMC2_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,verbose,...),
+	       Wegmann = .ABC_MCMC3_cluster(model,prior_matrix,n_obs,n_between_sampling,summary_stat_target,n_cluster,verbose,...)))
 
 	options(scipen=0)
 }

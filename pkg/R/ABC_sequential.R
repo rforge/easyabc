@@ -1,7 +1,7 @@
 ## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
 ###################################################################################################################################
 
-ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,use_seed=FALSE,...){
+ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,use_seed=FALSE,verbose=FALSE,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -23,13 +23,15 @@ ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target
     if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
     if (n_cluster<1) stop ("'n_cluster' has to be a positive number.")
     n_cluster=floor(n_cluster)
+    if(!is.logical(use_seed)) stop("'use_seed' has to be boolean")
+    if(!is.logical(verbose)) stop("'verbose' has to be boolean")
 
     	sequential=NULL
 	if (n_cluster==1){
-		sequential = .ABC_sequential(method,model,prior_matrix,nb_simul,summary_stat_target,use_seed,...)
+		sequential = .ABC_sequential(method,model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,...)
 	}
 	else{
-		sequential = .ABC_sequential_cluster(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_seed,...)
+		sequential = .ABC_sequential_cluster(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_seed,verbose,...)
 	}
 sequential
 }
