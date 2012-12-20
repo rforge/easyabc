@@ -1,6 +1,6 @@
 ## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
 ######################################################
-ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=TRUE,seed_count=0,n_cluster=1,progress_bar=FALSE){
+ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=FALSE,seed_count=0,n_cluster=1,progress_bar=FALSE){
     ## checking errors in the inputs
     if(missing(model)) stop("'model' is missing")
     if(missing(prior_matrix)) stop("'prior_matrix' is missing")
