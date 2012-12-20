@@ -1,6 +1,6 @@
 ## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
 ######################################################
-ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=FALSE,seed_count=0,n_cluster=1,progress_bar=FALSE){
+ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=FALSE,seed_count=0,n_cluster=1,progress_bar=FALSE,summary_stat_target,tol){
     ## checking errors in the inputs
     if(missing(model)) stop("'model' is missing")
     if(missing(prior_matrix)) stop("'prior_matrix' is missing")
@@ -30,7 +30,20 @@ ABC_rejection<-function(model,prior_matrix,nb_simul,use_seed=FALSE,seed_count=0,
 	}
 	rejection=.ABC_rejection_cluster(model,prior_matrix,nb_simul,seed_count,n_cluster)
     }
-list(param=rejection$param, stats=rejection$stats, weights=rejection$weights, stats_normalization=rejection$stats_normalization, nsim=rejection$nsim, computime=rejection$computime)
+
+    res=NULL
+    if (missing(summary_stat_target)){
+	res=list(param=rejection$param, stats=rejection$stats, weights=rejection$weights, stats_normalization=rejection$stats_normalization, nsim=rejection$nsim, computime=rejection$computime)
+    }
+    else{
+	if (missing(tol)){
+		stop("'tol' is missing")
+	}
+	rej=abc(summary_stat_target,rejection$param,rejection$stats,tol,method="rejection")
+	nr=dim(rej$unadj.values)[1]
+	res=list(param=rej$unadj.values, stats=rej$ss, weights=array(1/nr,nr), stats_normalization=rejection$stats_normalization, nsim=rejection$nsim, nrec=nr, computime=rejection$computime)
+    }
+res
 }
 
 
