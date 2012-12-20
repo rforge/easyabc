@@ -4,16 +4,30 @@ ABC_mcmc <-function(method,model,prior_matrix,n_rec=100,n_between_sampling=10,su
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
-    if(missing(prior_matrix)) stop("'prior_matrix' is missing")
+    if(missing(prior)) stop("'prior' is missing")
+    if(!is.list(prior)) stop("'prior' has to be a list")
+    l=length(prior)
+    for (i in 1:l){
+    	if(!any(prior[[i]][1] == c("unif", "normal", "lognormal", "exponential"))) {
+        	stop("Prior distribution type must be unif, normal, lognormal or exponential")
+    	}
+	if (prior[[i]][1]=="exponential){
+		if (length(prior[[i]]<2){
+			stop(paste("Incomplete prior information for parameter ",i,sep=""))
+		}
+	}
+	else{
+		if (length(prior[[i]]<3){
+			stop(paste("Incomplete prior information for parameter ",i,sep=""))
+		}
+	}
+    }
     if(missing(n_rec)) stop("'n_rec' is missing")
     if(missing(n_between_sampling)) stop("'n_between_sampling' is missing")
     if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
     if(!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))){
         stop("Method must be Marjoram_original, Marjoram or wegmann")
     }
-    if(!is.matrix(prior_matrix) && !is.data.frame(prior_matrix)) stop("'prior_matrix' has to be a matrix or data.frame.")
-    if(is.data.frame(prior_matrix)) prior_matrix <- as.matrix(prior_matrix)
-    if(dim(prior_matrix)[2]!=2) stop("'prior_matrix' must have two columns.")
     if(!is.vector(summary_stat_target)) stop("'summary_stat_target' has to be a vector.")
     if(!is.vector(n_cluster)) stop("'n_cluster' has to be a number.")
     if(length(n_cluster)>1) stop("'n_cluster' has to be a number.")
