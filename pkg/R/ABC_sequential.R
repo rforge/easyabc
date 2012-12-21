@@ -1,7 +1,7 @@
 ## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
 ###################################################################################################################################
 
-ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster=1,use_seed=FALSE,verbose=FALSE,...){
+ABC_sequential <-function(method,model,prior,nb_simul,summary_stat_target,n_cluster=1,use_seed=FALSE,verbose=FALSE,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -42,10 +42,10 @@ ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target
 
     	sequential=NULL
 	if (n_cluster==1){
-		sequential = .ABC_sequential(method,model,prior_matrix,nb_simul,summary_stat_target,use_seed,verbose,...)
+		sequential = .ABC_sequential(method,model,prior,nb_simul,summary_stat_target,use_seed,verbose,...)
 	}
 	else{
-		sequential = .ABC_sequential_cluster(method,model,prior_matrix,nb_simul,summary_stat_target,n_cluster,use_seed,verbose,...)
+		sequential = .ABC_sequential_cluster(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verbose,...)
 	}
 sequential
 }

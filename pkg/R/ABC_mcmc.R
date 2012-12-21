@@ -1,6 +1,6 @@
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al. 2009)
 ##############################################################################
-ABC_mcmc <-function(method,model,prior_matrix,n_rec=100,n_between_sampling=10,summary_stat_target,n_cluster=1,use_seed=FALSE,verbose=FALSE,...){
+ABC_mcmc <-function(method,model,prior,n_rec=100,n_between_sampling=10,summary_stat_target,n_cluster=1,use_seed=FALSE,verbose=FALSE,...){
     ## checking errors in the inputs
     if(missing(method)) stop("'method' is missing")
     if(missing(model)) stop("'model' is missing")
@@ -38,10 +38,10 @@ ABC_mcmc <-function(method,model,prior_matrix,n_rec=100,n_between_sampling=10,su
  
     	mcmc=NULL
 	if (n_cluster==1){
-		mcmc = .ABC_mcmc_internal(method,model,prior_matrix,n_obs=n_rec,n_between_sampling,summary_stat_target,use_seed,verbose,...)
+		mcmc = .ABC_mcmc_internal(method,model,prior,n_obs=n_rec,n_between_sampling,summary_stat_target,use_seed,verbose,...)
 	}
 	else{
-		mcmc = .ABC_mcmc_cluster(method,model,prior_matrix,n_obs=n_rec,n_between_sampling,summary_stat_target,n_cluster,use_seed,verbose,...)
+		mcmc = .ABC_mcmc_cluster(method,model,prior,n_obs=n_rec,n_between_sampling,summary_stat_target,n_cluster,use_seed,verbose,...)
 	}
 mcmc
 }

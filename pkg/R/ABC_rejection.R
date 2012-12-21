@@ -38,13 +38,13 @@ ABC_rejection<-function(model,prior,nb_simul,use_seed=FALSE,seed_count=0,n_clust
     seed_count=floor(seed_count)
     rejection=NULL
     if (n_cluster==1){
-    	rejection=.ABC_rejection(model,prior_matrix,nb_simul,use_seed,seed_count,verbose,progress_bar)
+    	rejection=.ABC_rejection(model,prior,nb_simul,use_seed,seed_count,verbose,progress_bar)
     }
     else{
 	if (use_seed==FALSE){
 		stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
 	}
-	rejection=.ABC_rejection_cluster(model,prior_matrix,nb_simul,seed_count,n_cluster,verbose)
+	rejection=.ABC_rejection_cluster(model,prior,nb_simul,seed_count,n_cluster,verbose)
     }
 
     res=NULL
