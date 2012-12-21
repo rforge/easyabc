@@ -178,30 +178,30 @@ test
 }
 
 
-.sample_prior_unif(prior)<-function{
+.sample_prior_unif<-function(prior){
 	runif(1,min=as.numeric(prior[2]),max=as.numeric(prior[3]))
 }
 
-.sample_prior_normal(prior)<-function{
+.sample_prior_normal<-function(prior){
 	rnorm(1,mean=as.numeric(prior[2]),sd=as.numeric(prior[3]))
 }
 
-.sample_prior_lognormal(prior)<-function{
+.sample_prior_lognormal<-function(prior){
 	rlnorm(1,meanlog=as.numeric(prior[2]),sdlog=as.numeric(prior[3]))
 }
 
-.sample_prior_exponential(prior)<-function{
+.sample_prior_exponential<-function(prior){
 	rexp(1,rate=as.numeric(prior[2]))
 }
 
-.sample_prior(prior)<-function{
+.sample_prior<-function(prior){
 	l=length(prior)
 	for (i in 1:l){
 		param[i]=return(switch(EXPR = prior[[i]][1],
 		    "unif" = .sample_prior_unif(prior[[i]]),
 		    "normal" = .sample_prior_normal(prior[[i]]),
 		    "lognormal" = .sample_prior_lognormal(prior[[i]]),
-		    "exponential" = .sample_prior_exponential(prior[[i]]))
+		    "exponential" = .sample_prior_exponential(prior[[i]])))
 	}
 param
 }
@@ -1556,7 +1556,7 @@ res
       tab_weight2=.compute_weightb(as.matrix(as.matrix(tab_ini[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior)
     }
     else{
-      tab_weight2=tab_inic[[2]]*(.compute_weightb(as.matrix(as.matrix(tab_ini[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior)
+      tab_weight2=tab_inic[[2]]*(.compute_weightb(as.matrix(as.matrix(tab_ini[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior))
     }
     simul_below_tol2=rbind(as.matrix(simul_below_tol),as.matrix(tab_ini))
     tab_weight=c(tab_weight,tab_weight2)
@@ -2334,7 +2334,7 @@ res
 		simultemp=rbind(simultemp,as.numeric(list_simul_summarystat[[i]]))
 	  }
 	  if (verbose){
-		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp),file="output",row.names=F,col.names=F,quote=F,append=T)
+		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp)),file="output",row.names=F,col.names=F,quote=F,append=T)
 	  }
          }
 	}
@@ -2360,7 +2360,7 @@ res
 		simultemp=rbind(simultemp,as.numeric(list_simul_summarystat[[i]]))
 	  }
  	  if (verbose){
-		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp),file="output",row.names=F,col.names=F,quote=F,append=T)
+		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp)),file="output",row.names=F,col.names=F,quote=F,append=T)
 	  }
     	  stopCluster(cl)
 	}
