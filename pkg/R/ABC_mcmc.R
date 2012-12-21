@@ -12,12 +12,12 @@ ABC_mcmc <-function(method,model,prior_matrix,n_rec=100,n_between_sampling=10,su
         	stop("Prior distribution type must be unif, normal, lognormal or exponential")
     	}
 	if (prior[[i]][1]=="exponential){
-		if (length(prior[[i]]<2){
+		if (length(prior[[i]])<2){
 			stop(paste("Incomplete prior information for parameter ",i,sep=""))
 		}
 	}
 	else{
-		if (length(prior[[i]]<3){
+		if (length(prior[[i]])<3){
 			stop(paste("Incomplete prior information for parameter ",i,sep=""))
 		}
 	}
