@@ -12,7 +12,7 @@ ABC_sequential <-function(method,model,prior_matrix,nb_simul,summary_stat_target
     	if(!any(prior[[i]][1] == c("unif", "normal", "lognormal", "exponential"))) {
         	stop("Prior distribution type must be unif, normal, lognormal or exponential")
     	}
-	if (prior[[i]][1]=="exponential){
+	if (prior[[i]][1]=="exponential"){
 		if (length(prior[[i]])<2){
 			stop(paste("Incomplete prior information for parameter ",i,sep=""))
 		}
