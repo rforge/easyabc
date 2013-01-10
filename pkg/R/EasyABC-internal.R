@@ -197,7 +197,7 @@ test
 .sample_prior<-function(prior){
 	l=length(prior)
 	for (i in 1:l){
-		param[i]=return(switch(EXPR = prior[[i]][1],
+		param[i]=(switch(EXPR = prior[[i]][1],
 		    "unif" = .sample_prior_unif(prior[[i]]),
 		    "normal" = .sample_prior_normal(prior[[i]]),
 		    "lognormal" = .sample_prior_lognormal(prior[[i]]),
@@ -218,7 +218,7 @@ param
   if (verbose){
      write.table(NULL,file="output",row.names=F,col.names=F,quote=F)
   }
-
+  l=length(prior)
   start = Sys.time()
   for (i in 1:nb_simul){
     param=.sample_prior(prior)
