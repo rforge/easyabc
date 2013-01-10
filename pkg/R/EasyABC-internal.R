@@ -196,6 +196,7 @@ test
 
 .sample_prior<-function(prior){
 	l=length(prior)
+	param=NULL
 	for (i in 1:l){
 		param[i]=(switch(EXPR = prior[[i]][1],
 		    "unif" = .sample_prior_unif(prior[[i]]),
