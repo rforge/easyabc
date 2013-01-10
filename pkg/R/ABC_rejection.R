@@ -64,11 +64,11 @@ ABC_rejection<-function(model,prior,nb_simul,summary_stat_target=NULL,tol=NULL,u
 	res=list(param=rejection$param, stats=rejection$stats, weights=rejection$weights, stats_normalization=rejection$stats_normalization, nsim=rejection$nsim, computime=rejection$computime)
     }
     else{
+	options(warn=-1)
 	rej=abc(summary_stat_target,rejection$param,rejection$stats,tol,method="rejection")
+	options(warn=0)
 	nr=dim(rej$unadj.values)[1]
 	res=list(param=rej$unadj.values, stats=rej$ss, weights=array(1/nr,nr), stats_normalization=rejection$stats_normalization, nsim=rejection$nsim, nrec=nr, computime=rejection$computime)
     }
 res
 }
-
-
