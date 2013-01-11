@@ -509,7 +509,7 @@ res
 
     sd_simul=sapply(as.data.frame(rejection$summarystat), sd)
     
-list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=array(1/nb_simul,nb_simul), stats_normalization=sd_simul, nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, units="secs")))
+list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=array(1/nb_simul,nb_simul), stats_normalization=as.numeric(sd_simul), nsim=nb_simul, computime=as.numeric(difftime(Sys.time(), rejection$start, units="secs")))
 }
 
 
@@ -628,7 +628,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	    print(paste("step ",it," completed",sep=""))
     }
   }
-  list(param=as.matrix(simul_below_tol[,1:nparam]),stats=as.matrix(simul_below_tol[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(simul_below_tol[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(simul_below_tol[,1:nparam]),stats=as.matrix(simul_below_tol[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(simul_below_tol[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## function to select the alpha quantile closest simulations
@@ -936,7 +936,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     seed_count=seed_count+R
     simul_below_tol2=rbind(simul_below_tol2,as.numeric(simul_picked))
   }
-  list(param=as.matrix(simul_below_tol2[,1:nparam]),stats=as.matrix(simul_below_tol2[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol2)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(simul_below_tol2[,1:nparam]),stats=as.matrix(simul_below_tol2[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol2)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1300,7 +1300,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
 	    print(paste("step ",kstep," completed - tol =",new_tolerance,sep=""))
     }
   }
-  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight2/sum(tab_weight2),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 .all_unif<-function(prior){
@@ -1586,7 +1586,7 @@ res
     	print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
     }
   }
-  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -1815,7 +1815,7 @@ res
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=tab_normalization,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=as.numeric(tab_normalization),epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
@@ -1964,7 +1964,7 @@ res
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   }
-  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=as.numeric(sd_simul),epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -2370,7 +2370,7 @@ res
 	}
 	options(scipen=0)
 	sd_simul=sapply(as.data.frame(tab_simul_summarystat),sd)
-list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=array(1/nb_simul,nb_simul),stats_normalization=sd_simul,nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=array(1/nb_simul,nb_simul),stats_normalization=as.numeric(sd_simul),nsim=nb_simul,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -2679,7 +2679,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
    	 print(paste("step ",it," completed",sep=""))
     }
   }
-  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(as.matrix(simul_below_tol))[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(as.matrix(simul_below_tol))[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
 
 
@@ -3070,7 +3070,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     seed_count=seed_count+nb_simul
   }
   
-  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -3398,7 +3398,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     }
   }
   stopCluster(cl)	
-  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight2/sum(tab_weight2),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight2/sum(tab_weight2),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
@@ -3801,7 +3801,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     		print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
     }
   }
-  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=sd_simul,epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
@@ -3940,7 +3940,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   for (i in 1:length(tab_dist)){
     tab_dist2[i]=tab_dist[i]
   } 		
-  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=sd_simul,epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
+  list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=as.numeric(sd_simul),epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs"))) 
 }
 
 
