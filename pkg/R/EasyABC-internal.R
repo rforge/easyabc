@@ -130,8 +130,8 @@ res
   count=1
   for (i in 1:length(prior)){
 	if (prior[[i]][1]=="unif"){
-		if (prior[[i]][2]!=prior[[i]][3]){
-   			if ((res[count]<prior[[i]][2])||(res[count]>prior[[i]][3])){
+		if (as.numeric(prior[[i]][2])!=as.numeric(prior[[i]][3])){
+   			if ((res[count]<as.numeric(prior[[i]][2]))||(res[count]>as.numeric(prior[[i]][3]))){
       				test=FALSE
    			}
 		}
@@ -752,7 +752,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   if (first_tolerance_level_auto){
     tol_end=tolerance_tab[1]
@@ -1093,7 +1093,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   # step 1
   # classic ABC step
@@ -1334,11 +1334,11 @@ res
       count=1
       for (j in 1:l){
 	if (tab_unfixed_param[j]){
-        	param[j]=prior[[j]][2]+(prior[[j]][3]-prior[[j]][2])*random_tab[i,count]
+        	param[j]=as.numeric(prior[[j]][2])+(as.numeric(prior[[j]][3])-as.numeric(prior[[j]][2]))*random_tab[i,count]
 		count=count+1
 	}
 	else{
-		param[j]=prior[[j]][2]
+		param[j]=as.numeric(prior[[j]][2])
 	}
       }
     }
@@ -1512,7 +1512,7 @@ res
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   n_alpha=ceiling(nb_simul*alpha)
   
@@ -1636,16 +1636,16 @@ res
 	res=NULL
 	for (i in 1:length(prior)){
 		if (prior[[i]][1]=="unif"){
-			res[i]=(prior[[ii]][3]-prior[[ii]][2])/25
+			res[i]=(as.numeric(prior[[ii]][3])-as.numeric(prior[[ii]][2]))/25
 		}
 		if (prior[[i]][1]=="normal"){
-			res[i]=prior[[ii]][3]/10
+			res[i]=as.numeric(prior[[ii]][3])/10
 		}
 		if (prior[[i]][1]=="lognormal"){
-			res[i]=exp(prior[[ii]][3]*prior[[ii]][3])/10
+			res[i]=exp(as.numeric(prior[[ii]][3])*as.numeric(prior[[ii]][3]))/10
 		}
 		if (prior[[i]][1]=="exponential"){
-			res[i]=1/(10*prior[[ii]][2])
+			res[i]=1/(10*as.numeric(prior[[ii]][2]))
 		}
 	}
 res
@@ -1699,7 +1699,7 @@ res
   tab_param=NULL
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   
   # initial draw of a particle below the tolerance dist_max
@@ -1854,7 +1854,7 @@ res
   tab_param=NULL
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   
   # initial draw of a particle
@@ -2016,7 +2016,7 @@ res
   tab_param=NULL
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   if (length(tab_unfixed_param[tab_unfixed_param])<=1){
 	stop("A single parameter is varying, use the method 'Marjoram' instead")
@@ -2600,7 +2600,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   
   ## step 1
@@ -2944,7 +2944,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   if (first_tolerance_level_auto){
     tol_end=tolerance_tab[1]
@@ -3167,7 +3167,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   
   # step 1
@@ -3430,11 +3430,11 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
         count=1
         for (j in 1:l){
 	  if (tab_unfixed_param[j]){
-        	param[j]=prior[[j]][2]+(prior[[j]][3]-prior[[j]][2])*random_tab[((irun-1)*100*n_cluster+i),count]
+        	param[j]=as.numeric(prior[[j]][2])+(as.numeric(prior[[j]][3])-as.numeric(prior[[j]][2]))*random_tab[((irun-1)*100*n_cluster+i),count]
 		count=count+1
 	  }
 	  else{
-		param[j]=prior[[j]][2]
+		param[j]=as.numeric(prior[[j]][2])
 	  }
         }
       }
@@ -3463,11 +3463,11 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
         count=1
         for (j in 1:l){
 	  if (tab_unfixed_param[j]){
-        	param[j]=prior[[j]][2]+(prior[[j]][3]-prior[[j]][2])*random_tab[(npar*100*n_cluster+i),count]
+        	param[j]=as.numeric(prior[[j]][2])+(as.numeric(prior[[j]][3])-as.numeric(prior[[j]][2]))*random_tab[(npar*100*n_cluster+i),count]
 		count=count+1
 	  }
 	  else{
-		param[j]=prior[[j]][2]
+		param[j]=as.numeric(prior[[j]][2])
 	  }
         }
       }
@@ -3727,7 +3727,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   n_alpha=ceiling(nb_simul*alpha)
   
@@ -3864,7 +3864,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   tab_param=NULL
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   
   # initial draw of a particle
@@ -3988,7 +3988,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   tab_param=NULL
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   if (length(tab_unfixed_param[tab_unfixed_param])<=1){
 	stop("A single parameter is varying, use the method 'Marjoram' instead")
