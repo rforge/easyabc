@@ -1513,6 +1513,9 @@ res
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
      tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
+     if (prior[[i]][1]!="unif"){
+	stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
+     }
   }
   n_alpha=ceiling(nb_simul*alpha)
   
@@ -3728,6 +3731,9 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
      tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
+     if (prior[[i]][1]!="unif"){
+	stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
+     }
   }
   n_alpha=ceiling(nb_simul*alpha)
   
