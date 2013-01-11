@@ -266,8 +266,8 @@ param
     count=1
     for (i in 1:length(prior)){
 	if (prior[[i]][1]=="unif"){
-		if (prior[[i]][2]!=prior[[i]][3]){
-			res=res/(prior[[i]][3]-prior[[i]][2])			
+		if (as.numeric(prior[[i]][2])!=as.numeric(prior[[i]][3])){
+			res=res/(as.numeric(prior[[i]][3])-as.numeric(prior[[i]][2]))			
 		}
 		else{
 			count=count-1
@@ -275,15 +275,15 @@ param
 	}
 	else{
 		if (prior[[i]][1]=="normal"){
-			res=res*dnorm(particle[count],prior[[i]][2],prior[[i]][3])
+			res=res*dnorm(particle[count],as.numeric(prior[[i]][2]),as.numeric(prior[[i]][3]))
 		}
 		else{
 			if (prior[[i]][1]=="lognormal"){
-				res=res*dlnorm(particle[count],prior[[i]][2],prior[[i]][3])
+				res=res*dlnorm(particle[count],as.numeric(prior[[i]][2]),as.numeric(prior[[i]][3]))
 			}
 			else{
 				if (prior[[i]][1]=="exponential"){
-					res=res*dexp(particle[count],prior[[i]][2])
+					res=res*dexp(particle[count],as.numeric(prior[[i]][2]))
 				}
 			}
 		}
@@ -548,7 +548,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   nstat=length(summary_stat_target)
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
-     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(prior[[i]][2]==prior[[i]][3]))
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
 
   
