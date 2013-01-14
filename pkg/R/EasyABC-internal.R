@@ -3253,7 +3253,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
       ESS=nb_simul
     }
     else{
-      particles=simul_below_tol[,1:nparam]
+      particles=as.matrix(simul_below_tol[,1:nparam])
     }
     
     # MCMC move
