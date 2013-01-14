@@ -141,7 +141,7 @@ res
 	}
 	else{
 		if (prior[[i]][1]=="exponential"){
-			if (res[count]<=0){
+			if (res[count]<0){
       				test=FALSE
    			}
 		}
@@ -150,6 +150,28 @@ res
   }
 test	
 }
+
+## function to check whether moved parameters are still in the prior distribution
+#################################################################################
+.is_included2<-function(res,prior){
+  test=TRUE
+  for (i in 1:length(prior)){
+	if (prior[[i]][1]=="unif"){
+   		if ((res[i]<as.numeric(prior[[i]][2]))||(res[i]>as.numeric(prior[[i]][3]))){
+      				test=FALSE
+  		}
+	}
+	else{
+		if (prior[[i]][1]=="exponential"){
+			if (res[i]<0){
+      				test=FALSE
+   			}
+		}
+	}
+  }
+test	
+}
+
 
 ## function to move a particle
 ##############################
@@ -1627,7 +1649,7 @@ res
     for (i in 1:length(param_picked)){
       res[i]=runif(n = 1, min = param_picked[i]-sd_array[i],max=param_picked[i]+sd_array[i])
     }
-    test=.is_included(res,prior)
+    test=.is_included2(res,prior)
   }
   if (counter==100){
     stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -1639,16 +1661,16 @@ res
 	res=NULL
 	for (i in 1:length(prior)){
 		if (prior[[i]][1]=="unif"){
-			res[i]=(as.numeric(prior[[ii]][3])-as.numeric(prior[[ii]][2]))/25
+			res[i]=(as.numeric(prior[[i]][3])-as.numeric(prior[[i]][2]))/50
 		}
 		if (prior[[i]][1]=="normal"){
-			res[i]=as.numeric(prior[[ii]][3])/10
+			res[i]=as.numeric(prior[[i]][3])/20
 		}
 		if (prior[[i]][1]=="lognormal"){
-			res[i]=exp(as.numeric(prior[[ii]][3])*as.numeric(prior[[ii]][3]))/10
+			res[i]=exp(as.numeric(prior[[i]][3])*as.numeric(prior[[i]][3]))/20
 		}
 		if (prior[[i]][1]=="exponential"){
-			res[i]=1/(10*as.numeric(prior[[ii]][2]))
+			res[i]=1/(20*as.numeric(prior[[i]][2]))
 		}
 	}
 res
@@ -1656,7 +1678,7 @@ res
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003
 #############################################
-.ABC_MCMC<-function(model,prior,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,dist_max=0,tab_normalization=summary_stat_target,proposal_range=array(0,length(prior)),seed_count=0,progress_bar=FALSE){
+.ABC_MCMC<-function(model,prior,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,dist_max=0,tab_normalization=summary_stat_target,proposal_range=vector(mode = "numeric", length = length(prior)),seed_count=0,progress_bar=FALSE){
   
   ## checking errors in the inputs
   if(!is.vector(dist_max)) stop("'dist_max' has to be a number.")
@@ -1677,7 +1699,7 @@ res
 	  print("    ------ Marjoram et al. (2003)'s algorithm ------") 
   }
  
-  if (tab_normalization==summary_stat_target){
+  if (sum(abs(tab_normalization-summary_stat_target))==0){
 	print("Warning: summary statistics are normalized by default through a division by the target summary statistics - it may not be appropriate to your case.")
 	print("Consider providing normalization constants for each summary statistics in the option 'tab_normalization' or using the method 'Marjoram' which automatically determines these constants.")
   }
@@ -1883,7 +1905,7 @@ res
   nmax=ceiling(tolerance_quantile*n_calibration)
   dist_max=simuldist[(ord_sim[nmax])]
   tab_param=tab_param[(ord_sim[1:nmax]),]
-  proposal_range=array(0,nparam)
+  proposal_range=vector(mode = "numeric", length = nparam)
   for (i in 1:nparam){
     proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
   }
@@ -2124,7 +2146,7 @@ res
   dist_max=simuldist[(ord_sim[nmax])]
   
   tab_param=tab_param[(ord_sim[1:nmax]),]
-  proposal_range=array(0,nparam)
+  proposal_range=vector(mode = "numeric", length = nparam)
   for (i in 1:nparam){
     proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
   }
@@ -3888,7 +3910,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   nmax=ceiling(tolerance_quantile*n_calibration)
   dist_max=simuldist[(ord_sim[nmax])]
   tab_param=tab_param[(ord_sim[1:nmax]),]
-  proposal_range=array(0,nparam)
+  proposal_range=vector(mode = "numeric", length = nparam)
   for (i in 1:nparam){
     proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
   }
@@ -4087,7 +4109,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   dist_max=simuldist[(ord_sim[nmax])]
   
   tab_param=tab_param[(ord_sim[1:nmax]),]
-  proposal_range=array(0,nparam)
+  proposal_range=vector(mode = "numeric", length = nparam)
   for (i in 1:nparam){
     proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
   }

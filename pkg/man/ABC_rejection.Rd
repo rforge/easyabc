@@ -71,7 +71,7 @@
 
     ## artificial example to show how to use the 'ABC_rejection' function.
     ## defining a simple toy model:
-    toy_model<-function(x){ 2*x+5 }
+    toy_model<-function(x){ 2 * x + 5 + rnorm(1,0,0.1) }
 
     ## define prior information
     toy_prior=list(c("unif",0,1)) # a uniform prior distribution between 0 and 1
@@ -94,7 +94,7 @@
 
     ## this time, the model has two parameters and outputs two summary statistics.
     ## defining a simple toy model:
-    toy_model2<-function(x){ c(x[1]+x[2],x[1]*x[2]) }
+    toy_model2<-function(x){ c( x[1] + x[2] + rnorm(1,0,0.1) , x[1] * x[2] + rnorm(1,0,0.1) ) }
 
     ## define prior information
     toy_prior2=list(c("unif",0,1),c("normal",1,1)) # a uniform prior distribution between 0 and 1 for parameter 1, and a normal distribution of mean 1 and standard deviation of 1 for parameter 2.
@@ -143,7 +143,7 @@
     ABC_simb<-ABC_rejection(model=trait_model, prior=trait_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)
 
     ## For other models, change the value of n_cluster and modify the model so that the first parameter becomes a seed information value:
-    toy_model_parallel<-function(x){ 2*x[2]+5 }
+    toy_model_parallel<-function(x){ 2 * x[2] + 5 + rnorm(1,0,0.1) }
     sum_stat_obs=6.5
 
     ABC_simb<-ABC_rejection(model=toy_model_parallel, prior=toy_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)

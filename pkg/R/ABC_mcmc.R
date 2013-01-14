@@ -22,8 +22,6 @@ ABC_mcmc <-function(method,model,prior,n_rec=100,n_between_sampling=10,summary_s
 		}
 	}
     }
-    if(missing(n_rec)) stop("'n_rec' is missing")
-    if(missing(n_between_sampling)) stop("'n_between_sampling' is missing")
     if(missing(summary_stat_target)) stop("'summary_stat_target' is missing")
     if(!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))){
         stop("Method must be Marjoram_original, Marjoram or wegmann")
@@ -38,10 +36,10 @@ ABC_mcmc <-function(method,model,prior,n_rec=100,n_between_sampling=10,summary_s
  
     	mcmc=NULL
 	if (n_cluster==1){
-		mcmc = .ABC_mcmc_internal(method,model,prior,n_obs=n_rec,n_between_sampling,summary_stat_target,use_seed,verbose,...)
+		mcmc = .ABC_mcmc_internal(method,model,prior,n_rec,n_between_sampling,summary_stat_target,use_seed,verbose,...)
 	}
 	else{
-		mcmc = .ABC_mcmc_cluster(method,model,prior,n_obs=n_rec,n_between_sampling,summary_stat_target,n_cluster,use_seed,verbose,...)
+		mcmc = .ABC_mcmc_cluster(method,model,prior,n_rec,n_between_sampling,summary_stat_target,n_cluster,use_seed,verbose,...)
 	}
 mcmc
 }
