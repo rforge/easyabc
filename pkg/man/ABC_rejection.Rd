@@ -30,6 +30,8 @@
     a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \code{model}.}
   \item{n_cluster}{
     a positive integer. If larger than 1 (the default value), \code{ABC_rejection} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
+  \item{verbose}{
+    logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_rejection} writes in the current directory intermediary results at the end of each step of the algorithm.}
   \item{progress_bar}{
     logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_rejection} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
 }
@@ -65,6 +67,7 @@
   \dontrun{
     ##### EXAMPLE 1 #####
     #####################
+    set.seed(1)
 
     ## artificial example to show how to use the 'ABC_rejection' function.
     ## defining a simple toy model:
@@ -85,10 +88,6 @@
     ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs, tol=tolerance)
 
     ## NB: see the package's vignette to see how to pipeline 'ABC_rejection' with the function 'abc' of the package 'abc' to perform other rejection schemes.
-
-    ## To use the 'ABC_rejection' function with multiple cores, simply change the value of n_cluster:
-    ABC_simb<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n, n_cluster=2)
-
 
     ##### EXAMPLE 2 #####
     #####################
@@ -113,15 +112,11 @@
 
     ## NB: see the package's vignette to see how to pipeline 'ABC_rejection' with the function 'abc' of the package 'abc' to perform other rejection schemes.
 
-    ## To use the 'ABC_rejection' function with multiple cores, simply change the value of n_cluster:
-    ABC_simb<-ABC_rejection(model=toy_model2, prior=toy_prior2, nb_simul=n, n_cluster=2)
-
 
     ##### EXAMPLE 3 #####
     #####################
 
     ## this time, the model is a C++ function packed into a R function -- this time, the option 'use_seed' must be turned to TRUE.
-    set.seed(1)
     n=10
     trait_prior=list(c("unif",500,500),c("unif",3,5),c("unif",-2.3,1.6),c("unif",1,1),c("unif",-25,125),c("unif",-0.7,3.2))
     trait_prior
@@ -137,8 +132,21 @@
 
     ## NB: see the package's vignette to see how to pipeline 'ABC_rejection' with the function 'abc' of the package 'abc' to perform other rejection schemes.
 
-    ## To use the 'ABC_rejection' function with multiple cores, simply change the value of n_cluster:
+
+    ##### EXAMPLE 4 - Parallel implementations #####
+    ################################################
+
+    ## NB: the option use_seed must be turned to TRUE.
+
+    ## For models already running with the option use_seed=TRUE, simply change the value of n_cluster:
+    sum_stat_obs=c(100,2.5,20,30000)
     ABC_simb<-ABC_rejection(model=trait_model, prior=trait_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)
+
+    ## For other models, change the value of n_cluster and modify the model so that the first parameter becomes a seed information value:
+    toy_model_parallel<-function(x){ 2*x[2]+5 }
+    sum_stat_obs=6.5
+
+    ABC_simb<-ABC_rejection(model=toy_model_parallel, prior=toy_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)
   }
 }
 \keyword{abc}
