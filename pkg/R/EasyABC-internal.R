@@ -1907,12 +1907,12 @@ res
   tab_param=tab_param[(ord_sim[1:nmax]),]
   proposal_range=vector(mode = "numeric", length = nparam)
   for (i in 1:nparam){
-    proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
+    proposal_range[i]=sd(as.matrix(tab_param)[,i])*proposal_phi/2
   }
   n_ini=sample(nmax,1)
   tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
   dist_ini=simuldist[(ord_sim[n_ini])]
-  param_ini=tab_param[n_ini,]
+  param_ini=as.matrix(tab_param)[n_ini,]
   if (verbose==TRUE){
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
     write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
@@ -2034,6 +2034,9 @@ res
   seed_count_ini=seed_count
   nparam=length(prior)
   nstat=length(summary_stat_target)
+  if (nstat<=1){
+	stop("A single summary statistic is used, use the method 'Marjoram' instead")
+  }
   if (numcomp==0){
     numcomp=nstat
   }
@@ -3898,7 +3901,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   # initial draw of a particle
   initial=.ABC_rejection_internal_cluster(model,prior,n_calibration,seed_count,n_cluster)
   seed_count=seed_count+n_calibration
-  tab_param=as.matrix(initial[,1:nparam])
+  tab_param=as.matrix(as.matrix(initial)[,1:nparam])
   tab_simul_summary_stat=as.matrix(initial[,(nparam+1):(nparam+nstat)])
   
   sd_simul=array(0,nstat)
@@ -3909,15 +3912,15 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   ord_sim=order(simuldist,decreasing=F)
   nmax=ceiling(tolerance_quantile*n_calibration)
   dist_max=simuldist[(ord_sim[nmax])]
-  tab_param=tab_param[(ord_sim[1:nmax]),]
+  tab_param=as.matrix(tab_param)[(ord_sim[1:nmax]),]
   proposal_range=vector(mode = "numeric", length = nparam)
   for (i in 1:nparam){
-    proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
+    proposal_range[i]=sd(as.matrix(tab_param)[,i])*proposal_phi/2
   }
   n_ini=sample(nmax,1)
   tab_simul_ini=as.numeric(tab_simul_summary_stat[(ord_sim[n_ini]),])
   dist_ini=simuldist[(ord_sim[n_ini])]
-  param_ini=tab_param[n_ini,]
+  param_ini=as.matrix(tab_param)[n_ini,]
   if (verbose==TRUE){ 
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
     write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
@@ -4009,6 +4012,9 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   seed_count_ini=seed_count
   nparam=length(prior)
   nstat=length(summary_stat_target)
+  if (nstat<=1){
+	stop("A single summary statistic is used, use the method 'Marjoram' instead")
+  }
   if (numcomp==0){
     numcomp=nstat
   }
@@ -4025,7 +4031,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   # initial draw of a particle
   initial=.ABC_rejection_internal_cluster(model,prior,nb_simul=n_calibration,seed_count,n_cluster)
   seed_count=seed_count+n_calibration
-  tab_param=as.matrix(initial[,1:nparam])
+  tab_param=as.matrix(as.matrix(initial)[,1:nparam])
   tab_simul_summary_stat=as.matrix(initial[,(nparam+1):(nparam+nstat)])
   if (verbose==TRUE){ 
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
@@ -4035,7 +4041,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   ## AM2: PLS step
   #print("AM2 ")
   #standardize the params
-  sparam=tab_param[,tab_unfixed_param]
+  sparam=as.matrix(tab_param)[,tab_unfixed_param]
   ls=dim(sparam)[2]
   for(i in 1:ls){
     sparam[,i]=(sparam[,i]-mean(sparam[,i]))/sd(sparam[,i])
@@ -4108,7 +4114,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   nmax=ceiling(tolerance_quantile*n_calibration)
   dist_max=simuldist[(ord_sim[nmax])]
   
-  tab_param=tab_param[(ord_sim[1:nmax]),]
+  tab_param=as.matrix(tab_param)[(ord_sim[1:nmax]),]
   proposal_range=vector(mode = "numeric", length = nparam)
   for (i in 1:nparam){
     proposal_range[i]=sd(tab_param[,i])*proposal_phi/2
