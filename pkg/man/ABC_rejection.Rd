@@ -97,7 +97,7 @@
     toy_model2<-function(x){ c( x[1] + x[2] + rnorm(1,0,0.1) , x[1] * x[2] + rnorm(1,0,0.1) ) }
 
     ## define prior information
-    toy_prior2=list(c("unif",0,1),c("normal",1,1)) # a uniform prior distribution between 0 and 1 for parameter 1, and a normal distribution of mean 1 and standard deviation of 1 for parameter 2.
+    toy_prior2=list(c("unif",0,1),c("normal",1,2)) # a uniform prior distribution between 0 and 1 for parameter 1, and a normal distribution of mean 1 and standard deviation of 2 for parameter 2.
 
     ## only launching simulations with parameters drawn in the prior distributions
     set.seed(1)
