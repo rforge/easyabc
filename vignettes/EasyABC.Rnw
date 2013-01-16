@@ -39,7 +39,7 @@ Three different MCMC schemes are available: the ones of Marjoram et al. (2003), 
 Details on how to implement these various algorithms with \texttt{EasyABC} are given in the manual pages of each function and two examples are detailed in Sections \ref{example1} and \ref{example}. We provide below a short presentation of each implemented algorithm.
 
 \subsection{The standard rejection algorithm of Pritchard et al. (1999)}
-This sampling scheme consists in drawing the model parameters in the prior distributions, in using these model parameter values to launch a model simulation and in repeating this two-step procedure \texttt{nb\_simul} times.
+This sampling scheme consists in drawing the model parameters in the prior distributions, in using these model parameter values to launch a simulation and in repeating this two-step procedure \texttt{nb\_simul} times.
 At the end of the \texttt{nb\_simul} simulations, the simulations closest to the target (or at a distance smaller than a tolerance threshold) in the space of the summary statistics are retained to form an approximate posterior distribution of the model parameters.
 
 \subsection{Sequential algorithms}
@@ -49,7 +49,7 @@ Sequential algorithms consist in a first step of standard rejection ABC, followe
 Various ways to perform this biased sampling have been proposed, and four of them are implemented in the package \texttt{EasyABC}.
 
 \subsection{Coupled to MCMC algorithms}
-The idea of ABC-MCMC algorithms proposed by Marjoram et al. (2003) is to perform a Metropolis-Hastings algorithm to explore the parameter space, and in replacing the step of likelihood ratio computation by model simulations.
+The idea of ABC-MCMC algorithms proposed by Marjoram et al. (2003) is to perform a Metropolis-Hastings algorithm to explore the parameter space, and in replacing the step of likelihood ratio computation by simulations of the model.
 The original algorithm of Marjoram et al. (2003) is implemented in the method "Marjoram\_original" in \texttt{EasyABC}.
 Wegmann et al. (2009) later proposed a number of improvements to the original scheme of Marjoram et al. (2003): they proposed to perform a calibration step so that the algorithm automatically determines the tolerance threshold, the scaling of the summary statistics and the scaling of the jumps in the parameter space during the MCMC.
 These improvements have been implemented in the method "Marjoram".
@@ -189,7 +189,7 @@ p=0.2
 ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs, tol=p)
 @
 
-Alternatively, \texttt{ABC\_rejection} can be used to solely launch the model simulations and to store the simulation outputs without performing the rejection step.
+Alternatively, \texttt{ABC\_rejection} can be used to solely launch the simulations and to store the simulation outputs without performing the rejection step.
 This option enables the user to make use of the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012) which offers an array of more sophisticated post-processing treatments than the simple rejection procedure:
 <<ABC_rejection>>=
 set.seed(1)
@@ -334,7 +334,7 @@ ABC_rej<-ABC_rejection(model=trait_model, prior=trait_prior, nb_simul=n,
 summary_stat_target=sum_stat_obs, tol=p, use_seed=TRUE)
 @
 
-Alternatively, \texttt{ABC\_rejection} can be used to solely launch the model simulations and to store the simulation outputs without performing the rejection step.
+Alternatively, \texttt{ABC\_rejection} can be used to solely launch the simulations and to store the simulation outputs without performing the rejection step.
 This option enables the user to make use of the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012) which offers an array of more sophisticated post-processing treatments than the simple rejection procedure:
 <<abcinstall,eval=FALSE>>=
 install.packages("abc")
