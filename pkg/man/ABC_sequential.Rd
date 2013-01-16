@@ -200,7 +200,7 @@
     ## to perform the Lenormand et al. (2012)'s method:
     ##
     pacc=0.4
-    # Only uniform priors are supported for the method "Lenormand":
+    # Only uniform priors are supported for the method "Lenormand" (since it performs a Latin Hypercube sampling at the beginning):
     toy_prior2=list(c("unif",0,1),c("unif",0.5,1.5)) # a uniform prior distribution between 0 and 1 for parameter 1, and a normal distribution of mean 1 and standard deviation of 1 for parameter 2.
     ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model2, prior=toy_prior2,
     nb_simul=10, summary_stat_target=sum_stat_obs2, p_acc_min=pacc)
