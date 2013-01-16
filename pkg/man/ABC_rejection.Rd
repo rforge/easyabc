@@ -143,7 +143,9 @@
     ABC_simb<-ABC_rejection(model=trait_model, prior=trait_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)
 
     ## For other models, change the value of n_cluster and modify the model so that the first parameter becomes a seed information value:
-    toy_model_parallel<-function(x){ 2 * x[2] + 5 + rnorm(1,0,0.1) }
+    toy_model_parallel<-function(x){ 
+	set.seed(x[1])
+	2 * x[2] + 5 + rnorm(1,0,0.1) }
     sum_stat_obs=6.5
 
     ABC_simb<-ABC_rejection(model=toy_model_parallel, prior=toy_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)
