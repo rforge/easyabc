@@ -124,6 +124,12 @@ The \texttt{EasyABC} methods will not work properly if these fixed variables are
 \subsection{The target summary statistics}
 A vector containing the summary statistics of the data must be supplied. The statistics must be in the same order as in the simulation outputs.
 
+
+\subsection{The option verbose}
+Intermediary results can be written in output files in the working directory. Users solely need to choose the option \texttt{verbose=TRUE} when launching the \texttt{EasyABC} functions (otherwise, the default value for \texttt{verbose} is \texttt{FALSE}).
+Intermediary results consist in the progressive writing of simulation outputs for the functions \texttt{ABC\_rejection} and \texttt{ABC\_mcmc} and in the writing of intermediary results at the end of each step for the function \texttt{ABC\_sequential}.
+
+
 \subsection{Building a \texttt{R} function calling a \texttt{C/C++} program}
 \label{RC_link}
 Users having a \texttt{C/C++} simulation code may wish to construct a \texttt{R} function calling their \texttt{C/C++} program, instead of using the provided wrappers (see sections \ref{simulator_single_core} and \ref{simulator_several_cores}).
