@@ -8,7 +8,7 @@
 
 \title{\texttt{EasyABC}: a \texttt{R} package to perform efficient approximate Bayesian computation sampling schemes}
 \author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
-\date{\texttt{EasyABC} version  1.0 \Sexpr{Sys.Date()} }
+\date{\texttt{EasyABC} version  1.1 \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
 %\SweaveOpts{eval=FALSE}
@@ -58,7 +58,7 @@ Wegmann et al. (2009) also proposed additional modifications, among which a PLS 
 \section{Installation and requirements}
 \label{installation}
 \subsection{Installing the package}
-To install the \texttt{EasyABC} package from \texttt{R}, simply type:
+A version of R greater than or equal to 2.15.0 is required. The package has been tested on Windows 32 and Linux, but not on Mac. To install the \texttt{EasyABC} package from \texttt{R}, simply type:
 <<eval=FALSE>>= 
 install.packages("EasyABC") 
 @
