@@ -134,7 +134,7 @@
     ##
     tolerance=c(1.5,0.5)
     ABC_Beaumont<-ABC_sequential(method="Beaumont", model=toy_model, prior=toy_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance)
+    nb_simul=20, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance)
     ABC_Beaumont
 
     ## to perform the Drovandi and Pettitt (2011)'s method:
@@ -142,7 +142,7 @@
     tolerance=0.5
     c_drov=0.7
     ABC_Drovandi<-ABC_sequential(method="Drovandi", model=toy_model, prior=toy_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, c=c_drov)
+    nb_simul=20, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, c=c_drov)
     ABC_Drovandi
 
     ## to perform the Del Moral et al. (2012)'s method:
@@ -150,14 +150,14 @@
     alpha_delmo=0.5
     tolerance=0.5
     ABC_Delmoral<-ABC_sequential(method="Delmoral", model=toy_model, prior=toy_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, alpha=alpha_delmo, tolerance_target=tolerance)
+    nb_simul=20, summary_stat_target=sum_stat_obs, alpha=alpha_delmo, tolerance_target=tolerance)
     ABC_Delmoral
 
     ## to perform the Lenormand et al. (2012)'s method:
     ##
     pacc=0.4
     ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model, prior=toy_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, p_acc_min=pacc)
+    nb_simul=20, summary_stat_target=sum_stat_obs, p_acc_min=pacc)
     ABC_Lenormand
 
 
@@ -178,7 +178,7 @@
     ##
     tolerance=c(1.5,0.5)
     ABC_Beaumont<-ABC_sequential(method="Beaumont", model=toy_model2, prior=toy_prior2,
-    nb_simul=10, summary_stat_target=sum_stat_obs2, tolerance_tab=tolerance)
+    nb_simul=20, summary_stat_target=sum_stat_obs2, tolerance_tab=tolerance)
     ABC_Beaumont
 
     ## to perform the Drovandi and Pettitt (2011)'s method:
@@ -186,7 +186,7 @@
     tolerance=0.5
     c_drov=0.7
     ABC_Drovandi<-ABC_sequential(method="Drovandi", model=toy_model2, prior=toy_prior2,
-    nb_simul=10, summary_stat_target=sum_stat_obs2, tolerance_tab=tolerance, c=c_drov)
+    nb_simul=20, summary_stat_target=sum_stat_obs2, tolerance_tab=tolerance, c=c_drov)
     ABC_Drovandi
 
     ## to perform the Del Moral et al. (2012)'s method:
@@ -194,7 +194,7 @@
     alpha_delmo=0.5
     tolerance=0.5
     ABC_Delmoral<-ABC_sequential(method="Delmoral", model=toy_model2, prior=toy_prior2,
-    nb_simul=10, summary_stat_target=sum_stat_obs2, alpha=alpha_delmo, tolerance_target=tolerance)
+    nb_simul=20, summary_stat_target=sum_stat_obs2, alpha=alpha_delmo, tolerance_target=tolerance)
     ABC_Delmoral
 
     ## to perform the Lenormand et al. (2012)'s method:
@@ -203,7 +203,7 @@
     # Only uniform priors are supported for the method "Lenormand" (since it performs a Latin Hypercube sampling at the beginning):
     toy_prior2=list(c("unif",0,1),c("unif",0.5,1.5)) # a uniform prior distribution between 0 and 1 for parameter 1, and a normal distribution of mean 1 and standard deviation of 1 for parameter 2.
     ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model2, prior=toy_prior2,
-    nb_simul=10, summary_stat_target=sum_stat_obs2, p_acc_min=pacc)
+    nb_simul=20, summary_stat_target=sum_stat_obs2, p_acc_min=pacc)
     ABC_Lenormand
 
     ##### EXAMPLE 3 #####
@@ -222,7 +222,7 @@
     ##
     tolerance=c(8,5)
     ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model, prior=trait_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, use_seed=TRUE)
+    nb_simul=20, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, use_seed=TRUE)
     ABC_Beaumont
 
     ## to perform the Drovandi and Pettitt (2011)'s method:
@@ -230,7 +230,7 @@
     tolerance=3
     c_drov=0.7
     ABC_Drovandi<-ABC_sequential(method="Drovandi", model=trait_model, prior=trait_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, c=c_drov, use_seed=TRUE)
+    nb_simul=20, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, c=c_drov, use_seed=TRUE)
     ABC_Drovandi
 
     ## to perform the Del Moral et al. (2012)'s method:
@@ -238,14 +238,14 @@
     alpha_delmo=0.5
     tolerance=3
     ABC_Delmoral<-ABC_sequential(method="Delmoral", model=trait_model, prior=trait_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, alpha=alpha_delmo, tolerance_target=tolerance, use_seed=TRUE)
+    nb_simul=20, summary_stat_target=sum_stat_obs, alpha=alpha_delmo, tolerance_target=tolerance, use_seed=TRUE)
     ABC_Delmoral
 
     ## to perform the Lenormand et al. (2012)'s method:
     ##
     pacc=0.4
     ABC_Lenormand<-ABC_sequential(method="Lenormand", model=trait_model, prior=trait_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE)
+    nb_simul=20, summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE)
     ABC_Lenormand
 
 
@@ -257,7 +257,7 @@
     ## For models already running with the option use_seed=TRUE, simply change the value of n_cluster:
     sum_stat_obs=c(100,2.5,20,30000)
     ABC_Lenormand<-ABC_sequential(method="Lenormand", model=trait_model, prior=trait_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE, n_cluster=2)
+    nb_simul=20, summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE, n_cluster=2)
     ABC_Lenormand
 
     ## For other models, change the value of n_cluster and modify the model so that the first parameter becomes a seed information value:
@@ -267,7 +267,7 @@
     sum_stat_obs=6.5
 
     ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model_parallel, prior=toy_prior,
-    nb_simul=10, summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE, n_cluster=2)
+    nb_simul=20, summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE, n_cluster=2)
     ABC_Lenormand
   }
 }
