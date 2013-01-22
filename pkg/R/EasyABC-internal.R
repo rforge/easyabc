@@ -555,10 +555,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   if (progress_bar){
 	  print("    ------ Beaumont et al. (2009)'s algorithm ------")
   }
-  if (verbose){
-    write.table(NULL,file="output",row.names=F,col.names=F,quote=F)
-  }
-
+ 
 
   start = Sys.time()
   seed_count_ini=seed_count
