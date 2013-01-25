@@ -11,7 +11,7 @@
 \date{\texttt{EasyABC} version  1.1 \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
-%\SweaveOpts{eval=FALSE}
+\SweaveOpts{eval=FALSE}
 
 \begin{document}
 
@@ -180,7 +180,7 @@ We will use two different types of prior distribution for the two model paramete
 toy_prior=list(c("unif",0,1),c("normal",1,2))
 @
 
-And we will consider an imaginary dataset of two summary statistics that the toy_model is aiming at fitting:
+And we will consider an imaginary dataset of two summary statistics that the toy\_model is aiming at fitting:
 <<sum_stat_obs>>=
 sum_stat_obs=c(1.5,0.5)
 @
@@ -260,7 +260,7 @@ ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model, prior=toy_pri
 
 \subsection{Performing a ABC-MCMC scheme}
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_rec$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, a vector $tab\_normalization$ precising the scale of each summary statistics, and a vector $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
-All these arguments have default values (see the package help for the function ABC_mcmc), so that \texttt{ABC\_mcmc} will work without user-defined values.
+All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
 <<ABC_Marjoram_original>>=
 n=10
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=toy_model, prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
@@ -269,7 +269,7 @@ ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=toy_model, pri
 To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm via an initial calibration step, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
 These modifications are drawn from the algorithm of Wegmann et al. (2009a), without relying on PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantile=0.01$ and $proposal\_phi=1$.
-This way of automatic determination of $dist\_max$, $tab\_normalization$ and $proposal\_range$ is strongly recommended, compared to the crude automatic determination proposed in the method "Marjoram_original".
+This way of automatic determination of $dist\_max$, $tab\_normalization$ and $proposal\_range$ is strongly recommended, compared to the crude automatic determination proposed in the method \texttt{Marjoram\_original}.
 <<ABC_Marjoram>>=
 n=10
 ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=toy_model, prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
@@ -414,7 +414,7 @@ summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE)
 
 \subsection{Performing a ABC-MCMC scheme}
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_obs$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, a vector $tab\_normalization$ precising the scale of each summary statistics, and a vector $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
-All these arguments have default values (see the package help for the function ABC_mcmc), so that \texttt{ABC\_mcmc} will work without user-defined values.
+All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
 <<ABC_Marjoram_original>>=
 n=10
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model, prior=trait_prior,
@@ -424,7 +424,7 @@ summary_stat_target=sum_stat_obs, n_rec=n, use_seed=TRUE)
 To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm via an initial calibration step, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
 These modifications are drawn from the algorithm of Wegmann et al. (2009a), without relying on PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantile=0.01$ and $proposal\_phi=1$.
-This way of automatic determination of $dist\_max$, $tab\_normalization$ and $proposal\_range$ is strongly recommended, compared to the crude automatic determination proposed in the method "Marjoram_original".
+This way of automatic determination of $dist\_max$, $tab\_normalization$ and $proposal\_range$ is strongly recommended, compared to the crude automatic determination proposed in the method \texttt{Marjoram\_original}.
 <<ABC_Marjoram>>=
 n=10
 n_calib=10
