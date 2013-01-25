@@ -8,7 +8,7 @@
 	Sequential sampling schemes have been shown to be more efficient than standard rejection-based procedures.
 }
 \usage{
-	ABC_sequential(method, model, prior, nb_simul, summary_stat_target, n_cluster = 1,...)
+	ABC_sequential(method, model, prior, nb_simul, summary_stat_target, n_cluster = 1, use_seed = FALSE, verbose = FALSE, ...)
 }
 
 \arguments{
@@ -28,6 +28,12 @@
 	a vector containing the targeted (observed) summary statistics.}
   \item{n_cluster}{
     a positive integer. If larger than 1 (the default value), \code{ABC_sequential} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
+  \item{use_seed}{
+    logical. If \code{FALSE} (default), \code{ABC_rejection} provides as input to the function \code{model} a vector containing the model parameters used for the simulation.
+    If \code{TRUE}, \code{ABC_rejection} provides as input to the function \code{model} a vector containing an integer seed value and the model parameters used for the simulation.
+    In this last case, the seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).}
+  \item{verbose}{
+    logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_rejection} writes in the current directory intermediary results at the end of each step of the algorithm.}
   \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
 }
 

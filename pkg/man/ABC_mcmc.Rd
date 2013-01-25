@@ -7,7 +7,7 @@
 	This function implements three different algorithms to perform coupled to MCMC ABC.
 }
 \usage{
-	ABC_mcmc(method, model, prior, summary_stat_target, n_rec=100, n_between_sampling=10, n_cluster = 1, ...)
+	ABC_mcmc(method, model, prior, summary_stat_target, n_rec=100, n_between_sampling=10, n_cluster = 1, use_seed = FALSE, verbose = FALSE, ...)
 }
 \arguments{
   \item{method}{
@@ -27,6 +27,12 @@
     	a positive integer equal to the desired spacing between sampled points along the MCMC.}
   \item{n_cluster}{
     a positive integer. If larger than 1 (the default value), \code{ABC_mcmc} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
+  \item{use_seed}{
+    logical. If \code{FALSE} (default), \code{ABC_rejection} provides as input to the function \code{model} a vector containing the model parameters used for the simulation.
+    If \code{TRUE}, \code{ABC_rejection} provides as input to the function \code{model} a vector containing an integer seed value and the model parameters used for the simulation.
+    In this last case, the seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).}
+  \item{verbose}{
+    logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_rejection} writes in the current directory intermediary results at the end of each step of the algorithm.}
   \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
 }
 
