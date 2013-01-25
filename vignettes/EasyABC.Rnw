@@ -11,7 +11,7 @@
 \date{\texttt{EasyABC} version  1.1 \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
-\SweaveOpts{eval=FALSE}
+% \SweaveOpts{eval=FALSE}
 
 \begin{document}
 
@@ -198,14 +198,17 @@ ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n, summary_sta
 Alternatively, \texttt{ABC\_rejection} can be used to solely launch the simulations and to store the simulation outputs without performing the rejection step.
 This option enables the user to make use of the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012) which offers an array of more sophisticated post-processing treatments than the simple rejection procedure:
 <<ABC_rejection>>=
+# Run the ABC rejection on the model
 set.seed(1)
 n=10
 ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n)
 @
 <<abcinstall,eval=FALSE>>=
+# Install if needed the "abc" package
 install.packages("abc")
 @
 <<abc>>=
+# Post-process the simulations outputs
 library(abc)
 rej<-abc(sum_stat_obs, ABC_rej$param, ABC_rej$stats, tol=0.2,method="rejection")
 # simulations selected:
