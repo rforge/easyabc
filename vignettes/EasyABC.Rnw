@@ -192,13 +192,14 @@ A standard ABC-rejection procedure can be simply performed with the function \te
 set.seed(1)
 n=10
 p=0.2
-ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs, tol=p)
+ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n,
+summary_stat_target=sum_stat_obs, tol=p)
 @
 
 Alternatively, \texttt{ABC\_rejection} can be used to solely launch the simulations and to store the simulation outputs without performing the rejection step.
 This option enables the user to make use of the \texttt{R} package \texttt{abc} (Csill\'ery et al. 2012) which offers an array of more sophisticated post-processing treatments than the simple rejection procedure:
 <<ABC_rejection>>=
-# Run the ABC rejection on the model
+# Run the ABC rejection on the model
 set.seed(1)
 n=10
 ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n)
@@ -210,7 +211,7 @@ install.packages("abc")
 <<abc>>=
 # Post-process the simulations outputs
 library(abc)
-rej<-abc(sum_stat_obs, ABC_rej$param, ABC_rej$stats, tol=0.2,method="rejection")
+rej<-abc(sum_stat_obs, ABC_rej$param, ABC_rej$stats, tol=0.2, method="rejection")
 # simulations selected:
 rej$unadj.values
 # their associated summary statistics:
@@ -226,7 +227,9 @@ To perform the algorithm of Beaumont et al. (2009), one needs to specify the seq
 <<ABC_Beaumont>>=
 n=10
 tolerance=c(1.5,0.5)
-ABC_Beaumont<-ABC_sequential(method="Beaumont", model=toy_model, prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance)
+ABC_Beaumont<-ABC_sequential(method="Beaumont", model=toy_model,
+prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
+tolerance_tab=tolerance)
 @
 
 To perform the algorithm of Drovandi and Pettitt (2011), one needs to specify four arguments: the initial number of simulations $nb\_simul$, the final tolerance level $tolerance\_tab$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the target proportion $c$ of unmoved particles during the MCMC jump.
@@ -235,7 +238,9 @@ Note that default values $alpha=0.5$ and $c=0.01$ are used if not specified, fol
 n=10
 tolerance=0.5
 c_drov=0.7
-ABC_Drovandi<-ABC_sequential(method="Drovandi", model=toy_model, prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, c=c_drov)
+ABC_Drovandi<-ABC_sequential(method="Drovandi", model=toy_model,
+prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
+tolerance_tab=tolerance, c=c_drov)
 @
 
 To perform the algorithm of Del Moral et al. (2012), one needs to specify five arguments: the initial number of simulations $nb\_simul$, the number $\alpha$ controlling the decrease in effective sample size of the particle set at each step, the number $M$ of simulations performed for each particle, the minimal effective sample size $nb\_threshold$ below which a resampling of particles is performed and the final tolerance level $tolerance\_target$.
@@ -244,7 +249,9 @@ Note that default values $alpha=0.5$, $M=1$ and $nb\_threshold=nb\_simul/2$ are 
 n=10
 alpha_delmo=0.5
 tolerance=0.5
-ABC_Delmoral<-ABC_sequential(method="Delmoral", model=toy_model, prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs, alpha=alpha_delmo, tolerance_target=tolerance)
+ABC_Delmoral<-ABC_sequential(method="Delmoral", model=toy_model,
+prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
+alpha=alpha_delmo, tolerance_target=tolerance)
 @
 
 To perform the algorithm of Lenormand et al. (2012), one needs to specify three arguments: the initial number of simulations $nb\_simul$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the stopping criterion $p\_acc\_min$.
@@ -257,7 +264,9 @@ toy_prior2=list(c("unif",0,1),c("unif",0.5,1.5))
 <<ABC_Lenormand>>=
 n=10
 pacc=0.4
-ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model, prior=toy_prior2, nb_simul=10, summary_stat_target=sum_stat_obs, p_acc_min=pacc)
+ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model,
+prior=toy_prior2, nb_simul=10, summary_stat_target=sum_stat_obs,
+p_acc_min=pacc)
 @
 
 
@@ -266,7 +275,8 @@ To perform the algorithm of Marjoram et al. (2003), one needs to specify five ar
 All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
 <<ABC_Marjoram_original>>=
 n=10
-ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=toy_model, prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=toy_model,
+prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
 @
 
 To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm via an initial calibration step, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
@@ -275,14 +285,16 @@ The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantil
 This way of automatic determination of $dist\_max$, $tab\_normalization$ and $proposal\_range$ is strongly recommended, compared to the crude automatic determination proposed in the method \texttt{Marjoram\_original}.
 <<ABC_Marjoram>>=
 n=10
-ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=toy_model, prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
+ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=toy_model,
+prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
 @
 
 To perform the algorithm of Wegmann et al. (2009a), one needs to specify four arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$, the scale factor $proposal\_phi$ to determine the proposal range and the number of components $numcomp$ to be used in PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantile=0.01$, $proposal\_phi=1$ and $numcomp=0$, this last default value encodes a choice of a number of PLS components equal to the number of summary statistics.
 <<#ABC_Wegmann>>=
 n=10
-ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=toy_model, prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
+ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=toy_model,
+prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
 @
 
 
@@ -301,7 +313,9 @@ toy_model_parallel<-function(x){
 set.seed(1)
 n=10
 p=0.2
-ABC_rej<-ABC_rejection(model=toy_model_parallel, prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs, tol=p, n_cluster=2, use_seed=TRUE)
+ABC_rej<-ABC_rejection(model=toy_model_parallel, prior=toy_prior,
+nb_simul=n, summary_stat_target=sum_stat_obs, tol=p, n_cluster=2,
+use_seed=TRUE)
 @
 
 
@@ -323,7 +337,9 @@ In the following, we will use the values $J=500$ and $n\_t=1$, and uniform prior
 \textit{NB:} Note that the fixed variables $J$ and $n\_t$ are included in the prior list (elements 1 and 4) using uniform distributions with a trivial ranges:
   
 <<trait_prior>>=
-trait_prior=list(c("unif",500,500),c("unif",3,5),c("unif",-2.3,1.6),c("unif",1,1),c("unif",-25,125),c("unif",-0.7,3.2))
+trait_prior=list(c("unif",500,500), c("unif",3,5),
+c("unif",-2.3,1.6), c("unif",1,1),
+c("unif",-25,125), c("unif",-0.7,3.2))
 @
 
 We will consider an imaginary dataset whose summary statistics are $(S,H,MTV,STV) = (100,2.5,20,30000)$:
@@ -354,7 +370,8 @@ set.seed(1)
 n=10
 p=0.2
 ABC_rej<-ABC_rejection(model=trait_model, prior=trait_prior, nb_simul=n, use_seed=TRUE)
-rej<-abc(sum_stat_obs, ABC_rej$param[,c(2,3,5,6)], ABC_rej$stats, tol=0.2, method="rejection")
+rej<-abc(sum_stat_obs, ABC_rej$param[,c(2,3,5,6)], ABC_rej$stats,
+tol=0.2, method="rejection")
 # simulations selected:
 rej$unadj.values
 # their associated summary statistics:
@@ -381,8 +398,9 @@ To perform the algorithm of Beaumont et al. (2009), one needs to specify the seq
 <<ABC_Beaumont>>=
 n=10
 tolerance=c(8,5)
-ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model, prior=trait_prior, nb_simul=n,
-summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, use_seed=TRUE)
+ABC_Beaumont<-ABC_sequential(method="Beaumont", model=trait_model,
+prior=trait_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
+tolerance_tab=tolerance, use_seed=TRUE)
 @
 
 To perform the algorithm of Drovandi and Pettitt (2011), one needs to specify four arguments: the initial number of simulations $nb\_simul$, the final tolerance level $tolerance\_tab$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the target proportion $c$ of unmoved particles during the MCMC jump.
@@ -391,8 +409,9 @@ Note that default values $alpha=0.5$ and $c=0.01$ are used if not specified, fol
 n=10
 tolerance=3
 c_drov=0.7
-ABC_Drovandi<-ABC_sequential(method="Drovandi", model=trait_model, prior=trait_prior, nb_simul=n,
-summary_stat_target=sum_stat_obs, tolerance_tab=tolerance, c=c_drov, use_seed=TRUE)
+ABC_Drovandi<-ABC_sequential(method="Drovandi", model=trait_model,
+prior=trait_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
+tolerance_tab=tolerance, c=c_drov, use_seed=TRUE)
 @
 
 To perform the algorithm of Del Moral et al. (2012), one needs to specify five arguments: the initial number of simulations $nb\_simul$, the number $\alpha$ controlling the decrease in effective sample size of the particle set at each step, the number $M$ of simulations performed for each particle, the minimal effective sample size $nb\_threshold$ below which a resampling of particles is performed and the final tolerance level $tolerance\_target$.
@@ -401,8 +420,9 @@ Note that default values $alpha=0.5$, $M=1$ and $nb\_threshold=nb\_simul/2$ are 
 n=10
 alpha_delmo=0.5
 tolerance=3
-ABC_Delmoral<-ABC_sequential(method="Delmoral", model=trait_model, prior=trait_prior, nb_simul=n,
-summary_stat_target=sum_stat_obs, alpha=alpha_delmo, tolerance_target=tolerance, use_seed=TRUE)
+ABC_Delmoral<-ABC_sequential(method="Delmoral", model=trait_model,
+prior=trait_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
+alpha=alpha_delmo, tolerance_target=tolerance, use_seed=TRUE)
 @
 
 To perform the algorithm of Lenormand et al. (2012), one needs to specify three arguments: the initial number of simulations $nb\_simul$, the proportion $\alpha$ of best-fit simulations to update the tolerance level at each step, and the stopping criterion $p\_acc\_min$.
@@ -410,8 +430,9 @@ Note that default values $alpha=0.5$ and $p\_acc\_min=0.05$ are used if not spec
 <<ABC_Lenormand>>=
 n=10
 pacc=0.4
-ABC_Lenormand<-ABC_sequential(method="Lenormand", model=trait_model, prior=trait_prior, nb_simul=n, 
-summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE)
+ABC_Lenormand<-ABC_sequential(method="Lenormand", model=trait_model,
+prior=trait_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
+p_acc_min=pacc, use_seed=TRUE)
 @
 
 
@@ -420,8 +441,8 @@ To perform the algorithm of Marjoram et al. (2003), one needs to specify five ar
 All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
 <<ABC_Marjoram_original>>=
 n=10
-ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model, prior=trait_prior,
-summary_stat_target=sum_stat_obs, n_rec=n, use_seed=TRUE)
+ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model,
+prior=trait_prior, summary_stat_target=sum_stat_obs, n_rec=n, use_seed=TRUE)
 @
 
 To perform the algorithm of Marjoram et al. (2003) in which some of the arguments ($dist\_max$, $tab\_normalization$ and $proposal\_range$) are automatically determined by the algorithm via an initial calibration step, one needs to specify three arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$ and the scale factor $proposal\_phi$ to determine the proposal range.
@@ -432,7 +453,8 @@ This way of automatic determination of $dist\_max$, $tab\_normalization$ and $pr
 n=10
 n_calib=10
 tol_quant=0.2 
-ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=trait_model, prior=trait_prior,  summary_stat_target=sum_stat_obs,
+ABC_Marjoram<-ABC_mcmc(method="Marjoram", model=trait_model, prior=trait_prior,
+summary_stat_target=sum_stat_obs,
 n_rec=n, n_calibration=n_calib, tolerance_quantile=tol_quant, use_seed=TRUE)
 @
 
@@ -442,7 +464,8 @@ The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantil
 n=10
 n_calib=10
 tol_quant=0.2 
-ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior=trait_prior,  summary_stat_target=sum_stat_obs,
+ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior=trait_prior,
+summary_stat_target=sum_stat_obs,
 n_rec=n, n_calibration=n_calib, tolerance_quantile=tol_quant, use_seed=TRUE)
 @
 
