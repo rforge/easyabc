@@ -149,7 +149,7 @@
     sum_stat_obs=6.5
 
     ABC_simb<-ABC_rejection(model=toy_model_parallel, prior=toy_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)
-  }
+  }%dontrun
 }
 \keyword{abc}
 \keyword{model}

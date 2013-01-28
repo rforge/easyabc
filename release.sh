@@ -1,5 +1,5 @@
 #!/bin/sh
-
+  
 DATE=$(date +%Y-%m-%d)
 [ $# -eq 1 ] && VERSION=$1 ||
 VERSION=$(grep 'Version:'  pkg/DESCRIPTION | cut -d' ' -f2)
@@ -14,6 +14,15 @@ sed -i -e 's/^Date:.*$/Date: '${DATE}'/' pkg/DESCRIPTION pkg/man/EasyABC-package
 sed -i -e 's/^Version:.*$/Version: '${VERSION}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
 sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}'/' vignettes/EasyABC.Rnw
 
-./updateVignette.sh && \
+
+./updateVignette.sh && {
+  RDFILES=$(find pkg/man -name "*.Rd") && \
+  # enable examples
+  echo ${RDFILES} | xargs sed -i -e 's/[^%]\\dontrun{[^%]/%\\dontrun{/g' && \
+  echo ${RDFILES} | xargs sed -i -e 's/[^%]}%dontrun/%}%dontrun/g' && \
   R CMD build pkg && \
   R CMD check --as-cran EasyABC_${VERSION}.tar.gz
+  # disable examples for CRAN
+  echo ${RDFILES} | xargs sed -i -e 's/%\\dontrun{/\\dontrun{/g'
+  echo ${RDFILES} | xargs sed -i -e 's/%}%dontrun/}%dontrun/g'
+}

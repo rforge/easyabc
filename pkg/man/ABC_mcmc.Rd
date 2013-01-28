@@ -196,7 +196,7 @@
     tol_quant=0.2 
     ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior=trait_prior,  summary_stat_target=sum_stat_obs, n_rec=n, n_calibration=n_calib, tolerance_quantile=tol_quant, use_seed=TRUE)
     ABC_Wegmann
-  }
+  }%dontrun
 }
 \keyword{abc}
 \keyword{model}

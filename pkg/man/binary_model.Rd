@@ -29,7 +29,7 @@
   \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
 }
 \examples{
-  \dontrun{
+  \dontrun{%
     ## artificial example to show how to use the binary_model function with an executable "My_Executable"
     ABC_rej<-ABC_rejection(model=binary_model("./My_Executable"), prior=..., n_cluster=1,...)
 

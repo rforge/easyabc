@@ -275,7 +275,7 @@
     ABC_Lenormand<-ABC_sequential(method="Lenormand", model=toy_model_parallel, prior=toy_prior,
     nb_simul=20, summary_stat_target=sum_stat_obs, p_acc_min=pacc, use_seed=TRUE, n_cluster=2)
     ABC_Lenormand
-  }
+  }%dontrun
 }
 \keyword{abc}
 \keyword{model}
