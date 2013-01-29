@@ -10,10 +10,9 @@ read -p "Are you sure? (y/n) " REPLY
   read -p "Give the wanted version: " VERSION
 }
 
-sed -i -e 's/^Date:.*$/Date: '${DATE}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
-sed -i -e 's/^Version:.*$/Version: '${VERSION}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
-sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}'/' vignettes/EasyABC.Rnw
-
+sed -i -e 's/^\(\ *Date:\).*$/\1 '${DATE}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
+sed -i -e 's/^\(\ *Version:\).*$/\1 '${VERSION}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
+sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}',/' vignettes/EasyABC.Rnw
 
 ./updateVignette.sh && {
   RDFILES=$(find pkg/man -name "*.Rd") && \
