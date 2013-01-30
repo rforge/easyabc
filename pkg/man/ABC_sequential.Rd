@@ -40,10 +40,6 @@
 \section{Additional paramaters}{
   Depending on the choosen method, you can specify the following arguments:
   \describe{
-    \item{use_seed}{
-        logical. If \code{FALSE} (default), \code{ABC_sequential} provides as input to the function \code{model} a vector containing the model parameters used for the simulation.
-        If \code{TRUE}, \code{ABC_sequential} provides as input to the function \code{model} a vector containing an integer seed value and the model parameters used for the simulation.
-        In this last case, the seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).}
     \item{seed_count}{
 	  a positive integer, the initial seed value provided to the function \code{model} (if \code{use_seed=TRUE}). This value is incremented by 1 at each call of the function \code{model}.}
     \item{inside_prior}{
