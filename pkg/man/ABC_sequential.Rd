@@ -67,7 +67,7 @@
 	  This is the number of \code{model} simulations performed for each parameter set.
 	  Default value is 1. See the package's vignette and Del Moral et al. (2012) for details.}
     \item{nb_threshold}{
-	  a positive integer used when \code{method} is \code{"Delmoral"}.
+	  a positive integer used when \code{method} is \code{"Delmoral"}. Default value is 0.5*\code{nb_simul}.
 	  This is the minimal effective sample size below which a resampling step is launched. See the package's vignette and Del Moral et al. (2012) for details.}
     \item{tolerance_target}{
 	  a positive number used when \code{method} is \code{"Delmoral"}.
@@ -76,8 +76,6 @@
 	  a positive number between 0 and 1 (strictly) used when \code{method} is \code{"Lenormand"}.
 	  This is the stopping criterion of the algorithm: a small number ensures a better convergence of the algorithm, but at a cost in computing time.
 	  Default value is 0.05. See the package's vignette and Lenormand et al. (2012) for details.}
-    \item{verbose}{
-	  logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_sequential} writes in the current directory intermediary results at the end of each step of the algorithm.}
     \item{progress_bar}{
       logical, \code{FALSE} by default. If \code{TRUE}, \code{ABC_sequential} will output a bar of progression with the estimated remaining computing time. Option not available with multiple cores.}
   }
