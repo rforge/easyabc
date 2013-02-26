@@ -253,12 +253,14 @@ param
     if (use_seed) {
       tab_param=rbind(tab_param,param[2:(l+1)])
       if (verbose){
-	write.table(cbind(param[2:(l+1)],simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
+	intermed=c(param[2:(l+1)],simul_summarystat)
+	write(intermed,file="output",ncolumns=length(intermed),append=T)
       }
     } else {
       tab_param=rbind(tab_param,param)
       if (verbose){
-	write.table(cbind(param,simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
+	intermed=c(param,simul_summarystat)
+	write(intermed,file="output",ncolumns=length(intermed),append=T)
       }
     }
     if (!is.null(pb)) {
@@ -1827,6 +1829,10 @@ res
   tab_param=param_ini
   tab_simul_summary_stat=tab_simul_ini
   tab_dist=as.numeric(dist_ini)
+  if (verbose==TRUE){
+   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+  }
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior)
@@ -1849,7 +1855,8 @@ res
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
     }
     if (progress_bar){
 	    # for progressbar message and time evaluation
@@ -1960,6 +1967,7 @@ res
     write.table((seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
     write.table(NULL,file="output_mcmc",row.names=F,col.names=F,quote=F)
   }
+
   if (progress_bar){
 	  print("initial calibration performed ")
   }
@@ -1976,6 +1984,10 @@ res
   tab_simul_summary_stat=tab_simul_ini
   tab_dist=as.numeric(dist_ini)
   seed_count=seed_count+1
+  if (verbose==TRUE){
+   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+  }
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior)
@@ -1998,8 +2010,9 @@ res
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
-    }
+    	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+   }
     if (progress_bar){
 	    # for progressbar message and time evaluation
 		    duration = difftime(Sys.time(), startb, units="secs")
@@ -2217,6 +2230,10 @@ res
   dist_ini=simuldist[(ord_sim[n_ini])]
   tab_dist=as.numeric(dist_ini)
   seed_count=seed_count+1
+  if (verbose==TRUE){
+   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+  }
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       ## AM6
@@ -2256,7 +2273,8 @@ res
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
     }
     if (progress_bar){
 	    # for progressbar message and time evaluation
@@ -2406,7 +2424,8 @@ res
 		simultemp=rbind(simultemp,as.numeric(list_simul_summarystat[[i]]))
 	  }
 	  if (verbose){
-		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp)),file="output",row.names=F,col.names=F,quote=F,append=T)
+		intermed=cbind(as.matrix(paramtemp),as.matrix(simultemp))
+		write.table(intermed,file="output",row.names=F,col.names=F,quote=F,append=T)
 	  }
          }
 	}
@@ -2432,7 +2451,8 @@ res
 		simultemp=rbind(simultemp,as.numeric(list_simul_summarystat[[i]]))
 	  }
  	  if (verbose){
-		write.table(cbind(as.matrix(paramtemp),as.matrix(simultemp)),file="output",row.names=F,col.names=F,quote=F,append=T)
+		intermed=cbind(as.matrix(paramtemp),as.matrix(simultemp))
+		write.table(intermed,file="output",row.names=F,col.names=F,quote=F,append=T)
 	  }
     	  stopCluster(cl)
 	}
@@ -4022,6 +4042,10 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   tab_param=param_ini
   tab_simul_summary_stat=tab_simul_ini
   tab_dist=as.numeric(dist_ini)
+  if (verbose==TRUE){
+   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+  }
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior)
@@ -4040,7 +4064,8 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
      	if (is%%100==0){
       		print(paste(is," ",sep=""))
      	}
@@ -4223,6 +4248,10 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
   tab_simul_summary_stat=tab_simul_ini
   dist_ini=simuldist[(ord_sim[n_ini])]
   tab_dist=as.numeric(dist_ini)
+  if (verbose==TRUE){
+   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+  }
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       ## AM6
@@ -4258,7 +4287,8 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
      	if (is%%100==0){
       		print(paste(is," ",sep=""))
      	}
