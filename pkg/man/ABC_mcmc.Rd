@@ -124,7 +124,7 @@
   \code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}
 }
 \examples{
-  \dontrun{
+ \dontrun{
     ##### EXAMPLE 1 #####
     #####################
 
@@ -190,7 +190,7 @@
     tol_quant=0.2 
     ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=trait_model, prior=trait_prior,  summary_stat_target=sum_stat_obs, n_rec=n, n_calibration=n_calib, tolerance_quantile=tol_quant, use_seed=TRUE)
     ABC_Wegmann
-  }%dontrun
+ }%dontrun
 }
 \keyword{abc}
 \keyword{model}

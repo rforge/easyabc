@@ -64,7 +64,7 @@
   \code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
 }
 \examples{
-  \dontrun{
+ \dontrun{
     ##### EXAMPLE 1 #####
     #####################
     set.seed(1)
@@ -149,7 +149,7 @@
     sum_stat_obs=6.5
 
     ABC_simb<-ABC_rejection(model=toy_model_parallel, prior=toy_prior, nb_simul=n, use_seed=TRUE, n_cluster=2)
-  }%dontrun
+ }%dontrun
 }
 \keyword{abc}
 \keyword{model}
