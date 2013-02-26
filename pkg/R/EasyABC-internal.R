@@ -253,12 +253,12 @@ param
     if (use_seed) {
       tab_param=rbind(tab_param,param[2:(l+1)])
       if (verbose){
-	write.table(c(param[2:(l+1)],simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
+	write.table(cbind(param[2:(l+1)],simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
       }
     } else {
       tab_param=rbind(tab_param,param)
       if (verbose){
-	write.table(c(param,simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
+	write.table(cbind(param,simul_summarystat),file="output",row.names=F,col.names=F,quote=F,append=T)
       }
     }
     if (!is.null(pb)) {
@@ -1849,7 +1849,7 @@ res
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
     }
     if (progress_bar){
 	    # for progressbar message and time evaluation
@@ -1998,7 +1998,7 @@ res
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
     }
     if (progress_bar){
 	    # for progressbar message and time evaluation
@@ -2256,7 +2256,7 @@ res
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
     }
     if (progress_bar){
 	    # for progressbar message and time evaluation
@@ -4040,7 +4040,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
      	if (is%%100==0){
       		print(paste(is," ",sep=""))
      	}
@@ -4258,7 +4258,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	write.table(c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
+    	write.table(cbind(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini)),file="output_mcmc",row.names=F,col.names=F,quote=F,append=T)
      	if (is%%100==0){
       		print(paste(is," ",sep=""))
      	}
