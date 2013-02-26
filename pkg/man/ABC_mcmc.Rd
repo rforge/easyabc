@@ -32,7 +32,8 @@
     If \code{TRUE}, \code{ABC_mcmc} provides as input to the function \code{model} a vector containing an integer seed value and the model parameters used for the simulation.
     In this last case, the seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).}
   \item{verbose}{
-    logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} writes in the current directory intermediary results at the end of each step of the algorithm.}
+    logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_mcmc} writes in the current directory intermediary results at the end of each step of the algorithm.
+    These outputs have a matrix format, in wich each raw is a different simulation, the first columns are the parameters used for this simulation, the following columns are the summary statistics of this simulation, and the last column is the distance between the simulation and the data.}
   \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
 }
 
