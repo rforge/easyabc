@@ -127,7 +127,7 @@ A vector containing the summary statistics of the data must be supplied. The sta
 
 \subsection{The option verbose}
 Intermediary results can be written in output files in the working directory. Users solely need to choose the option \texttt{verbose=TRUE} when launching the \texttt{EasyABC} functions (otherwise, the default value for \texttt{verbose} is \texttt{FALSE}).
-Intermediary results consist in the progressive writing of simulation outputs for the functions \texttt{ABC\_rejection} and \texttt{ABC\_mcmc} and in the writing of intermediary results at the end of each step for the function \texttt{ABC\_sequential}.
+Intermediary results consist in the progressive writing of simulation outputs for the functions \texttt{ABC\_rejection} and \texttt{ABC\_mcmc} and in the writing of intermediary results at the end of each step for the function \texttt{ABC\_sequential}. Additional details are provided in the help files of the functions.
 
 
 \subsection{Building a \texttt{R} function calling a \texttt{C/C++} program}
