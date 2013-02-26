@@ -33,7 +33,13 @@
     If \code{TRUE}, \code{ABC_sequential} provides as input to the function \code{model} a vector containing an integer seed value and the model parameters used for the simulation.
     In this last case, the seed value should be used by \code{model} to initialize its pseudo-random number generators (if \code{model} is stochastic).}
   \item{verbose}{
-    logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_sequential} writes in the current directory intermediary results at the end of each step of the algorithm.}
+    logical. \code{FALSE} by default. If \code{TRUE}, \code{ABC_sequential} writes in the current directory intermediary results at the end of each step of the algorithm various files.
+    The file "n_simul_tot_step_iteration" (where iteration is the step number) contains the total number of simulations performed since the beginning of the algorithm at the end of the step "iteration".
+    The file "R_step_iteration" (when using the method "Drovandi") is the parameter R used during the step "iteration" (see Drovandi and Pettitt 2011 for details).
+    The file "p_acc_iteration" (when using the method "Lenormand") is the parameter p_acc computed at the end of the step "iteration" (see Lenormand et al. 2012 for details).
+    The file "tolerance_step_iteration" (when using the method "Drovandi", "Delmoral" or "Lenormand") is the tolerance computed at the end of the step "iteration".
+    The file "output_step_iteration"  has a matrix format, in wich each raw is a different simulation, the first columns are the parameters used for this simulation, and the last columns are the summary statistics of this simulation.
+    All these informations are further stored in a list (with the same formats) and are accessible from R - see \code{intermediary} in the value section below.}
   \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
 }
 
@@ -100,6 +106,8 @@
   	The number of \code{model} simulations performed.}
   \item{computime}{
   	The computing time to perform the simulations.}
+  \item{intermediary}{
+  	Intermediary results stored when the option \code{"verbose=TRUE"} is chosen. Each element of this list corresponds to a different step. See the argument \code{verbose} above for more details on the information stored.}
 }
 \references{
 	Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009) Adaptive approximate Bayesian computation. \emph{Biometrika},\bold{96}, 983--990.
