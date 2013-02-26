@@ -226,7 +226,7 @@ Other functions of the \texttt{EasyABC} package are used in a very similar manne
 To perform the algorithm of Beaumont et al. (2009), one needs to specify the sequence of tolerance levels $tolerance\_tab$ and the number $nb\_simul$ of simulations to obtain below the tolerance level at each iteration:
 <<ABC_Beaumont>>=
 n=10
-tolerance=c(1.5,0.5)
+tolerance=c(1.25,0.75)
 ABC_Beaumont<-ABC_sequential(method="Beaumont", model=toy_model,
 prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
 tolerance_tab=tolerance)
@@ -236,7 +236,7 @@ To perform the algorithm of Drovandi and Pettitt (2011), one needs to specify fo
 Note that default values $alpha=0.5$ and $c=0.01$ are used if not specified, following Drovandi and Pettitt (2011).
 <<ABC_Drovandi>>=
 n=10
-tolerance=0.5
+tolerance=0.75
 c_drov=0.7
 ABC_Drovandi<-ABC_sequential(method="Drovandi", model=toy_model,
 prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
@@ -248,7 +248,7 @@ Note that default values $alpha=0.5$, $M=1$ and $nb\_threshold=nb\_simul/2$ are 
 <<ABC_Delmoral>>=
 n=10
 alpha_delmo=0.5
-tolerance=0.5
+tolerance=0.75
 ABC_Delmoral<-ABC_sequential(method="Delmoral", model=toy_model,
 prior=toy_prior, nb_simul=n, summary_stat_target=sum_stat_obs,
 alpha=alpha_delmo, tolerance_target=tolerance)
@@ -524,6 +524,8 @@ Wegmann, D., Leuenberger, C. and Excoffier, L. (2009a) Efficient approximate Bay
 Wegmann, D., Leuenberger, C. and Excoffier, L. (2009b) Using ABCtoolbox. http://cmpg.unibe.ch/software/ abctoolbox/ABCtoolbox\_manual.pdf
 
 \end{document}
+
+
 
 
 
