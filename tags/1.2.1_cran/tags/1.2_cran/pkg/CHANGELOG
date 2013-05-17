@@ -1,0 +1,17 @@
+== EasyABC changelog ==
+
+=== Version 1.2 - 27 February 2013 ===
+
+  * intermediary results are stored in a list for sequential algorithms (with the option verbose=TRUE)
+  * various minor corrections in the help files and in the vignette.
+
+=== Version 1.1 - 29 January 2013 ===
+
+  * simple toy model introduced for better examples
+  * algorithm parameters have now default values
+  * use_seed parameter is now set to False by default
+  * four prior distributions are now availables: uniform, normal, lognormal and exponential
+  * verbose mode enhanced
+  * tigher integration of package abc for rejection method
+  * bugfix: data handling when model take only one parameter
+  
