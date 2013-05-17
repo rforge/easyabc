@@ -1,5 +1,9 @@
 == EasyABC changelog ==
 
+=== Version 1.2.1 - 17 May 2013 ===
+
+  * compilation fix for Solaris
+
 === Version 1.2 - 27 February 2013 ===
 
   * intermediary results are stored in a list for sequential algorithms (with the option verbose=TRUE)
