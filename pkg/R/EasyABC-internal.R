@@ -1540,7 +1540,7 @@ res
 
 ## sequential algorithm of Lenormand et al. 2012 
 ################################################
-.ABC_Lenormand<-function(model,prior,nb_simul,summary_stat_target,use_seed,verbose,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=TRUE,progress_bar=FALSE){  
+.ABC_Lenormand<-function(model,prior,nb_simul,summary_stat_target,use_seed,verbose,alpha=0.5,p_acc_min=0.05,seed_count=0,inside_prior=TRUE,progress_bar=FALSE,store=FALSE){  
   
   ## checking errors in the inputs
   if(!is.vector(alpha)) stop("'alpha' has to be a number.")
@@ -1563,7 +1563,7 @@ res
 	  print("    ------ Lenormand et al. (2012)'s algorithm ------") 
   }
   
-  
+ if (!store){
   seed_count_ini=seed_count
   nparam=length(prior)
   nstat=length(summary_stat_target)
@@ -1656,6 +1656,106 @@ res
   else{
   	final_res=list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
   }
+}
+
+else{
+seed_count_ini=seed_count
+  nparam=length(prior)
+  nstat=length(summary_stat_target)
+  tab_unfixed_param=array(TRUE,nparam)
+  for (i in 1:nparam){
+     tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
+     if (prior[[i]][1]!="unif"){
+	stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
+     }
+  }
+  n_alpha=ceiling(nb_simul*alpha)
+  
+  ## step 1
+  # ABC rejection step with LHS
+  tab_ini=.ABC_rejection_lhs(model,prior,nb_simul,tab_unfixed_param,use_seed,seed_count)
+  seed_count=seed_count+nb_simul
+  sd_simul=sapply(as.data.frame(tab_ini[,(nparam+1):(nparam+nstat)]),sd) # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+  
+  write.table(as.matrix(cbind(array(1,nb_simul),as.matrix(tab_ini))),file="output_all",row.names=F,col.names=F,quote=F)
+  
+  # selection of the alpha quantile closest simulations
+  simul_below_tol=NULL
+  simul_below_tol=rbind(simul_below_tol,.selec_simul_alpha(summary_stat_target,as.matrix(as.matrix(tab_ini)[,1:nparam]),as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul,alpha))
+  simul_below_tol=simul_below_tol[1:n_alpha,] # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
+  
+  # initially, weights are equal
+  tab_weight=array(1,n_alpha)
+  
+  tab_dist=.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)
+  tol_next=max(tab_dist)
+  intermediary_steps=list(NULL)
+  if (verbose==TRUE){
+    write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file="output_step1",row.names=F,col.names=F,quote=F)
+    write.table(as.numeric(seed_count-seed_count_ini),file="n_simul_tot_step1",row.names=F,col.names=F,quote=F)
+    write.table(as.numeric(tol_next),file="tolerance_step1",row.names=F,col.names=F,quote=F)
+    intermediary_steps[[1]]=list(n_simul_tot=as.numeric(seed_count-seed_count_ini),tol_step=as.numeric(tol_next),posterior=as.matrix(cbind(tab_weight,simul_below_tol)))
+  }
+  if (progress_bar){
+	print("step 1 completed")
+  }
+  
+  ## following steps
+  p_acc=p_acc_min+1
+  nb_simul_step=nb_simul-n_alpha
+  it=1
+  while (p_acc>p_acc_min){
+    it=it+1
+    simul_below_tol2=NULL
+    tab_inic=.ABC_launcher_not_uniformc(model,prior,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,use_seed,seed_count,inside_prior,progress_bar)
+    tab_ini=as.matrix(tab_inic[[1]])
+    tab_ini=as.numeric(tab_ini)
+    dim(tab_ini)=c(nb_simul_step,(nparam+nstat))
+    seed_count=seed_count+nb_simul_step
+    if (!inside_prior){
+      tab_weight2=.compute_weightb(as.matrix(as.matrix(tab_ini[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior)
+    }
+    else{
+      tab_weight2=tab_inic[[2]]*(.compute_weightb(as.matrix(as.matrix(tab_ini[,1:nparam])[,tab_unfixed_param]),as.matrix(as.matrix(simul_below_tol[,1:nparam])[,tab_unfixed_param]),tab_weight/sum(tab_weight),prior))
+    }
+    simul_below_tol2=rbind(as.matrix(simul_below_tol),as.matrix(tab_ini))
+    write.table(as.matrix(cbind(tab_weight2,as.matrix(tab_ini))),file="output_all",row.names=F,col.names=F,quote=F,append=T)
+    tab_weight=c(tab_weight,tab_weight2)
+    tab_dist2=.compute_dist(summary_stat_target,as.matrix(as.matrix(tab_ini)[,(nparam+1):(nparam+nstat)]),sd_simul)
+    p_acc=length(tab_dist2[tab_dist2<=tol_next])/nb_simul_step
+    tab_dist=c(tab_dist,tab_dist2)
+    tol_next=sort(tab_dist)[n_alpha]
+    simul_below_tol2=simul_below_tol2[tab_dist<=tol_next,]
+    tab_weight=tab_weight[tab_dist<=tol_next]
+    tab_weight=tab_weight[1:n_alpha]
+    tab_dist=tab_dist[tab_dist<=tol_next]
+    tab_dist=tab_dist[1:n_alpha]
+    simul_below_tol=matrix(0,n_alpha,(nparam+nstat))
+    for (i1 in 1:n_alpha){
+      for (i2 in 1:(nparam+nstat)){
+        simul_below_tol[i1,i2]=as.numeric(simul_below_tol2[i1,i2])
+      }
+    }
+    if (verbose==TRUE){
+      write.table(as.matrix(cbind(tab_weight,simul_below_tol)),file=paste("output_step",it,sep=""),row.names=F,col.names=F,quote=F)
+      write.table(as.numeric(seed_count-seed_count_ini),file=paste("n_simul_tot_step",it,sep=""),row.names=F,col.names=F,quote=F)
+      write.table(as.numeric(p_acc),file=paste("p_acc_step",it,sep=""),row.names=F,col.names=F,quote=F)
+      write.table(as.numeric(tol_next),file=paste("tolerance_step",it,sep=""),row.names=F,col.names=F,quote=F)
+      intermediary_steps[[it]]=list(n_simul_tot=as.numeric(seed_count-seed_count_ini),tol_step=as.numeric(tol_next),p_acc=as.numeric(p_acc),posterior=as.matrix(cbind(tab_weight,simul_below_tol)))
+    }
+    if (progress_bar){
+    	print(paste("step ",it," completed - p_acc = ",p_acc,sep=""))
+    }
+  }
+  final_res=NULL
+  if (verbose==TRUE){
+  	final_res=list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")),intermediary=intermediary_steps)
+  }
+  else{
+  	final_res=list(param=as.matrix(as.matrix(simul_below_tol)[,1:nparam]),stats=as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),weights=tab_weight/sum(tab_weight),stats_normalization=as.numeric(sd_simul),epsilon=max(.compute_dist(summary_stat_target,as.matrix(as.matrix(simul_below_tol)[,(nparam+1):(nparam+nstat)]),sd_simul)),nsim=(seed_count-seed_count_ini),computime=as.numeric(difftime(Sys.time(), start, units="secs")))
+  }
+
+}
   final_res
 }
 
