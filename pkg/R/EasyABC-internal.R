@@ -328,7 +328,7 @@ res
 }
 
 .compute_weight<-function(param_simulated,param_previous_step,tab_weight,prior){
-  vmat=2*var(param_previous_step)
+  vmat=as.matrix(2*cov.wt(as.matrix(param_previous_step),as.vector(tab_weight))$cov)
   n_particle=dim(param_previous_step)[1]
   n_new_particle=dim(param_simulated)[1]
   l=dim(param_previous_step)[2]
@@ -397,7 +397,7 @@ res
    var_array=array(1,l)
    multi=(1/sqrt(2*pi))^l
    for (j in 1:l){
-    var_array[j]=4*var(param_previous_step[,j])
+    var_array[j]=4*diag(cov.wt(as.matrix(param_previous_step[,j]),as.vector(tab_weight))$cov) # computation of a WEIGHTED variance
     multi=multi*(1/sqrt(var_array[j]/2))
    }
   }
@@ -406,7 +406,7 @@ res
    n_particle=length(param_previous_step)
    n_new_particle=length(param_simulated)
    multi=(1/sqrt(2*pi))
-   var_array=4*var(param_previous_step)
+   var_array=4*diag(cov.wt(as.matrix(param_previous_step),as.vector(tab_weight))$cov) # computation of a WEIGHTED variance
    multi=multi*(1/sqrt(var_array/2))
   }
   var_array=as.numeric(var_array)
@@ -1418,7 +1418,7 @@ res
 ################################################################
 .compute_weightb<-function(param_simulated,param_previous_step,tab_weight2,prior){
   tab_weight=tab_weight2/sum(tab_weight2)
-  vmat=2*var(param_previous_step)
+  vmat=as.matrix(2*cov.wt(as.matrix(param_previous_step),as.vector(tab_weight))$cov)
   n_particle=dim(param_previous_step)[1]
   n_new_particle=dim(param_simulated)[1]
   tab_weight_new=array(0,n_new_particle)
@@ -1445,7 +1445,7 @@ res
   var_array=array(1,l)
   multi=(1/sqrt(2*pi))^l
   for (j in 1:l){
-    var_array[j]=4*var(param_previous_step[,j])
+    var_array[j]=diag(4*cov.wt(as.matrix(param_previous_step[,j]),as.vector(tab_weight))$cov)
     multi=multi*(1/sqrt(var_array[j]/2))
   }
   var_array=as.numeric(var_array)
