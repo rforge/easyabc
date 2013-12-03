@@ -38,7 +38,7 @@
   \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
 }
 
-\section{Additional paramaters}{
+\section{Additional parameters}{
   Depending on the choosen method, you can specify the following arguments:
   \describe{
     \item{dist_max}{
