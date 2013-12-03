@@ -113,7 +113,7 @@
   	The standard deviations of Box-Cox transforms, given when \code{method} is \code{"Wegmann"}.}
   \item{pls_transform}{
   	The matrix of PLS transformation, given when \code{method} is \code{"Wegmann"}.}
-  \item{n_component}{
+  \item{numcomp}{
   	The number of used components for the PLS transformation, given when \code{method} is \code{"Wegmann"}.}
 }
 \references{
