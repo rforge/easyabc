@@ -14,39 +14,23 @@
 #######################################################################################################################################################################################
 .compute_dist<-function(summary_stat_target,simul,sd_simul){
   l=length(summary_stat_target)
-  vartab=array(1,l)
-  if (l>1){
-   nsimul=dim(simul)[1]
-   dist=array(0,nsimul)
-   for (i in 1:l){
-    vartab[i]=min(1,1/(sd_simul[i]*sd_simul[i])) ## differences between simul and data are normalized in each dimension by the empirical variances in each dimension
-    dist=dist+vartab[i]*(simul[,i]-summary_stat_target[i])*(simul[,i]-summary_stat_target[i]) ## an euclidean distance is used
-   }
-  }
-  else{
-    vartab[1]=min(1,1/(sd_simul[1]*sd_simul[1])) ## differences between simul and data are normalized in each dimension by the empirical variances in each dimension
-    dist=vartab[1]*(simul-summary_stat_target[1])*(simul-summary_stat_target[1]) ## an euclidean distance is used
-  }
-  dist
+  # If simul is not a matrix (which happens when l == 1) we tranform it into a matrix
+  if( !is.matrix(simul) ) simul <- matrix(simul, length(simul), 1)
+  vartab = sd_simul^2
+  # Ensure positivity of variances: the elements of vartab that are close to zero are set to one
+  vartab[ vartab == 0 ] = 1
+  colSums( (t(simul)-summary_stat_target )^2 / vartab)
 }
 
 ## same as .compute_dist when there is only one simulation
 ##########################################################
 .compute_dist_single<-function(summary_stat_target,simul,sd_simul){
   l=length(summary_stat_target)
-  dist=0
-  vartab=array(1,l)
-  if (l>1){
-   for (i in 1:l){
-    vartab[i]=min(1,1/(sd_simul[i]*sd_simul[i]))
-    dist=dist+vartab[i]*(simul[i]-summary_stat_target[i])*(simul[i]-summary_stat_target[i])
-   }
-  }
-  else{
-    vartab[1]=min(1,1/(sd_simul[1]*sd_simul[1])) ## differences between simul and data are normalized in each dimension by the empirical variances in each dimension
-    dist=vartab[1]*(simul-summary_stat_target[1])*(simul-summary_stat_target[1]) 
-  }
-  dist
+  if( !is.matrix(simul) ) simul <- matrix(simul, length(simul), 1)
+  vartab = sd_simul^2
+  # Ensure positivity of variances: the elements of vartab that are close to zero are set to one
+  vartab[ vartab == 0 ] = 1
+  sum( (t(simul)-summary_stat_target )^2 / vartab )
 }
 
 ## function to select the simulations that are at a distance smaller than tol from the data
@@ -450,8 +434,7 @@ res
   }
   sd_array=array(1,l_array)
   for (j in 1:l_array){
-    sd_array[j]=sqrt(covmat[j,j])
-    
+    sd_array[j]=sqrt(covmat[j,j])    
   }
   for (i in 1:nb_simul){
     if (!inside_prior){
@@ -571,8 +554,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
   for (i in 1:nparam){
      tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
-
-  
+ 
   ## step 1
   nb_simul_step=nb_simul
   simul_below_tol=NULL
@@ -4058,8 +4040,8 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
 	#library(parallel)
 
 	       ## general function regrouping the different sequential algorithms     
-	  ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983â??990.
-	  ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225â??233.
+	  ## [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.
+	  ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011). Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
 	  ## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
 	  ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation for complex models, submitted to Comput. Stat. )
 	  return(switch(EXPR = method,
