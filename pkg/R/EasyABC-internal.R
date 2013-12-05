@@ -15,22 +15,37 @@
 .compute_dist<-function(summary_stat_target,simul,sd_simul){
   l=length(summary_stat_target)
   # If simul is not a matrix (which happens when l == 1) we tranform it into a matrix
-  if( !is.matrix(simul) ) simul <- matrix(simul, length(simul), 1)
+  #if( !is.matrix(simul) ) simul <- matrix(simul, length(simul), 1)
+  if(!is.matrix(simul)) {
+    if(length(summary_stat_target) == 1) {
+      simul <- matrix(simul, length(simul), 1)
+    } else {
+      simul <- matrix(simul, 1, length(simul))
+    }
+  }
   vartab = sd_simul^2
   # Ensure positivity of variances: the elements of vartab that are close to zero are set to one
   vartab[ vartab == 0 ] = 1
-  colSums( (t(simul)-summary_stat_target )^2 / vartab)
+  colSums( (t(simul)-as.vector(summary_stat_target))^2 / as.vector(vartab))
 }
 
 ## same as .compute_dist when there is only one simulation
 ##########################################################
-.compute_dist_single<-function(summary_stat_target,simul,sd_simul){
+.compute_dist_old<-function(summary_stat_target,simul,sd_simul){
   l=length(summary_stat_target)
-  if( !is.matrix(simul) ) simul <- matrix(simul, length(simul), 1)
-  vartab = sd_simul^2
-  # Ensure positivity of variances: the elements of vartab that are close to zero are set to one
-  vartab[ vartab == 0 ] = 1
-  sum( (t(simul)-summary_stat_target )^2 / vartab )
+  dist=0
+  vartab=array(1,l)
+  if (l>1){
+   for (i in 1:l){
+    vartab[i]=min(1,1/(sd_simul[i]*sd_simul[i]))
+    dist=dist+vartab[i]*(simul[i]-summary_stat_target[i])*(simul[i]-summary_stat_target[i])
+   }
+  }
+  else{
+    vartab[1]=min(1,1/(sd_simul[1]*sd_simul[1])) ## differences between simul and data are normalized in each dimension by the empirical variances in each dimension
+    dist=vartab[1]*(simul-summary_stat_target[1])*(simul-summary_stat_target[1]) 
+  }
+  dist
 }
 
 ## function to select the simulations that are at a distance smaller than tol from the data
@@ -575,7 +590,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
     else{
       tab_ini=.ABC_rejection_internal(model,prior,nb_simul_step,use_seed,seed_count)
       seed_count=seed_count+nb_simul_step
-      if (.compute_dist_single(summary_stat_target,tab_ini$summarystat,sd_simul)<tolerance_tab[1]){
+      if (.compute_dist(summary_stat_target,tab_ini$summarystat,sd_simul)<tolerance_tab[1]){
         simul_below_tol=rbind(simul_below_tol,cbind(tab_ini$param, tab_ini$summarystat))
         nb_simul_step=0
       }
@@ -609,7 +624,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       else{
         tab_ini=.ABC_launcher_not_uniform_uni(model,prior,as.matrix(simul_below_tol[,1:nparam]),tab_unfixed_param,tab_weight,nb_simul_step,use_seed,seed_count,inside_prior)
         seed_count=seed_count+nb_simul_step
-        if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
+        if (.compute_dist(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
           simul_below_tol2=rbind(simul_below_tol2,tab_ini)
           nb_simul_step=0
         }
@@ -809,7 +824,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
       else{
         tab_ini=.ABC_rejection_internal(model,prior,nb_simul_step,use_seed,seed_count)
         seed_count=seed_count+nb_simul_step
-        if (.compute_dist_single(summary_stat_target,tab_ini$summarystat,sd_simul)<=tolerance_tab[1]){
+        if (.compute_dist(summary_stat_target,tab_ini$summarystat,sd_simul)<=tolerance_tab[1]){
           simul_below_tol=rbind(simul_below_tol,cbind(tab_ini$param, tab_ini$summarystat))
           nb_simul_step=0
         }
@@ -876,7 +891,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
           new_simul=new_simul[2:(l+1)]
         }
         # check whether it is below tol_next and undo the move if it is not
-        if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+        if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
           simul_picked=as.numeric(new_simul)
           i_acc=i_acc+1
         }
@@ -950,7 +965,7 @@ list(param=rejection$param, stats=as.matrix(rejection$summarystat), weights=arra
         new_simul=new_simul[2:(l+1)]
       }
       # check whether it is below tol_next and undo the move if it is not
-      if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+      if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         simul_picked=as.numeric(new_simul)
       }
     }
@@ -1866,7 +1881,7 @@ res
       param=c((seed_count+1),param)
     }
     simul_summary_stat=model(param)
-    dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
+    dist_simul=.compute_dist(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
     dist_max=dist_simul/2
     seed_count=seed_count+1
     print("Warning: a default value for the tolerance has been computed - it may not be appropriate to your case.")
@@ -1879,7 +1894,7 @@ res
       param=c((seed_count+1),param)
     }
     simul_summary_stat=model(param)
-    dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
+    dist_simul=.compute_dist(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
     if (dist_simul<dist_max){
       test=TRUE
     }
@@ -1925,7 +1940,7 @@ res
       if (use_seed) {
         param=param[2:(nparam+1)]
       }
-      dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
+      dist_simul=.compute_dist(summary_stat_target,as.numeric(simul_summary_stat),tab_normalization)
       if (dist_simul<dist_max){
         param_ini=param
         tab_simul_ini=as.numeric(simul_summary_stat)
@@ -2001,7 +2016,7 @@ res
   
   start = Sys.time()
   if (progress_bar){
-	  print("    ------ Marjoram et al. (2003)'s algorithm with modifications drawn from Wegmann et al. (2009) related to automatization ------") 
+          print("    ------ Marjoram et al. (2003)'s algorithm with modifications drawn from Wegmann et al. (2009) related to automatization ------") 
   }
   
   seed_count_ini=seed_count
@@ -2051,15 +2066,15 @@ res
   }
 
   if (progress_bar){
-	  print("initial calibration performed ")
+          print("initial calibration performed ")
   }
   
   # chain run
   # progress bar
   startb = Sys.time()
     if (progress_bar){
-	pb <- .progressBar(width=50)
-	duration = 0;
+        pb <- .progressBar(width=50)
+        duration = 0;
     }
   
   tab_param=param_ini
@@ -2067,20 +2082,20 @@ res
   tab_dist=as.numeric(dist_ini)
   seed_count=seed_count+1
   if (verbose==TRUE){
-   	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
-    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+        intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+        write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
   }
   for (is in 2:n_obs){
     for (i in 1:n_between_sampling){
       param=.move_particle_uni_uniform(as.numeric(param_ini),proposal_range,prior)
       if (use_seed) {
         param=c(seed_count,param)
-      }	
+      } 
       simul_summary_stat=model(param)
       if (use_seed) {
         param=param[2:(nparam+1)]
       }
-      dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),sd_simul)
+      dist_simul=.compute_dist(summary_stat_target,as.numeric(simul_summary_stat),sd_simul)
       if (dist_simul<dist_max){
         param_ini=param
         tab_simul_ini=as.numeric(simul_summary_stat)
@@ -2092,24 +2107,24 @@ res
     tab_param=rbind(tab_param,as.numeric(param_ini))
     tab_dist=rbind(tab_dist,as.numeric(dist_ini))
     if (verbose==TRUE){
-    	intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
-    	write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
+        intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
+        write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
    }
     if (progress_bar){
-	    # for progressbar message and time evaluation
-		    duration = difftime(Sys.time(), startb, units="secs")
-	    text="";
-	    if (is==n_obs) {
-	      text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
-	    } 
-	    else {
-	      text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
-	    }
-	    .updateProgressBar(pb, is/n_obs, text)
+            # for progressbar message and time evaluation
+                    duration = difftime(Sys.time(), startb, units="secs")
+            text="";
+            if (is==n_obs) {
+              text = paste("Completed  in",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"                                              ");
+            } 
+            else {
+              text = paste("Time elapsed:",format(.POSIXct(duration, tz="GMT"), "%H:%M:%S"),"Estimated time remaining:",format(.POSIXct(duration/is*(n_obs-is), tz="GMT"), "%H:%M:%S"));
+            }
+            .updateProgressBar(pb, is/n_obs, text)
     }
   }
   if (progress_bar){
-	  close(pb)
+          close(pb)
   }
   tab_param2=matrix(0,dim(tab_param)[1],dim(tab_param)[2])
   for (i in 1:dim(tab_param)[1]){
@@ -2129,7 +2144,6 @@ res
   }
   list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=as.numeric(sd_simul),epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
-
 
 ## ABC-MCMC3 algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
@@ -2341,7 +2355,7 @@ res
       simul_summary_stat=as.matrix(simul_summary_stat)
       dim(simul_summary_stat)<-c(nstat,1)
       simul_summary_stat=t(pls_transformation %*% simul_summary_stat)
-      dist_simul=.compute_dist_single(summary_stat_targ,as.numeric(simul_summary_stat),rep(1,numcomp))
+      dist_simul=.compute_dist(summary_stat_targ,as.numeric(simul_summary_stat),rep(1,numcomp))
       ## AM8-9
       #print("AM8-9 ")
       if (dist_simul<dist_max){
@@ -2796,7 +2810,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     else{
       tab_ini=.ABC_rejection_internal_cluster(model,prior,nb_simul_step,seed_count,n_cluster)
       seed_count=seed_count+nb_simul_step
-      if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
+      if (.compute_dist(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[1]){
         simul_below_tol=rbind(simul_below_tol,tab_ini)
         nb_simul_step=0
       }
@@ -2830,7 +2844,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
       else{
         tab_ini=.ABC_launcher_not_uniform_uni_cluster(model,prior,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),tab_unfixed_param,tab_weight,nb_simul_step,seed_count,inside_prior,n_cluster)
         seed_count=seed_count+nb_simul_step
-        if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
+        if (.compute_dist(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<tolerance_tab[it]){
           simul_below_tol2=rbind(simul_below_tol2,tab_ini)
           nb_simul_step=0
         }
@@ -2897,7 +2911,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     for (i in 1:(100*n_cluster)){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
-      if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+      if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         tab_picked[i,]=as.numeric(new_simul)
         i_acc=i_acc+1
       }
@@ -2929,7 +2943,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     for (i in 1:n_end){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
-      if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+      if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         tab_picked[i,]=as.numeric(new_simul)
         i_acc=i_acc+1
       }
@@ -2973,7 +2987,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     for (i in 1:(100*n_cluster)){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
-      if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+      if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         tab_picked[i,]=as.numeric(new_simul)
         i_acc=i_acc+1
       }
@@ -3005,7 +3019,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     for (i in 1:n_end){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
-      if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+      if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         tab_picked[i,]=as.numeric(new_simul)
         i_acc=i_acc+1
       }
@@ -3049,7 +3063,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     for (i in 1:(100*n_cluster)){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
-      if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+      if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         tab_picked[i,]=as.numeric(new_simul)
         i_acc=i_acc+1
       }
@@ -3081,7 +3095,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     for (i in 1:n_end){
       # check whether it is below tol_next and undo the move if it is not
       new_simul=c(as.numeric(tab_param[i,]),as.numeric(list_simul_summarystat[[i]]))
-      if (.compute_dist_single(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+      if (.compute_dist(summary_stat_target,as.numeric(new_simul[(nparam+1):(nparam+nstat)]),sd_simul)<=tol_next){ # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
         tab_picked[i,]=as.numeric(new_simul)
         i_acc=i_acc+1
       }
@@ -3168,7 +3182,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
       else{
         tab_ini=.ABC_rejection_internal_cluster(model,prior,nb_simul_step,seed_count,n_cluster)
         seed_count=seed_count+nb_simul_step
-        if (.compute_dist_single(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<=tolerance_tab[1]){
+        if (.compute_dist(summary_stat_target,tab_ini[(nparam+1):(nparam+nstat)],sd_simul)<=tolerance_tab[1]){
           simul_below_tol=rbind(simul_below_tol,tab_ini)
           nb_simul_step=0
         }
@@ -4134,7 +4148,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
       param=c((seed_count+i),param)
       simul_summary_stat=model(param)
       param=param[2:(nparam+1)]
-      dist_simul=.compute_dist_single(summary_stat_target,as.numeric(simul_summary_stat),sd_simul)
+      dist_simul=.compute_dist(summary_stat_target,as.numeric(simul_summary_stat),sd_simul)
       if (dist_simul<dist_max){
         param_ini=param
         tab_simul_ini=as.numeric(simul_summary_stat)
@@ -4355,7 +4369,7 @@ function(method,model,prior,nb_simul,summary_stat_target,n_cluster,use_seed,verb
       simul_summary_stat=as.matrix(simul_summary_stat)
       dim(simul_summary_stat)<-c(nstat,1)
       simul_summary_stat=t(pls_transformation %*% simul_summary_stat)
-      dist_simul=.compute_dist_single(summary_stat_targ,as.numeric(simul_summary_stat),rep(1,numcomp))
+      dist_simul=.compute_dist(summary_stat_targ,as.numeric(simul_summary_stat),rep(1,numcomp))
       ## AM8-9
       #print("AM8-9 ")
       if (dist_simul<dist_max){
