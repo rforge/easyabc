@@ -294,5 +294,5 @@
 \keyword{abc}
 \keyword{model}
 \keyword{inference}
-\keyword{sequential monte carlo}
-\keyword{population monte carlo}
+\keyword{sequential_monte_carlo}
+\keyword{population_monte_carlo}

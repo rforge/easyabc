@@ -2,7 +2,7 @@
   
 DATE=$(date +%Y-%m-%d)
 [ $# -eq 1 ] && VERSION=$1 ||
-VERSION=$(grep 'Version:'  pkg/DESCRIPTION | cut -d' ' -f2)
+VERSION=$(grep 'Version:'  pkg/DESCRIPTION | grep -o -E '[1-9.]*')
 
 echo "The package will be build with the version ${VERSION}"
 read -p "Are you sure? (y/n) " REPLY
@@ -14,14 +14,14 @@ sed -i -e 's/^\(\ *Date:\).*$/\1 '${DATE}'/' pkg/DESCRIPTION pkg/man/EasyABC-pac
 sed -i -e 's/^\(\ *Version:\).*$/\1 '${VERSION}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
 sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}',/' vignettes/EasyABC.Rnw
 
-./updateVignette.sh && {
+#./updateVignette.sh && {
   RDFILES=$(find pkg/man -name "*.Rd") && \
   # enable examples
-  echo ${RDFILES} | xargs sed -i -e 's/[^%]\\dontrun{[^%]/%\\dontrun{/g' && \
-  echo ${RDFILES} | xargs sed -i -e 's/[^%]}%dontrun/%}%dontrun/g' && \
+  echo ${RDFILES} | xargs sed -i -e 's/^\s*\\dontrun{[^%]/%\\dontrun{/g' && \
+  echo ${RDFILES} | xargs sed -i -e 's/^\s*}%dontrun/%}%dontrun/g' && \
   R CMD build pkg && \
-  R CMD check --as-cran EasyABC_${VERSION}.tar.gz
+  R CMD check --as-cran "EasyABC_${VERSION}.tar.gz"
   # disable examples for CRAN
   echo ${RDFILES} | xargs sed -i -e 's/%\\dontrun{/ \\dontrun{/g'
   echo ${RDFILES} | xargs sed -i -e 's/%}%dontrun/ }%dontrun/g'
-}
+#}
