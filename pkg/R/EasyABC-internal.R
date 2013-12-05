@@ -1993,8 +1993,7 @@ res
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the tolerance and proposal range following Wegmann et al. 2009
 ############################################################################################################################################
 .ABC_MCMC2<-function(model,prior,n_obs,n_between_sampling,summary_stat_target,use_seed,verbose,n_calibration=10000,tolerance_quantile=0.01,proposal_phi=1,seed_count=0,progress_bar=FALSE){
-  
-  
+    
   ## checking errors in the inputs
   if(!is.vector(n_calibration)) stop("'n_calibration' has to be a number.")
   if(length(n_calibration)>1) stop("'n_calibration' has to be a number.")
@@ -2022,13 +2021,13 @@ res
   seed_count_ini=seed_count
   nparam=length(prior)
   nstat=length(summary_stat_target)
-  tab_simul_summary_stat=NULL
-  tab_param=NULL
   tab_unfixed_param=array(TRUE,nparam)
   for (i in 1:nparam){
      tab_unfixed_param[i]=!((prior[[i]][1]=="unif")&&(as.numeric(prior[[i]][2])==as.numeric(prior[[i]][3])))
   }
   
+  tab_param = matrix(NA, n_calibration, ifelse(use_seed, nparam + 1,nparam))
+  tab_simul_summary_stat = matrix(NA, n_calibration, nstat)
   # initial draw of a particle
   for (i in 1:(n_calibration)){
     param=.sample_prior(prior)
@@ -2036,8 +2035,8 @@ res
       param=c((seed_count+i),param)
     }
     simul_summary_stat=model(param)
-    tab_simul_summary_stat=rbind(tab_simul_summary_stat,simul_summary_stat)
-    tab_param=rbind(tab_param,param)
+    tab_simul_summary_stat[i, ] = as.numeric( simul_summary_stat )
+    tab_param[i, ] = param
   }
   seed_count=seed_count+n_calibration
   if (use_seed) {
@@ -2077,8 +2076,11 @@ res
         duration = 0;
     }
   
-  tab_param=param_ini
-  tab_simul_summary_stat=tab_simul_ini
+  tab_param = matrix(NA, n_obs, length(param_ini))
+  tab_simul_summary_stat = matrix(NA, n_obs, nstat)
+  tab_dist = numeric(n_obs)
+  tab_param[1, ] = as.numeric(param_ini)
+  tab_simul_summary_stat[1, ] = as.numeric(tab_simul_ini)
   tab_dist=as.numeric(dist_ini)
   seed_count=seed_count+1
   if (verbose==TRUE){
@@ -2103,9 +2105,9 @@ res
       }
       seed_count=seed_count+1
     }
-    tab_simul_summary_stat=rbind(tab_simul_summary_stat,tab_simul_ini)
-    tab_param=rbind(tab_param,as.numeric(param_ini))
-    tab_dist=rbind(tab_dist,as.numeric(dist_ini))
+    tab_simul_summary_stat[is, ] = as.numeric(tab_simul_ini)
+    tab_param[is, ] = as.numeric(param_ini)
+    tab_dist[is] = as.numeric(dist_ini)
     if (verbose==TRUE){
         intermed=c(as.numeric(param_ini),tab_simul_ini,as.numeric(dist_ini))
         write(intermed,file="output_mcmc",ncolumns=length(intermed),append=T)
@@ -2144,6 +2146,7 @@ res
   }
   list(param=as.matrix(tab_param2),stats=as.matrix(tab_simul_summary_stat2),dist=tab_dist2,stats_normalization=as.numeric(sd_simul),epsilon=max(tab_dist),nsim=(seed_count-seed_count_ini),n_between_sampling=n_between_sampling,computime=as.numeric(difftime(Sys.time(), start, units="secs")))
 }
+
 
 ## ABC-MCMC3 algorithm of Wegmann et al. 2009 - the PLS step is drawn from the manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12 are not implemented in the algorithm
 #################################################################################################################################################################################################
