@@ -15,7 +15,6 @@
 .compute_dist<-function(summary_stat_target,simul,sd_simul){
   l=length(summary_stat_target)
   # If simul is not a matrix (which happens when l == 1) we tranform it into a matrix
-  #if( !is.matrix(simul) ) simul <- matrix(simul, length(simul), 1)
   if(!is.matrix(simul)) {
     if(length(summary_stat_target) == 1) {
       simul <- matrix(simul, length(simul), 1)
@@ -33,75 +32,49 @@
 ###########################################################################################
 .selec_simul<-function(summary_stat_target,param,simul,sd_simul,tol){
   dist=.compute_dist(summary_stat_target,simul,sd_simul)
-  dd=dim(param)[1]
   ll=length(dist[dist<tol])
-  if (!is.null(dd)){
-   if (ll>1){
-    param2=param[dist<tol,]
-   }
-   else{
-     if (ll==1){
-    	param2=as.matrix(param[dist<tol,])
-	dim(param2)=c(dim(param2)[2],dim(param2)[1])
-     }
-     else{
-  	param2=NULL
-     }
-   }
+  # select data with type checking
+  select_data = function(data) {
+    dd=dim(data)[1]
+    if (!is.null(dd)){
+      if (ll>1){
+        result=data[dist<tol,]
+      } else{
+        if (ll==1){
+            result=as.matrix(data[dist<tol,])
+            dim(result)=c(dim(result)[2],dim(result)[1])
+        } else{
+            result=NULL
+        }
+      }
+    } else {
+      if (ll>=1){
+        result=as.matrix(data[dist<tol])
+      } else {
+        result=NULL
+      }
+    }
+    result
   }
-  else{
-   if (ll>=1){
-    param2=as.matrix(param[dist<tol])
-   }
-   else{
-    param2=NULL
-   }
-  }
-
-  dd=dim(simul)[1]
-  if (!is.null(dd)){
-   if (ll>1){
-    simul2=simul[dist<tol,]
-   }
-   else{
-     if (ll==1){
-    	simul2=as.matrix(simul[dist<tol,])
-	dim(simul2)=c(dim(simul2)[2],dim(simul2)[1])
-     }
-     else{
-  	simul2=NULL
-     }
-   }
-  }
-  else{
-   if (ll>=1){
-    simul2=as.matrix(simul[dist<tol])
-   }
-   else{
-    simul2=NULL
-   }
-  }
+  param2 = select_data(param)
+  simul2 = select_data(simul)
   cbind(param2,simul2)
 }
 
 ## function to randomly pick a particle from a weighted array (of sum=1)
 ########################################################################
 .particle_pick<-function(param,tab_weight){
-  tab_weight2=tab_weight/sum(tab_weight)
-  u=runif(1)
-  weight_cum=cumsum(tab_weight2)
+  weight_cum=cumsum(tab_weight/sum(tab_weight))
   pos=1:length(tab_weight)
-  p=min(pos[weight_cum>u])
+  p=min(pos[weight_cum>runif(1)])
   res=NULL
   if (!is.null(dim(param)[1])){
-	  res=param[p,]
+    res=param[p,]
+  } else {
+    res=param[p]
   }
-  else{
-	res=param[p]
-  }
-res
+  res
 }
-
 
 ## function to check whether moved parameters are still in the prior distribution
 #################################################################################
@@ -114,12 +87,10 @@ res
    			if ((res[count]<as.numeric(prior[[i]][2]))||(res[count]>as.numeric(prior[[i]][3]))){
       				test=FALSE
    			}
-		}
-		else{
+		} else{
 			count=count-1
 		}
-	}
-	else{
+	} else{
 		if (prior[[i]][1]=="exponential"){
 			if (res[count]<0){
       				test=FALSE
@@ -140,8 +111,7 @@ test
    		if ((res[i]<as.numeric(prior[[i]][2]))||(res[i]>as.numeric(prior[[i]][3]))){
       				test=FALSE
   		}
-	}
-	else{
+	} else{
 		if (prior[[i]][1]=="exponential"){
 			if (res[i]<0){
       				test=FALSE
@@ -152,11 +122,9 @@ test
 test	
 }
 
-
 ## function to move a particle
 ##############################
 .move_particle<-function(param_picked,varcov_matrix){
-  # with package mnormt
   #library(mnormt) 
   rmnorm(n = 1, mean = param_picked, varcov_matrix)
 }
