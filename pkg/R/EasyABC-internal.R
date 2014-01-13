@@ -1,10 +1,8 @@
-####################### INTERNAL FUNCTIONS necessary libraries: -> imported
-####################### thanks to the file NAMESPACE library(mnormt)
-####################### library(lhs) library(pls) library(MASS)
-####################### library(parallel) library(abc) function to compute a
-####################### distance between a matrix of simulated statistics (row:
-####################### different simulations, columns: different summary
-####################### statistics) and the array of data summary statistics
+####################### INTERNAL FUNCTIONS
+
+## function to compute a distance between a matrix of simulated statistics
+## (row: different simulations, columns: different summary statistics)
+## and the array of data summary statistics
 .compute_dist <- function(summary_stat_target, simul, sd_simul) {
     l = length(summary_stat_target)
     # If simul is not a matrix (which happens when l == 1) we tranform it into a
