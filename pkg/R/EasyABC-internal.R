@@ -29,25 +29,6 @@
   colSums( (t(simul)-as.vector(summary_stat_target))^2 / as.vector(vartab))
 }
 
-## same as .compute_dist when there is only one simulation
-##########################################################
-.compute_dist_old<-function(summary_stat_target,simul,sd_simul){
-  l=length(summary_stat_target)
-  dist=0
-  vartab=array(1,l)
-  if (l>1){
-   for (i in 1:l){
-    vartab[i]=min(1,1/(sd_simul[i]*sd_simul[i]))
-    dist=dist+vartab[i]*(simul[i]-summary_stat_target[i])*(simul[i]-summary_stat_target[i])
-   }
-  }
-  else{
-    vartab[1]=min(1,1/(sd_simul[1]*sd_simul[1])) ## differences between simul and data are normalized in each dimension by the empirical variances in each dimension
-    dist=vartab[1]*(simul-summary_stat_target[1])*(simul-summary_stat_target[1]) 
-  }
-  dist
-}
-
 ## function to select the simulations that are at a distance smaller than tol from the data
 ###########################################################################################
 .selec_simul<-function(summary_stat_target,param,simul,sd_simul,tol){
@@ -3656,7 +3637,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
       else{
         count=1
         for (j in 1:l){
-	  if (tab_unfixed_param[j]){
+          if (tab_unfixed_param[j]){
         	param[j]=as.numeric(prior[[j]][2])+(as.numeric(prior[[j]][3])-as.numeric(prior[[j]][2]))*random_tab[((irun-1)*100*n_cluster+i),count]
 		count=count+1
 	  }
@@ -3960,7 +3941,6 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
      }
   }
   n_alpha=ceiling(nb_simul*alpha)
-  
   ## step 1
   # ABC rejection step with LHS
   tab_ini=.ABC_rejection_lhs_cluster(model,prior,nb_simul,tab_unfixed_param,seed_count,n_cluster)
@@ -3998,6 +3978,7 @@ list(param=as.matrix(tab_param),stats=as.matrix(tab_simul_summarystat),weights=a
     tab_inic=.ABC_launcher_not_uniformc_cluster(model,prior,as.matrix(as.matrix(simul_below_tol)[,1:nparam]),tab_unfixed_param,tab_weight/sum(tab_weight),nb_simul_step,seed_count,inside_prior,n_cluster)
     tab_ini=as.matrix(tab_inic[[1]])
     tab_ini=as.numeric(tab_ini)
+
     dim(tab_ini)=c(nb_simul_step,(nparam+nstat))
     seed_count=seed_count+nb_simul_step
     if (!inside_prior){
