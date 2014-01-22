@@ -1,8 +1,79 @@
 ####################### INTERNAL FUNCTIONS
 
-## function to compute a distance between a matrix of simulated statistics
-## (row: different simulations, columns: different summary statistics)
-## and the array of data summary statistics
+## Priors functions handling
+.create_dynamic_prior = function(sampleName, sampleArgs, densityName, densityArgs, 
+    isUniform = FALSE) {
+    # $sampling: sample function with the given arguments. The used function (given
+    # by 'name' argument) takes the arguments 'args' for generating a sample.
+    # $density: create the density function with the given arguments. The used
+    # function (given by 'name' argument) takes as arguments the quantile value and
+    # the given 'args' for computing the density.  $isUniform: indicates if this
+    # prior follows an uniform distribution (condition for methods that need LHS)
+    list(sampling = function() {
+        do.call(sampleName, as.list(as.numeric(sampleArgs)))
+    }, density = function(value) {
+        do.call(densityName, as.list(as.numeric(c(value, densityArgs))))
+    }, isUniform = isUniform || sampleName == "runif", sampleArgs = sampleArgs)
+}
+# Legacy functions keeped for compatibility with older versions and easyness
+.create_legacy_prior = function(name, args) {
+    name = name
+    args = args
+    switch(EXPR = name, unif = .create_dynamic_prior("runif", c(1, args), "dunif", 
+        args, TRUE), normal = .create_dynamic_prior("rnorm", c(1, args), "dnorm", 
+        args, TRUE), lognormal = .create_dynamic_prior("rlnorm", c(1, args), "dlnorm", 
+        args, TRUE), exponential = .create_dynamic_prior("rexp", c(1, args), "dexp", 
+        args, TRUE))
+}
+# Process the priors specifications and return a list when each element contains
+# the sample function and the density function
+.process_prior = function(prior) {
+    if (!is.list(prior)) 
+        stop("'prior' has to be a list")
+    l = length(prior)
+    new_prior = list()
+    for (i in 1:l) {
+        if (is.list(prior[[i]][1])) {
+            if (length(prior[[i]]) != 2) {
+                stop(paste("Incorrect prior specification for '", prior[[i]], "'. Please refer to the documentation.", 
+                  sep = ""))
+            }
+            new_prior[[i]] = .create_dynamic_prior(prior[[i]][[1]][1], prior[[i]][[1]][-1], 
+                prior[[i]][[2]][1], prior[[i]][[2]][-1])
+        } else {
+            if (any(prior[[i]][1] == c("unif", "normal", "lognormal", "exponential"))) {
+                if (prior[[i]][1] == "unif") {
+                  if (prior[[i]][2] == prior[[i]][3]) {
+                    stop(paste("Wrong parameters for the uniform prior (min=max). See in the documentation how to fix constant parameters for your model. Your prior definition: ", 
+                      prior, sep = ""))
+                  }
+                  new_prior[[i]] = c("runif", 1, "dunif", prior[[i]][2], prior[[i]][3])
+                }
+                if (prior[[i]][1] == "exponential") {
+                  if (length(prior[[i]]) != 2) {
+                    stop(paste("Incomplete prior information for parameter ", i, 
+                      sep = ""))
+                  }
+                } else {
+                  if (length(prior[[i]]) != 3) {
+                    stop(paste("Incomplete prior information for parameter ", i, 
+                      sep = ""))
+                  }
+                }
+                new_prior[[i]] = .create_legacy_prior(prior[[i]][1], prior[[i]][-1])
+            } else {
+                stop(paste("Only the methods 'unif', 'normal, 'lognormal' and 'exponential' are wrapped in EasyABC, unknown function '", 
+                  prior[[i]][1], "'. Please refer to the documention for specifying your prior.", 
+                  sep = ""))
+            }
+        }
+    }
+    new_prior
+}
+
+## function to compute a distance between a matrix of simulated statistics (row:
+## different simulations, columns: different summary statistics) and the array of
+## data summary statistics
 .compute_dist <- function(summary_stat_target, simul, sd_simul) {
     l = length(summary_stat_target)
     # If simul is not a matrix (which happens when l == 1) we tranform it into a
@@ -21,8 +92,8 @@
     colSums((t(simul) - as.vector(summary_stat_target))^2/as.vector(vartab))
 }
 
-## function to select the simulations that are at a distance smaller than tol
-## from the data
+## function to select the simulations that are at a distance smaller than tol from
+## the data
 .selec_simul <- function(summary_stat_target, param, simul, sd_simul, tol) {
     dist = .compute_dist(summary_stat_target, simul, sd_simul)
     ll = length(dist[dist < tol])
@@ -68,48 +139,11 @@
     res
 }
 
-## function to check whether moved parameters are still in the prior
-## distribution
+## function to check whether moved parameters are still in the prior distribution
 .is_included <- function(res, prior) {
     test = TRUE
-    count = 1
     for (i in 1:length(prior)) {
-        if (prior[[i]][1] == "unif") {
-            if (as.numeric(prior[[i]][2]) != as.numeric(prior[[i]][3])) {
-                if ((res[count] < as.numeric(prior[[i]][2])) || (res[count] > as.numeric(prior[[i]][3]))) {
-                  test = FALSE
-                }
-            } else {
-                count = count - 1
-            }
-        } else {
-            if (prior[[i]][1] == "exponential") {
-                if (res[count] < 0) {
-                  test = FALSE
-                }
-            }
-        }
-        count = count + 1
-    }
-    test
-}
-
-## function to check whether moved parameters are still in the prior
-## distribution
-.is_included2 <- function(res, prior) {
-    test = TRUE
-    for (i in 1:length(prior)) {
-        if (prior[[i]][1] == "unif") {
-            if ((res[i] < as.numeric(prior[[i]][2])) || (res[i] > as.numeric(prior[[i]][3]))) {
-                test = FALSE
-            }
-        } else {
-            if (prior[[i]][1] == "exponential") {
-                if (res[i] < 0) {
-                  test = FALSE
-                }
-            }
-        }
+        test = test && (prior[[i]]$density(res[i]) > 0)
     }
     test
 }
@@ -136,29 +170,11 @@
     res
 }
 
-.sample_prior_unif <- function(prior) {
-    runif(1, min = as.numeric(prior[2]), max = as.numeric(prior[3]))
-}
-
-.sample_prior_normal <- function(prior) {
-    rnorm(1, mean = as.numeric(prior[2]), sd = as.numeric(prior[3]))
-}
-
-.sample_prior_lognormal <- function(prior) {
-    rlnorm(1, meanlog = as.numeric(prior[2]), sdlog = as.numeric(prior[3]))
-}
-
-.sample_prior_exponential <- function(prior) {
-    rexp(1, rate = as.numeric(prior[2]))
-}
-
 .sample_prior <- function(prior) {
     l = length(prior)
     param = NULL
     for (i in 1:l) {
-        param[i] = (switch(EXPR = prior[[i]][1], unif = .sample_prior_unif(prior[[i]]), 
-            normal = .sample_prior_normal(prior[[i]]), lognormal = .sample_prior_lognormal(prior[[i]]), 
-            exponential = .sample_prior_exponential(prior[[i]])))
+        param[i] = prior[[i]]$sampling()
     }
     param
 }
@@ -222,29 +238,8 @@
 ## function to compute particle weights
 .compute_weight_prior <- function(particle, prior) {
     res = 1
-    count = 1
     for (i in 1:length(prior)) {
-        if (prior[[i]][1] == "unif") {
-            if (as.numeric(prior[[i]][2]) != as.numeric(prior[[i]][3])) {
-                res = res/(as.numeric(prior[[i]][3]) - as.numeric(prior[[i]][2]))
-            } else {
-                count = count - 1
-            }
-        } else {
-            if (prior[[i]][1] == "normal") {
-                res = res * dnorm(particle[count], as.numeric(prior[[i]][2]), as.numeric(prior[[i]][3]))
-            } else {
-                if (prior[[i]][1] == "lognormal") {
-                  res = res * dlnorm(particle[count], as.numeric(prior[[i]][2]), 
-                    as.numeric(prior[[i]][3]))
-                } else {
-                  if (prior[[i]][1] == "exponential") {
-                    res = res * dexp(particle[count], as.numeric(prior[[i]][2]))
-                  }
-                }
-            }
-        }
-        count = count + 1
+        res = res * prior[[i]]$density(particle[i])
     }
     res
 }
@@ -360,8 +355,8 @@
 
 ## function to perform ABC simulations from a non-uniform prior and with
 ## unidimensional jumps
-.ABC_launcher_not_uniform_uni <- function(model, prior, param_previous_step, tab_unfixed_param, 
-    tab_weight, nb_simul, use_seed, seed_count, inside_prior) {
+.ABC_launcher_not_uniform_uni <- function(model, prior, param_previous_step, tab_weight, 
+    nb_simul, use_seed, seed_count, inside_prior) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     l = dim(param_previous_step)[2]
@@ -371,10 +366,9 @@
         l = length(param_previous_step)
         covmat = 2 * cov.wt(as.matrix(param_previous_step), as.vector(tab_weight))$cov  # computation of a WEIGHTED variance
     } else {
-        covmat = 2 * cov.wt(as.matrix(param_previous_step[, tab_unfixed_param]), 
-            as.vector(tab_weight))$cov  # computation of a WEIGHTED variance
+        covmat = 2 * cov.wt(as.matrix(param_previous_step), as.vector(tab_weight))$cov  # computation of a WEIGHTED variance
     }
-    l_array = dim(param_previous_step[, tab_unfixed_param])[2]
+    l_array = dim(param_previous_step)[2]
     if (is.null(l_array)) {
         l_array = 1
     }
@@ -388,8 +382,7 @@
             if (lp == 0) {
                 param_picked = .particle_pick(as.matrix(param_previous_step), tab_weight)
             } else {
-                param_picked = .particle_pick(as.matrix(param_previous_step[, tab_unfixed_param]), 
-                  tab_weight)
+                param_picked = .particle_pick(as.matrix(param_previous_step), tab_weight)
             }
             # move it
             if (lp == 0) {
@@ -406,8 +399,7 @@
                 if (lp == 0) {
                   param_picked = .particle_pick(param_previous_step, tab_weight)
                 } else {
-                  param_picked = .particle_pick(param_previous_step[, tab_unfixed_param], 
-                    tab_weight)
+                  param_picked = .particle_pick(param_previous_step, tab_weight)
                 }
                 # move it
                 if (lp == 0) {
@@ -427,7 +419,7 @@
         } else {
             param = param_previous_step[1, ]
         }
-        param[tab_unfixed_param] = param_moved
+        param = param_moved
         if (use_seed) {
             param = c((seed_count + i), param)
         }
@@ -496,11 +488,6 @@
         nparam = 1
     }
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     ## step 1
     nb_simul_step = nb_simul
     simul_below_tol = NULL
@@ -552,8 +539,7 @@
             if (nb_simul_step > 1) {
                 # Sampling of parameters around the previous particles
                 tab_ini = .ABC_launcher_not_uniform_uni(model, prior, as.matrix(simul_below_tol[, 
-                  1:nparam]), tab_unfixed_param, tab_weight, nb_simul_step, use_seed, 
-                  seed_count, inside_prior)
+                  1:nparam]), tab_weight, nb_simul_step, use_seed, seed_count, inside_prior)
                 seed_count = seed_count + nb_simul_step
                 simul_below_tol2 = rbind(simul_below_tol2, .selec_simul(summary_stat_target, 
                   tab_ini[, 1:nparam], tab_ini[, (nparam + 1):(nparam + nstat)], 
@@ -563,8 +549,7 @@
                 }
             } else {
                 tab_ini = .ABC_launcher_not_uniform_uni(model, prior, as.matrix(simul_below_tol[, 
-                  1:nparam]), tab_unfixed_param, tab_weight, nb_simul_step, use_seed, 
-                  seed_count, inside_prior)
+                  1:nparam]), tab_weight, nb_simul_step, use_seed, seed_count, inside_prior)
                 seed_count = seed_count + nb_simul_step
                 if (.compute_dist(summary_stat_target, tab_ini[(nparam + 1):(nparam + 
                   nstat)], sd_simul) < tolerance_tab[it]) {
@@ -575,8 +560,8 @@
         }  # until we get nb_simul simulations below the it-th tolerance threshold
         # update of particle weights
         tab_weight2 = .compute_weight_uni(as.matrix(as.matrix(simul_below_tol2[, 
-            1:nparam])[, tab_unfixed_param]), as.matrix(as.matrix(simul_below_tol[, 
-            1:nparam])[, tab_unfixed_param]), tab_weight, prior)
+            1:nparam])), as.matrix(as.matrix(simul_below_tol[, 1:nparam])), tab_weight, 
+            prior)
         # update of the set of particles and of the associated weights for the next ABC
         # sequence
         tab_weight = tab_weight2
@@ -651,8 +636,8 @@
     cbind(param2, simul2)
 }
 
-## function to select the simulations that are at a distance smaller are equal
-## to tol from the data
+## function to select the simulations that are at a distance smaller are equal to
+## tol from the data
 .selec_simulb <- function(summary_stat_target, param, simul, sd_simul, tol) {
     dist = .compute_dist(summary_stat_target, simul, sd_simul)
     ll = length(dist[dist <= tol])
@@ -741,11 +726,6 @@
         nparam = 1
     }
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     if (first_tolerance_level_auto) {
         tol_end = tolerance_tab[1]
     } else {
@@ -850,11 +830,10 @@
                 n_alpha)])
             for (j in 1:R) {
                 # move it
-                param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                  2 * var(as.matrix(as.matrix(simul_below_tol[, 1:nparam])[, tab_unfixed_param])), 
-                  prior)
+                param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(simul_below_tol[, 
+                  1:nparam]))), prior)
                 param = simul_picked[1:nparam]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 if (use_seed) {
                   param = c((seed_count + j), param)
                 }
@@ -866,8 +845,8 @@
                 # check whether it is below tol_next and undo the move if it is not
                 if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                   1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                  # we authorize the simulation to be equal to the tolerance level, for
-                  # consistency with the quantile definition of the tolerance
+                  # we authorize the simulation to be equal to the tolerance level, for consistency
+                  # with the quantile definition of the tolerance
                   simul_picked = as.numeric(new_simul)
                   i_acc = i_acc + 1
                 }
@@ -939,11 +918,10 @@
         simul_picked = simul_below_tol[i, ]
         for (j in 1:R) {
             # move it
-            param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                2 * var(as.matrix(as.matrix(simul_below_tol[, 1:nparam])[, tab_unfixed_param])), 
-                prior)
+            param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(simul_below_tol[, 
+                1:nparam]))), prior)
             param = simul_picked[1:nparam]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             if (use_seed) {
                 param = c((seed_count + j), param)
             }
@@ -955,8 +933,8 @@
             # check whether it is below tol_next and undo the move if it is not
             if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                 1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                # we authorize the simulation to be equal to the tolerance level, for
-                # consistency with the quantile definition of the tolerance
+                # we authorize the simulation to be equal to the tolerance level, for consistency
+                # with the quantile definition of the tolerance
                 simul_picked = as.numeric(new_simul)
             }
         }
@@ -1008,8 +986,8 @@
     cbind(tab_param, tab_simul_summarystat)
 }
 
-## function to compute a distance between a matrix of simulated statistics and
-## the array of data summary statistics - for M replicates simulations
+## function to compute a distance between a matrix of simulated statistics and the
+## array of data summary statistics - for M replicates simulations
 .compute_dist_M <- function(M, summary_stat_target, simul, sd_simul) {
     l = length(summary_stat_target)
     nsimul = dim(simul)[1]
@@ -1068,8 +1046,8 @@
     new_weight
 }
 
-## function to randomly pick a particle from a weighted array (of sum=1) for
-## the Del Moral algorithm
+## function to randomly pick a particle from a weighted array (of sum=1) for the
+## Del Moral algorithm
 .particle_pick_delmoral <- function(simul_below_tol, tab_weight, M) {
     u = runif(1)
     tab_weight2 = tab_weight/sum(tab_weight)
@@ -1089,8 +1067,8 @@
     tab_weight2
 }
 
-## sequential algorithm of Del Moral et al. 2012 - the proposal used is a
-## normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
+## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal
+## in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 .ABC_Delmoral <- function(model, prior, nb_simul, summary_stat_target, use_seed, 
     verbose, alpha = 0.9, M = 1, nb_threshold = floor(nb_simul/2), tolerance_target = -1, 
     seed_count = 0, progress_bar = FALSE) {
@@ -1142,11 +1120,6 @@
         nparam = 1
     }
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     # step 1 classic ABC step
     simul_below_tol = .ABC_rejection_M(model, prior, nb_simul, M, use_seed, seed_count)
     seed_count = seed_count + M * nb_simul
@@ -1231,9 +1204,9 @@
             particles = as.matrix(simul_below_tol[, 1:nparam])
         }
         # MCMC move
-        covmat = 2 * cov.wt(as.matrix(as.matrix(particles[uu, tab_unfixed_param])[tab_weight > 
-            0, ]), as.vector(tab_weight[tab_weight > 0]))$cov
-        l_array = dim(particles[, tab_unfixed_param])[2]
+        covmat = 2 * cov.wt(as.matrix(as.matrix(particles[uu, ])[tab_weight > 0, 
+            ]), as.vector(tab_weight[tab_weight > 0]))$cov
+        l_array = dim(particles)[2]
         if (is.null(l_array)) {
             l_array = 1
         }
@@ -1253,10 +1226,10 @@
             if (tab_weight[i] > 0) {
                 tab_new_simul = NULL
                 # move it
-                param_moved = .move_particleb_uni(as.numeric(particles[(i * M), tab_unfixed_param]), 
+                param_moved = .move_particleb_uni(as.numeric(particles[(i * M), ]), 
                   sd_array, prior)
                 param = particles[(i * M), ]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 if (use_seed) {
                   param = c((seed_count + 1), param)
                 }
@@ -1387,42 +1360,28 @@
     final_res
 }
 
+## test if all the prior are defined with uniform distribution
 .all_unif <- function(prior) {
     res = TRUE
     for (i in 1:length(prior)) {
-        res = res && (prior[[i]][1] == "unif")
+        res = res && (prior[[i]]$isUniform)
     }
     res
 }
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
-.ABC_rejection_lhs <- function(model, prior, nb_simul, tab_unfixed_param, use_seed, 
-    seed_count) {
-    # library(lhs)
+## The prior is supposed to be defined with only uniform distributions
+.ABC_rejection_lhs <- function(model, prior, nb_simul, use_seed, seed_count) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     l = length(prior)
-    nparam = length(tab_unfixed_param[tab_unfixed_param])
-    random_tab = NULL
-    all_unif_prior = .all_unif(prior)
-    if (all_unif_prior) {
-        random_tab = randomLHS(nb_simul, nparam)
-    }
+    nparam = length(prior)
+    random_tab = randomLHS(nb_simul, nparam)
     for (i in 1:nb_simul) {
         param = array(0, l)
-        if (!all_unif_prior) {
-            param = .sample_prior(prior)
-        } else {
-            count = 1
-            for (j in 1:l) {
-                if (tab_unfixed_param[j]) {
-                  param[j] = as.numeric(prior[[j]][2]) + (as.numeric(prior[[j]][3]) - 
-                    as.numeric(prior[[j]][2])) * random_tab[i, count]
-                  count = count + 1
-                } else {
-                  param[j] = as.numeric(prior[[j]][2])
-                }
-            }
+        for (j in 1:l) {
+            param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
+                as.numeric(prior[[j]]$sampleArgs[2])) * random_tab[i, j]
         }
         if (use_seed) {
             param = c((seed_count + i), param)
@@ -1492,8 +1451,8 @@
 
 ## function to perform ABC simulations from a non-uniform prior (derived from a
 ## set of particles)
-.ABC_launcher_not_uniformc <- function(model, prior, param_previous_step, tab_unfixed_param, 
-    tab_weight, nb_simul, use_seed, seed_count, inside_prior, progress_bar) {
+.ABC_launcher_not_uniformc <- function(model, prior, param_previous_step, tab_weight, 
+    nb_simul, use_seed, seed_count, inside_prior, progress_bar) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     k_acc = 0
@@ -1508,11 +1467,10 @@
         if (!inside_prior) {
             k_acc = k_acc + 1
             # pick a particle
-            param_picked = .particle_pick(param_previous_step[, tab_unfixed_param], 
-                tab_weight)
+            param_picked = .particle_pick(param_previous_step, tab_weight)
             # move it
-            param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+            param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
         } else {
             test = FALSE
             counter = 0
@@ -1520,11 +1478,10 @@
                 counter = counter + 1
                 k_acc = k_acc + 1
                 # pick a particle
-                param_picked = .particle_pick(param_previous_step[, tab_unfixed_param], 
-                  tab_weight)
+                param_picked = .particle_pick(param_previous_step, tab_weight)
                 # move it
-                param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                  tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                  as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
                 test = .is_included(param_moved, prior)
             }
             if (counter == 100) {
@@ -1532,7 +1489,7 @@
             }
         }
         param = param_previous_step[1, ]
-        param[tab_unfixed_param] = param_moved
+        param = param_moved
         if (use_seed) {
             param = c((seed_count + i), param)
         }
@@ -1604,18 +1561,12 @@
         seed_count_ini = seed_count
         nparam = length(prior)
         nstat = length(summary_stat_target)
-        tab_unfixed_param = array(TRUE, nparam)
-        for (i in 1:nparam) {
-            tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-                as.numeric(prior[[i]][3])))
-            if (prior[[i]][1] != "unif") {
-                stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
-            }
+        if (!.all_unif(prior)) {
+            stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
         }
         n_alpha = ceiling(nb_simul * alpha)
         ## step 1 ABC rejection step with LHS
-        tab_ini = .ABC_rejection_lhs(model, prior, nb_simul, tab_unfixed_param, use_seed, 
-            seed_count)
+        tab_ini = .ABC_rejection_lhs(model, prior, nb_simul, use_seed, seed_count)
         seed_count = seed_count + nb_simul
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
             sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -1653,20 +1604,20 @@
             it = it + 1
             simul_below_tol2 = NULL
             tab_inic = .ABC_launcher_not_uniformc(model, prior, as.matrix(as.matrix(simul_below_tol)[, 
-                1:nparam]), tab_unfixed_param, tab_weight/sum(tab_weight), nb_simul_step, 
-                use_seed, seed_count, inside_prior, progress_bar)
+                1:nparam]), tab_weight/sum(tab_weight), nb_simul_step, use_seed, 
+                seed_count, inside_prior, progress_bar)
             tab_ini = as.matrix(tab_inic[[1]])
             tab_ini = as.numeric(tab_ini)
             dim(tab_ini) = c(nb_simul_step, (nparam + nstat))
             seed_count = seed_count + nb_simul_step
             if (!inside_prior) {
-                tab_weight2 = .compute_weightb(as.matrix(as.matrix(tab_ini[, 1:nparam])[, 
-                  tab_unfixed_param]), as.matrix(as.matrix(simul_below_tol[, 1:nparam])[, 
-                  tab_unfixed_param]), tab_weight/sum(tab_weight), prior)
+                tab_weight2 = .compute_weightb(as.matrix(as.matrix(tab_ini[, 1:nparam])), 
+                  as.matrix(as.matrix(simul_below_tol[, 1:nparam])), tab_weight/sum(tab_weight), 
+                  prior)
             } else {
                 tab_weight2 = tab_inic[[2]] * (.compute_weightb(as.matrix(as.matrix(tab_ini[, 
-                  1:nparam])[, tab_unfixed_param]), as.matrix(as.matrix(simul_below_tol[, 
-                  1:nparam])[, tab_unfixed_param]), tab_weight/sum(tab_weight), prior))
+                  1:nparam])), as.matrix(as.matrix(simul_below_tol[, 1:nparam])), 
+                  tab_weight/sum(tab_weight), prior))
             }
             simul_below_tol2 = rbind(as.matrix(simul_below_tol), as.matrix(tab_ini))
             tab_weight = c(tab_weight, tab_weight2)
@@ -1725,18 +1676,12 @@
         seed_count_ini = seed_count
         nparam = length(prior)
         nstat = length(summary_stat_target)
-        tab_unfixed_param = array(TRUE, nparam)
-        for (i in 1:nparam) {
-            tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-                as.numeric(prior[[i]][3])))
-            if (prior[[i]][1] != "unif") {
-                stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
-            }
+        if (!.all_unif(prior)) {
+            stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
         }
         n_alpha = ceiling(nb_simul * alpha)
         ## step 1 ABC rejection step with LHS
-        tab_ini = .ABC_rejection_lhs(model, prior, nb_simul, tab_unfixed_param, use_seed, 
-            seed_count)
+        tab_ini = .ABC_rejection_lhs(model, prior, nb_simul, use_seed, seed_count)
         seed_count = seed_count + nb_simul
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
             sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -1776,20 +1721,20 @@
             it = it + 1
             simul_below_tol2 = NULL
             tab_inic = .ABC_launcher_not_uniformc(model, prior, as.matrix(as.matrix(simul_below_tol)[, 
-                1:nparam]), tab_unfixed_param, tab_weight/sum(tab_weight), nb_simul_step, 
-                use_seed, seed_count, inside_prior, progress_bar)
+                1:nparam]), tab_weight/sum(tab_weight), nb_simul_step, use_seed, 
+                seed_count, inside_prior, progress_bar)
             tab_ini = as.matrix(tab_inic[[1]])
             tab_ini = as.numeric(tab_ini)
             dim(tab_ini) = c(nb_simul_step, (nparam + nstat))
             seed_count = seed_count + nb_simul_step
             if (!inside_prior) {
-                tab_weight2 = .compute_weightb(as.matrix(as.matrix(tab_ini[, 1:nparam])[, 
-                  tab_unfixed_param]), as.matrix(as.matrix(simul_below_tol[, 1:nparam])[, 
-                  tab_unfixed_param]), tab_weight/sum(tab_weight), prior)
+                tab_weight2 = .compute_weightb(as.matrix(as.matrix(tab_ini[, 1:nparam])), 
+                  as.matrix(as.matrix(simul_below_tol[, 1:nparam])), tab_weight/sum(tab_weight), 
+                  prior)
             } else {
                 tab_weight2 = tab_inic[[2]] * (.compute_weightb(as.matrix(as.matrix(tab_ini[, 
-                  1:nparam])[, tab_unfixed_param]), as.matrix(as.matrix(simul_below_tol[, 
-                  1:nparam])[, tab_unfixed_param]), tab_weight/sum(tab_weight), prior))
+                  1:nparam])), as.matrix(as.matrix(simul_below_tol[, 1:nparam])), 
+                  tab_weight/sum(tab_weight), prior))
             }
             simul_below_tol2 = rbind(as.matrix(simul_below_tol), as.matrix(tab_ini))
             write.table(as.matrix(cbind(tab_weight2, as.matrix(tab_ini))), file = "output_all", 
@@ -1850,22 +1795,22 @@
     final_res
 }
 
-## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009,
-## Drovandi & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
+## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi
+## & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
 .ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
     use_seed, verbose, ...) {
     options(scipen = 50)
     ## general function regrouping the different sequential algorithms [Beaumont et
-    ## al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P.
-    ## (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.
-    ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011).
-    ## Estimation of parameters for macroparasite population evolution using
-    ## approximate Bayesian computation. Biometrics, 67(1):225-233.  [Del Moral et
-    ## al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive
-    ## sequential Monte Carlo method for approximate Bayesian computation,
-    ## Statistics and Computing., 22(5):1009-1020.  [Lenormand et al. 2012]
-    ## Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian
-    ## computation for complex models, submitted to Comput. Stat. )
+    ## al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P.  (2009).
+    ## Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.  [Drovandi
+    ## & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011).  Estimation of
+    ## parameters for macroparasite population evolution using approximate Bayesian
+    ## computation. Biometrics, 67(1):225-233.  [Del Moral et al. 2012] Del Moral, P.,
+    ## Doucet, A., and Jasra, A. (2012). An adaptive sequential Monte Carlo method for
+    ## approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
+    ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive
+    ## approximate Bayesian computation for complex models, submitted to Comput. Stat.
+    ## )
     return(switch(EXPR = method, Beaumont = .ABC_PMC(model, prior, nb_simul, summary_stat_target, 
         use_seed, verbose, ...), Drovandi = .ABC_Drovandi(model, prior, nb_simul, 
         summary_stat_target, use_seed, verbose, ...), Delmoral = .ABC_Delmoral(model, 
@@ -1885,7 +1830,7 @@
             res[i] = runif(n = 1, min = param_picked[i] - sd_array[i], max = param_picked[i] + 
                 sd_array[i])
         }
-        test = .is_included2(res, prior)
+        test = .is_included(res, prior)
     }
     if (counter == 100) {
         stop("The proposal jumps outside of the prior distribution too often - consider using the option 'inside_prior=FALSE' or enlarging the prior distribution")
@@ -1894,6 +1839,7 @@
 }
 
 .make_proposal_range <- function(prior) {
+    stop("FIXME not yet implemented for the new scheme of prior specification")
     res = NULL
     for (i in 1:length(prior)) {
         if (prior[[i]][1] == "unif") {
@@ -1963,11 +1909,6 @@
     nstat = length(summary_stat_target)
     tab_simul_summary_stat = NULL
     tab_param = NULL
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     # initial draw of a particle below the tolerance dist_max
     test = FALSE
     dist_simul = NULL
@@ -2038,11 +1979,18 @@
             }
             dist_simul = .compute_dist(summary_stat_target, as.numeric(simul_summary_stat), 
                 tab_normalization)
+            print(proposal_range)
+            print(param)
+            print(simul_summary_stat)
+            print(dist_simul)
+            print(dist_max)
+            print("start")
             if (dist_simul < dist_max) {
                 param_ini = param
                 tab_simul_ini = as.numeric(simul_summary_stat)
                 dist_ini = dist_simul
             }
+            print("end")
             seed_count = seed_count + 1
         }
         tab_simul_summary_stat = rbind(tab_simul_summary_stat, tab_simul_ini)
@@ -2092,8 +2040,8 @@
         computime = as.numeric(difftime(Sys.time(), start, units = "secs")))
 }
 
-## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of
-## the tolerance and proposal range following Wegmann et al. 2009
+## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the
+## tolerance and proposal range following Wegmann et al. 2009
 .ABC_MCMC2 <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
     use_seed, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     seed_count = 0, progress_bar = FALSE) {
@@ -2135,11 +2083,6 @@
     seed_count_ini = seed_count
     nparam = length(prior)
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     tab_param = matrix(NA, n_calibration, ifelse(use_seed, nparam + 1, nparam))
     tab_simul_summary_stat = matrix(NA, n_calibration, nstat)
     # initial draw of a particle
@@ -2266,8 +2209,8 @@
 }
 
 ## ABC-MCMC3 algorithm of Wegmann et al. 2009 - the PLS step is drawn from the
-## manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox,
-## AM11-12 are not implemented in the algorithm
+## manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12
+## are not implemented in the algorithm
 .ABC_MCMC3 <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
     use_seed, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     numcomp = 0, seed_count = 0, progress_bar = FALSE) {
@@ -2328,12 +2271,7 @@
     }
     tab_simul_summary_stat = NULL
     tab_param = NULL
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
-    if (length(tab_unfixed_param[tab_unfixed_param]) <= 1) {
+    if (length(prior) <= 1) {
         stop("A single parameter is varying, use the method 'Marjoram' instead")
     }
     # initial draw of a particle
@@ -2356,7 +2294,7 @@
         write.table(NULL, file = "output_mcmc", row.names = F, col.names = F, quote = F)
     }
     ## AM2: PLS step print('AM2 ') standardize the params
-    sparam = as.matrix(tab_param[, tab_unfixed_param])
+    sparam = as.matrix(tab_param)
     ls = dim(sparam)[2]
     if (is.null(ls)) {
         ls = 1
@@ -2392,8 +2330,7 @@
         load("dmat.RData", .GlobalEnv)
         file.remove("dmat.RData")
         mylm <- lm(as.formula(as.data.frame(dmat)), data = as.data.frame(dmat))
-        # mylm<-lm(as.formula(as.data.frame(dmat)))
-        # mylm<-lm(stat[,i]~as.matrix(sparam))
+        # mylm<-lm(as.formula(as.data.frame(dmat))) mylm<-lm(stat[,i]~as.matrix(sparam))
         myboxcox <- boxcox(mylm, lambda = seq(-20, 100, 1/10), interp = T, eps = 1/50, 
             plotit = FALSE)
         lambda <- c(lambda, myboxcox$x[myboxcox$y == max(myboxcox$y)])
@@ -2681,7 +2618,7 @@
 ## function to perform ABC simulations from a non-uniform prior (derived from a
 ## set of particles)
 .ABC_launcher_not_uniform_cluster <- function(model, prior, param_previous_step, 
-    tab_unfixed_param, tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
+    tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     cl <- makeCluster(getOption("cl.cores", n_cluster))
@@ -2694,22 +2631,22 @@
                 l = dim(param_previous_step)[2]
                 if (!inside_prior) {
                   # pick a particle
-                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), tab_weight)
+                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                    tab_weight)
                   # move it
-                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                    as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
                 } else {
                   test = FALSE
                   counter = 0
                   while ((!test) && (counter < 100)) {
                     counter = counter + 1
                     # pick a particle
-                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                      tab_unfixed_param]), tab_weight)
+                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                      tab_weight)
                     # move it
-                    param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                      tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                    param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                      as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
                     test = .is_included(param_moved, prior)
                   }
                   if (counter == 100) {
@@ -2717,7 +2654,7 @@
                   }
                 }
                 param = param_previous_step[1, ]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 param = c((seed_count + i), param)
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -2736,22 +2673,22 @@
             l = dim(param_previous_step)[2]
             if (!inside_prior) {
                 # pick a particle
-                param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                  tab_unfixed_param]), tab_weight)
+                param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                  tab_weight)
                 # move it
-                param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                  tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                  as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
             } else {
                 test = FALSE
                 counter = 0
                 while ((!test) && (counter < 100)) {
                   counter = counter + 1
                   # pick a particle
-                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), tab_weight)
+                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                    tab_weight)
                   # move it
-                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                    as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
                   test = .is_included(param_moved, prior)
                 }
                 if (counter == 100) {
@@ -2759,7 +2696,7 @@
                 }
             }
             param = param_previous_step[1, ]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             param = c((seed_count + i), param)
             list_param[[i]] = param
             tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -2779,7 +2716,7 @@
 ## function to perform ABC simulations from a non-uniform prior and with
 ## unidimensional jumps
 .ABC_launcher_not_uniform_uni_cluster <- function(model, prior, param_previous_step, 
-    tab_unfixed_param, tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
+    tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     cl <- makeCluster(getOption("cl.cores", n_cluster))
@@ -2787,13 +2724,12 @@
     npar = floor(nb_simul/(100 * n_cluster))
     n_end = nb_simul - (npar * 100 * n_cluster)
     l = dim(param_previous_step)[2]
-    l_array = dim(param_previous_step[, tab_unfixed_param])[2]
+    l_array = dim(param_previous_step)[2]
     if (is.null(l_array)) {
         l_array = 1
     }
     sd_array = array(1, l_array)
-    covmat = 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, tab_unfixed_param]), 
-        as.vector(tab_weight))$cov  # computation of a WEIGHTED variance
+    covmat = 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), as.vector(tab_weight))$cov  # computation of a WEIGHTED variance
     for (j in 1:l_array) {
         sd_array[j] = sqrt(covmat[j, j])
     }
@@ -2802,8 +2738,8 @@
             for (i in 1:(100 * n_cluster)) {
                 if (!inside_prior) {
                   # pick a particle
-                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), tab_weight)
+                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                    tab_weight)
                   # move it
                   param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
                 } else {
@@ -2812,8 +2748,8 @@
                   while ((!test) && (counter < 100)) {
                     counter = counter + 1
                     # pick a particle
-                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                      tab_unfixed_param]), tab_weight)
+                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                      tab_weight)
                     # move it
                     param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
                     test = .is_included(param_moved, prior)
@@ -2823,7 +2759,7 @@
                   }
                 }
                 param = param_previous_step[1, ]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 param = c((seed_count + i), param)
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -2841,8 +2777,8 @@
         for (i in 1:n_end) {
             if (!inside_prior) {
                 # pick a particle
-                param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                  tab_unfixed_param]), tab_weight)
+                param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                  tab_weight)
                 # move it
                 param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
             } else {
@@ -2851,8 +2787,8 @@
                 while ((!test) && (counter < 100)) {
                   counter = counter + 1
                   # pick a particle
-                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), tab_weight)
+                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                    tab_weight)
                   # move it
                   param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
                   test = .is_included(param_moved, prior)
@@ -2862,7 +2798,7 @@
                 }
             }
             param = param_previous_step[1, ]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             param = c((seed_count + i), param)
             list_param[[i]] = param
             tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -2911,11 +2847,6 @@
     T = length(tolerance_tab)
     nparam = length(prior)
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     ## step 1
     nb_simul_step = nb_simul
     simul_below_tol = NULL
@@ -2969,8 +2900,8 @@
             if (nb_simul_step > 1) {
                 # Sampling of parameters around the previous particles
                 tab_ini = .ABC_launcher_not_uniform_uni_cluster(model, prior, as.matrix(as.matrix(simul_below_tol)[, 
-                  1:nparam]), tab_unfixed_param, tab_weight, nb_simul_step, seed_count, 
-                  inside_prior, n_cluster)
+                  1:nparam]), tab_weight, nb_simul_step, seed_count, inside_prior, 
+                  n_cluster)
                 seed_count = seed_count + nb_simul_step
                 simul_below_tol2 = rbind(simul_below_tol2, .selec_simul(summary_stat_target, 
                   as.matrix(as.matrix(tab_ini)[, 1:nparam]), as.matrix(as.matrix(tab_ini)[, 
@@ -2980,8 +2911,8 @@
                 }
             } else {
                 tab_ini = .ABC_launcher_not_uniform_uni_cluster(model, prior, as.matrix(as.matrix(simul_below_tol)[, 
-                  1:nparam]), tab_unfixed_param, tab_weight, nb_simul_step, seed_count, 
-                  inside_prior, n_cluster)
+                  1:nparam]), tab_weight, nb_simul_step, seed_count, inside_prior, 
+                  n_cluster)
                 seed_count = seed_count + nb_simul_step
                 if (.compute_dist(summary_stat_target, tab_ini[(nparam + 1):(nparam + 
                   nstat)], sd_simul) < tolerance_tab[it]) {
@@ -2992,8 +2923,8 @@
         }  # until we get nb_simul simulations below the it-th tolerance threshold
         # update of particle weights
         tab_weight2 = .compute_weight_uni(as.matrix(as.matrix(as.matrix(simul_below_tol2)[, 
-            1:nparam])[, tab_unfixed_param]), as.matrix(as.matrix(as.matrix(simul_below_tol)[, 
-            1:nparam])[, tab_unfixed_param]), tab_weight, prior)
+            1:nparam])), as.matrix(as.matrix(as.matrix(simul_below_tol)[, 1:nparam])), 
+            tab_weight, prior)
         # update of the set of particles and of the associated weights for the next ABC
         # sequence
         tab_weight = tab_weight2
@@ -3037,8 +2968,8 @@
 }
 
 .move_drovandi_ini_cluster <- function(nb_simul_step, simul_below_tol, tab_weight, 
-    nparam, nstat, tab_unfixed_param, prior, summary_stat_target, tol_next, seed_count, 
-    n_cluster, model, sd_simul) {
+    nparam, nstat, prior, summary_stat_target, tol_next, seed_count, n_cluster, model, 
+    sd_simul) {
     i_acc = 0
     res = NULL
     npar = floor(nb_simul_step/(100 * n_cluster))
@@ -3054,11 +2985,10 @@
                 # pick a particle
                 simul_picked = .particle_pick(simul_below_tol, tab_weight)
                 # move it
-                param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                  2 * var(as.matrix(as.matrix(as.matrix(simul_below_tol)[, 1:nparam])[, 
-                    tab_unfixed_param])), prior)
+                param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(as.matrix(simul_below_tol)[, 
+                  1:nparam]))), prior)
                 param = simul_picked[1:nparam]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 param = c((seed_count + i), param)
                 tab_param = rbind(tab_param, param[2:(l + 1)])
                 list_param[[i]] = param
@@ -3072,7 +3002,8 @@
                 new_simul = c(as.numeric(tab_param[i, ]), as.numeric(list_simul_summarystat[[i]]))
                 if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                   1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                  # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+                  # we authorize the simulation to be equal to the tolerance level, for consistency
+                  # with the quantile definition of the tolerance
                   tab_picked[i, ] = as.numeric(new_simul)
                   i_acc = i_acc + 1
                 }
@@ -3089,11 +3020,10 @@
             # pick a particle
             simul_picked = .particle_pick(simul_below_tol, tab_weight)
             # move it
-            param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                2 * var(as.matrix(as.matrix(as.matrix(simul_below_tol)[, 1:nparam])[, 
-                  tab_unfixed_param])), prior)
+            param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(as.matrix(simul_below_tol)[, 
+                1:nparam]))), prior)
             param = simul_picked[1:nparam]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             param = c((seed_count + i), param)
             tab_param = rbind(tab_param, param[2:(l + 1)])
             list_param[[i]] = param
@@ -3107,7 +3037,8 @@
             new_simul = c(as.numeric(tab_param[i, ]), as.numeric(list_simul_summarystat[[i]]))
             if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                 1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+                # we authorize the simulation to be equal to the tolerance level, for consistency
+                # with the quantile definition of the tolerance
                 tab_picked[i, ] = as.numeric(new_simul)
                 i_acc = i_acc + 1
             }
@@ -3121,8 +3052,7 @@
 }
 
 .move_drovandi_end_cluster <- function(nb_simul_step, new_particles, nparam, nstat, 
-    tab_unfixed_param, prior, summary_stat_target, tol_next, seed_count, n_cluster, 
-    model, sd_simul) {
+    prior, summary_stat_target, tol_next, seed_count, n_cluster, model, sd_simul) {
     i_acc = 0
     res = NULL
     npar = floor(nb_simul_step/(100 * n_cluster))
@@ -3138,11 +3068,10 @@
                 # pick a particle
                 simul_picked = new_particles[((irun - 1) * n_cluster + i), ]
                 # move it
-                param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                  2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 1:nparam])[, 
-                    tab_unfixed_param])), prior)
+                param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 
+                  1:nparam]))), prior)
                 param = simul_picked[1:nparam]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 param = c((seed_count + i), param)
                 tab_param = rbind(tab_param, param[2:(l + 1)])
                 list_param[[i]] = param
@@ -3156,7 +3085,8 @@
                 new_simul = c(as.numeric(tab_param[i, ]), as.numeric(list_simul_summarystat[[i]]))
                 if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                   1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                  # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+                  # we authorize the simulation to be equal to the tolerance level, for consistency
+                  # with the quantile definition of the tolerance
                   tab_picked[i, ] = as.numeric(new_simul)
                   i_acc = i_acc + 1
                 }
@@ -3173,11 +3103,10 @@
             # pick a particle
             simul_picked = new_particles[(npar * n_cluster + i), ]
             # move it
-            param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 1:nparam])[, 
-                  tab_unfixed_param])), prior)
+            param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 
+                1:nparam]))), prior)
             param = simul_picked[1:nparam]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             param = c((seed_count + i), param)
             tab_param = rbind(tab_param, param[2:(l + 1)])
             list_param[[i]] = param
@@ -3191,7 +3120,8 @@
             new_simul = c(as.numeric(tab_param[i, ]), as.numeric(list_simul_summarystat[[i]]))
             if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                 1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+                # we authorize the simulation to be equal to the tolerance level, for consistency
+                # with the quantile definition of the tolerance
                 tab_picked[i, ] = as.numeric(new_simul)
                 i_acc = i_acc + 1
             }
@@ -3205,8 +3135,7 @@
 }
 
 .move_drovandi_diversify_cluster <- function(nb_simul_step, new_particles, nparam, 
-    nstat, tab_unfixed_param, prior, summary_stat_target, tol_next, seed_count, n_cluster, 
-    model, sd_simul) {
+    nstat, prior, summary_stat_target, tol_next, seed_count, n_cluster, model, sd_simul) {
     i_acc = 0
     res = NULL
     npar = floor(nb_simul_step/(100 * n_cluster))
@@ -3222,11 +3151,10 @@
                 # pick a particle
                 simul_picked = new_particles[((irun - 1) * n_cluster + i), ]
                 # move it
-                param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                  2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 1:nparam])[, 
-                    tab_unfixed_param])), prior)
+                param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 
+                  1:nparam]))), prior)
                 param = simul_picked[1:nparam]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 param = c((seed_count + i), param)
                 tab_param = rbind(tab_param, param[2:(l + 1)])
                 list_param[[i]] = param
@@ -3240,7 +3168,8 @@
                 new_simul = c(as.numeric(tab_param[i, ]), as.numeric(list_simul_summarystat[[i]]))
                 if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                   1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                  # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+                  # we authorize the simulation to be equal to the tolerance level, for consistency
+                  # with the quantile definition of the tolerance
                   tab_picked[i, ] = as.numeric(new_simul)
                   i_acc = i_acc + 1
                 }
@@ -3257,11 +3186,10 @@
             # pick a particle
             simul_picked = new_particles[(npar * n_cluster + i), ]
             # move it
-            param_moved = .move_particleb(simul_picked[1:nparam][tab_unfixed_param], 
-                2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 1:nparam])[, 
-                  tab_unfixed_param])), prior)
+            param_moved = .move_particleb(simul_picked[1:nparam], 2 * var(as.matrix(as.matrix(as.matrix(new_particles)[, 
+                1:nparam]))), prior)
             param = simul_picked[1:nparam]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             param = c((seed_count + i), param)
             tab_param = rbind(tab_param, param[2:(l + 1)])
             list_param[[i]] = param
@@ -3275,7 +3203,8 @@
             new_simul = c(as.numeric(tab_param[i, ]), as.numeric(list_simul_summarystat[[i]]))
             if (.compute_dist(summary_stat_target, as.numeric(new_simul[(nparam + 
                 1):(nparam + nstat)]), sd_simul) <= tol_next) {
-                # we authorize the simulation to be equal to the tolerance level, for consistency with the quantile definition of the tolerance
+                # we authorize the simulation to be equal to the tolerance level, for consistency
+                # with the quantile definition of the tolerance
                 tab_picked[i, ] = as.numeric(new_simul)
                 i_acc = i_acc + 1
             }
@@ -3333,11 +3262,6 @@
     n_alpha = ceiling(nb_simul * alpha)
     nparam = length(prior)
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     if (first_tolerance_level_auto) {
         tol_end = tolerance_tab[1]
     } else {
@@ -3430,16 +3354,16 @@
             }
         }
         md = .move_drovandi_ini_cluster(nb_simul_step, simul_below_tol, tab_weight[1:(nb_simul - 
-            n_alpha)], nparam, nstat, tab_unfixed_param, prior, summary_stat_target, 
-            tol_next, seed_count, n_cluster, model, sd_simul)
+            n_alpha)], nparam, nstat, prior, summary_stat_target, tol_next, seed_count, 
+            n_cluster, model, sd_simul)
         new_particles = md[[1]]
         i_acc = i_acc + md[[2]]
         seed_count = seed_count + nb_simul_step
         if (R > 1) {
             for (j in 2:R) {
                 md = .move_drovandi_end_cluster(nb_simul_step, new_particles, nparam, 
-                  nstat, tab_unfixed_param, prior, summary_stat_target, tol_next, 
-                  seed_count, n_cluster, model, sd_simul)
+                  nstat, prior, summary_stat_target, tol_next, seed_count, n_cluster, 
+                  model, sd_simul)
                 new_particles = md[[1]]
                 i_acc = i_acc + md[[2]]
                 seed_count = seed_count + nb_simul_step
@@ -3489,8 +3413,8 @@
     simul_below_tol2 = NULL
     for (j in 1:R) {
         simul_below_tol = .move_drovandi_diversify_cluster(nb_simul, simul_below_tol, 
-            nparam, nstat, tab_unfixed_param, prior, summary_stat_target, tol_next, 
-            seed_count, n_cluster, model, sd_simul)
+            nparam, nstat, prior, summary_stat_target, tol_next, seed_count, n_cluster, 
+            model, sd_simul)
         seed_count = seed_count + nb_simul
     }
     final_res = NULL
@@ -3569,8 +3493,8 @@
     cbind(tab_param, tab_simul_summarystat)
 }
 
-## sequential algorithm of Del Moral et al. 2012 - the proposal used is a
-## normal in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
+## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal
+## in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
 .ABC_Delmoral_cluster <- function(model, prior, nb_simul, summary_stat_target, n_cluster, 
     verbose, alpha = 0.9, M = 1, nb_threshold = floor(nb_simul/2), tolerance_target = -1, 
     seed_count = 0, progress_bar = FALSE) {
@@ -3617,11 +3541,6 @@
     seed_count_ini = seed_count
     nparam = length(prior)
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     # step 1 classic ABC step
     simul_below_tol = .ABC_rejection_M_cluster(model, prior, nb_simul, M, seed_count, 
         n_cluster)
@@ -3711,9 +3630,9 @@
         # MCMC move
         npar = floor(nb_simul * M/(100 * n_cluster))
         n_end = nb_simul * M - (npar * 100 * n_cluster)
-        covmat = 2 * cov.wt(as.matrix(as.matrix(particles[uu, tab_unfixed_param])[tab_weight > 
-            0, ]), as.vector(tab_weight[tab_weight > 0]))$cov
-        l_array = dim(particles[, tab_unfixed_param])[2]
+        covmat = 2 * cov.wt(as.matrix(as.matrix(particles[uu, ])[tab_weight > 0, 
+            ]), as.vector(tab_weight[tab_weight > 0]))$cov
+        l_array = dim(particles)[2]
         if (is.null(l_array)) {
             l_array = 1
         }
@@ -3736,9 +3655,9 @@
                   if (tab_weight[ii2] > 0) {
                     if ((ii == 1) || (M == 1)) {
                       param_moved = .move_particleb_uni(as.numeric(particles[(ii2 * 
-                        M), tab_unfixed_param]), sd_array, prior)
+                        M), ]), sd_array, prior)
                       param = particles[(ii2 * M), ]
-                      param[tab_unfixed_param] = param_moved
+                      param = param_moved
                       param2 = c((seed_count + 1), param)
                       seed_count = seed_count + 1
                     } else {
@@ -3766,9 +3685,9 @@
                 if (tab_weight[ii2] > 0) {
                   if ((ii == 1) || (M == 1)) {
                     param_moved = .move_particleb_uni(as.numeric(particles[(ii2 * 
-                      M), tab_unfixed_param]), sd_array, prior)
+                      M), ]), sd_array, prior)
                     param = particles[(ii2 * M), ]
-                    param[tab_unfixed_param] = param_moved
+                    param = param_moved
                     param2 = c((seed_count + 1), param)
                     seed_count = seed_count + 1
                   } else {
@@ -3890,8 +3809,7 @@
 }
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
-.ABC_rejection_lhs_cluster <- function(model, prior, nb_simul, tab_unfixed_param, 
-    seed_count, n_cluster) {
+.ABC_rejection_lhs_cluster <- function(model, prior, nb_simul, seed_count, n_cluster) {
     # library(lhs)
     cl <- makeCluster(getOption("cl.cores", n_cluster))
     tab_simul_summarystat = NULL
@@ -3899,7 +3817,7 @@
     list_param = list(NULL)
     npar = floor(nb_simul/(100 * n_cluster))
     n_end = nb_simul - (npar * 100 * n_cluster)
-    nparam = length(tab_unfixed_param[tab_unfixed_param])
+    nparam = length(prior)
     l = length(prior)
     random_tab = NULL
     all_unif_prior = .all_unif(prior)
@@ -3913,16 +3831,10 @@
                 if (!all_unif_prior) {
                   param = .sample_prior(prior)
                 } else {
-                  count = 1
                   for (j in 1:l) {
-                    if (tab_unfixed_param[j]) {
-                      param[j] = as.numeric(prior[[j]][2]) + (as.numeric(prior[[j]][3]) - 
-                        as.numeric(prior[[j]][2])) * random_tab[((irun - 1) * 100 * 
-                        n_cluster + i), count]
-                      count = count + 1
-                    } else {
-                      param[j] = as.numeric(prior[[j]][2])
-                    }
+                    param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
+                      as.numeric(prior[[j]]$sampleArgs[2])) * random_tab[((irun - 1) * 
+                      100 * n_cluster + i), j]
                   }
                 }
                 # if (use_seed) # NB: we force the value use_seed=TRUE
@@ -3945,16 +3857,10 @@
             if (!all_unif_prior) {
                 param = .sample_prior(prior)
             } else {
-                count = 1
                 for (j in 1:l) {
-                  if (tab_unfixed_param[j]) {
-                    param[j] = as.numeric(prior[[j]][2]) + (as.numeric(prior[[j]][3]) - 
-                      as.numeric(prior[[j]][2])) * random_tab[(npar * 100 * n_cluster + 
-                      i), count]
-                    count = count + 1
-                  } else {
-                    param[j] = as.numeric(prior[[j]][2])
-                  }
+                  param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
+                    as.numeric(prior[[j]]$sampleArgs[2])) * random_tab[(npar * 100 * n_cluster + 
+                    i), 1]
                 }
             }
             # if (use_seed) # NB: we force the value use_seed=TRUE
@@ -3978,7 +3884,7 @@
 ## function to perform ABC simulations from a non-uniform prior (derived from a
 ## set of particles)
 .ABC_launcher_not_uniformc_cluster <- function(model, prior, param_previous_step, 
-    tab_unfixed_param, tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
+    tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     k_acc = 0
@@ -3993,11 +3899,11 @@
                 if (!inside_prior) {
                   k_acc = k_acc + 1
                   # pick a particle
-                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), tab_weight)
+                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                    tab_weight)
                   # move it
-                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                    as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
                 } else {
                   test = FALSE
                   counter = 0
@@ -4005,11 +3911,11 @@
                     counter = counter + 1
                     k_acc = k_acc + 1
                     # pick a particle
-                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                      tab_unfixed_param]), tab_weight)
+                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                      tab_weight)
                     # move it
-                    param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                      tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                    param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                      as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
                     test = .is_included(param_moved, prior)
                   }
                   if (counter == 100) {
@@ -4017,7 +3923,7 @@
                   }
                 }
                 param = param_previous_step[1, ]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 param = c((seed_count + i), param)
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -4037,11 +3943,10 @@
             if (!inside_prior) {
                 k_acc = k_acc + 1
                 # pick a particle
-                param_picked = .particle_pick(param_previous_step[, tab_unfixed_param], 
-                  tab_weight)
+                param_picked = .particle_pick(param_previous_step, tab_weight)
                 # move it
-                param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                  tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                  as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
             } else {
                 test = FALSE
                 counter = 0
@@ -4049,11 +3954,10 @@
                   k_acc = k_acc + 1
                   counter = counter + 1
                   # pick a particle
-                  param_picked = .particle_pick(param_previous_step[, tab_unfixed_param], 
-                    tab_weight)
+                  param_picked = .particle_pick(param_previous_step, tab_weight)
                   # move it
-                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
+                  param_moved = .move_particle(as.numeric(param_picked), 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), 
+                    as.vector(tab_weight))$cov)  # only variable parameters are moved, computation of a WEIGHTED variance
                   test = .is_included(param_moved, prior)
                 }
                 if (counter == 100) {
@@ -4061,7 +3965,7 @@
                 }
             }
             param = param_previous_step[1, ]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             param = c((seed_count + i), param)
             list_param[[i]] = param
             tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -4081,7 +3985,7 @@
 ## function to perform ABC simulations from a non-uniform prior and with
 ## unidimensional jumps
 .ABC_launcher_not_uniformc_uni_cluster <- function(model, prior, param_previous_step, 
-    tab_unfixed_param, tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
+    tab_weight, nb_simul, seed_count, inside_prior, n_cluster) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     k_acc = 0
@@ -4090,13 +3994,12 @@
     npar = floor(nb_simul/(100 * n_cluster))
     n_end = nb_simul - (npar * 100 * n_cluster)
     l = dim(param_previous_step)[2]
-    l_array = dim(param_previous_step[, tab_unfixed_param])[2]
+    l_array = dim(param_previous_step)[2]
     if (is.null(l_array)) {
         l_array = 1
     }
     sd_array = array(1, l_array)
-    covmat = 2 * cov.wt(as.matrix(as.matrix(param_previous_step)[, tab_unfixed_param]), 
-        as.vector(tab_weight))$cov  # computation of a WEIGHTED variance
+    covmat = 2 * cov.wt(as.matrix(as.matrix(param_previous_step)), as.vector(tab_weight))$cov  # computation of a WEIGHTED variance
     for (j in 1:l_array) {
         sd_array[j] = sqrt(covmat[j, j])
     }
@@ -4106,8 +4009,8 @@
                 if (!inside_prior) {
                   k_acc = k_acc + 1
                   # pick a particle
-                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), tab_weight)
+                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                    tab_weight)
                   # move it
                   param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
                 } else {
@@ -4117,8 +4020,8 @@
                     k_acc = k_acc + 1
                     counter = counter + 1
                     # pick a particle
-                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                      tab_unfixed_param]), tab_weight)
+                    param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                      tab_weight)
                     # move it
                     param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
                     test = .is_included(param_moved, prior)
@@ -4128,7 +4031,7 @@
                   }
                 }
                 param = param_previous_step[1, ]
-                param[tab_unfixed_param] = param_moved
+                param = param_moved
                 param = c((seed_count + i), param)
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -4147,8 +4050,8 @@
             if (!inside_prior) {
                 k_acc = k_acc + 1
                 # pick a particle
-                param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                  tab_unfixed_param]), tab_weight)
+                param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                  tab_weight)
                 # move it
                 param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
             } else {
@@ -4158,8 +4061,8 @@
                   counter = counter + 1
                   k_acc = k_acc + 1
                   # pick a particle
-                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)[, 
-                    tab_unfixed_param]), tab_weight)
+                  param_picked = .particle_pick(as.matrix(as.matrix(param_previous_step)), 
+                    tab_weight)
                   # move it
                   param_moved = .move_particle_uni(as.numeric(param_picked), sd_array)  # only variable parameters are moved
                   test = .is_included(param_moved, prior)
@@ -4169,7 +4072,7 @@
                 }
             }
             param = param_previous_step[1, ]
-            param[tab_unfixed_param] = param_moved
+            param = param_moved
             param = c((seed_count + i), param)
             list_param[[i]] = param
             tab_param = rbind(tab_param, param[2:(l + 1)])
@@ -4223,18 +4126,12 @@
     seed_count_ini = seed_count
     nparam = length(prior)
     nstat = length(summary_stat_target)
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-        if (prior[[i]][1] != "unif") {
-            stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
-        }
+    if (!.all_unif(prior)) {
+        stop("Prior distributions must be uniform to use the Lenormand et al. (2012)'s algorithm.")
     }
     n_alpha = ceiling(nb_simul * alpha)
     ## step 1 ABC rejection step with LHS
-    tab_ini = .ABC_rejection_lhs_cluster(model, prior, nb_simul, tab_unfixed_param, 
-        seed_count, n_cluster)
+    tab_ini = .ABC_rejection_lhs_cluster(model, prior, nb_simul, seed_count, n_cluster)
     seed_count = seed_count + nb_simul
     sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
     # selection of the alpha quantile closest simulations
@@ -4271,20 +4168,20 @@
         it = it + 1
         simul_below_tol2 = NULL
         tab_inic = .ABC_launcher_not_uniformc_cluster(model, prior, as.matrix(as.matrix(simul_below_tol)[, 
-            1:nparam]), tab_unfixed_param, tab_weight/sum(tab_weight), nb_simul_step, 
-            seed_count, inside_prior, n_cluster)
+            1:nparam]), tab_weight/sum(tab_weight), nb_simul_step, seed_count, inside_prior, 
+            n_cluster)
         tab_ini = as.matrix(tab_inic[[1]])
         tab_ini = as.numeric(tab_ini)
         dim(tab_ini) = c(nb_simul_step, (nparam + nstat))
         seed_count = seed_count + nb_simul_step
         if (!inside_prior) {
             tab_weight2 = .compute_weightb(as.matrix(as.matrix(as.matrix(tab_ini)[, 
-                1:nparam])[, tab_unfixed_param]), as.matrix(as.matrix(as.matrix(simul_below_tol)[, 
-                1:nparam])[, tab_unfixed_param]), tab_weight/sum(tab_weight), prior)
+                1:nparam])), as.matrix(as.matrix(as.matrix(simul_below_tol)[, 1:nparam])), 
+                tab_weight/sum(tab_weight), prior)
         } else {
             tab_weight2 = tab_inic[[2]] * (.compute_weightb(as.matrix(as.matrix(as.matrix(tab_ini)[, 
-                1:nparam])[, tab_unfixed_param]), as.matrix(as.matrix(as.matrix(simul_below_tol)[, 
-                1:nparam])[, tab_unfixed_param]), tab_weight/sum(tab_weight), prior))
+                1:nparam])), as.matrix(as.matrix(as.matrix(simul_below_tol)[, 1:nparam])), 
+                tab_weight/sum(tab_weight), prior))
         }
         simul_below_tol2 = rbind(as.matrix(simul_below_tol), as.matrix(tab_ini))
         tab_weight = c(tab_weight, tab_weight2)
@@ -4348,18 +4245,17 @@
         stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
     }
     options(scipen = 50)
-    # library(parallel)
-    ## general function regrouping the different sequential algorithms [Beaumont et
-    ## al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P.
-    ## (2009). Adaptive approximate Bayesian computation. Biometrika,96(4):983-990.
-    ## [Drovandi & Pettitt 2011] Drovandi, C. C. and Pettitt, A. N. (2011).
-    ## Estimation of parameters for macroparasite population evolution using
-    ## approximate Bayesian computation. Biometrics, 67(1):225-233.  [Del Moral et
-    ## al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An adaptive
-    ## sequential Monte Carlo method for approximate Bayesian computation,
-    ## Statistics and Computing., 22(5):1009-1020.  [Lenormand et al. 2012]
-    ## Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian
-    ## computation for complex models, submitted to Comput. Stat. )
+    # library(parallel) general function regrouping the different sequential
+    # algorithms [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and
+    # Robert, C. P.  (2009). Adaptive approximate Bayesian computation.
+    # Biometrika,96(4):983-990.  [Drovandi & Pettitt 2011] Drovandi, C. C. and
+    # Pettitt, A. N. (2011).  Estimation of parameters for macroparasite population
+    # evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
+    # [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An
+    # adaptive sequential Monte Carlo method for approximate Bayesian computation,
+    # Statistics and Computing., 22(5):1009-1020.  [Lenormand et al. 2012] Lenormand,
+    # M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation
+    # for complex models, submitted to Comput. Stat. )
     return(switch(EXPR = method, Beaumont = .ABC_PMC_cluster(model, prior, nb_simul, 
         summary_stat_target, n_cluster, verbose, , ...), Drovandi = .ABC_Drovandi_cluster(model, 
         prior, nb_simul, summary_stat_target, n_cluster, verbose, ...), Delmoral = .ABC_Delmoral_cluster(model, 
@@ -4368,8 +4264,8 @@
     options(scipen = 0)
 }
 
-## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of
-## the tolerance and proposal range following Wegmann et al. 2009
+## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the
+## tolerance and proposal range following Wegmann et al. 2009
 .ABC_MCMC2_cluster <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
     n_cluster, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     seed_count = 0) {
@@ -4411,11 +4307,6 @@
     nstat = length(summary_stat_target)
     tab_simul_summary_stat = NULL
     tab_param = NULL
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
     # initial draw of a particle
     initial = .ABC_rejection_internal_cluster(model, prior, n_calibration, seed_count, 
         n_cluster)
@@ -4503,8 +4394,8 @@
 }
 
 ## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the
-## manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox,
-## AM11-12 are not implemented in the algorithm
+## manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12
+## are not implemented in the algorithm
 .ABC_MCMC3_cluster <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
     n_cluster, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     numcomp = 0, seed_count = 0) {
@@ -4550,8 +4441,7 @@
     if (verbose) {
         print("    ------ Wegmann et al. (2009)'s algorithm ------")
     }
-    # library(pls) library(MASS)
-    ## AM1
+    # library(pls) library(MASS) AM1
     seed_count_ini = seed_count
     nparam = length(prior)
     nstat = length(summary_stat_target)
@@ -4563,12 +4453,7 @@
     }
     tab_simul_summary_stat = NULL
     tab_param = NULL
-    tab_unfixed_param = array(TRUE, nparam)
-    for (i in 1:nparam) {
-        tab_unfixed_param[i] = !((prior[[i]][1] == "unif") && (as.numeric(prior[[i]][2]) == 
-            as.numeric(prior[[i]][3])))
-    }
-    if (length(tab_unfixed_param[tab_unfixed_param]) <= 1) {
+    if (length(prior) <= 1) {
         stop("A single parameter is varying, use the method 'Marjoram' instead")
     }
     # initial draw of a particle
@@ -4583,7 +4468,7 @@
         write.table(NULL, file = "output_mcmc", row.names = F, col.names = F, quote = F)
     }
     ## AM2: PLS step print('AM2 ') standardize the params
-    sparam = as.matrix(tab_param)[, tab_unfixed_param]
+    sparam = as.matrix(tab_param)
     ls = dim(sparam)[2]
     for (i in 1:ls) {
         sparam[, i] = (sparam[, i] - mean(sparam[, i]))/sd(sparam[, i])
@@ -4616,8 +4501,7 @@
         load("dmat.RData", .GlobalEnv)
         file.remove("dmat.RData")
         mylm <- lm(as.formula(as.data.frame(dmat)), data = as.data.frame(dmat))
-        # mylm<-lm(as.formula(as.data.frame(dmat)))
-        # mylm<-lm(stat[,i]~as.matrix(sparam))
+        # mylm<-lm(as.formula(as.data.frame(dmat))) mylm<-lm(stat[,i]~as.matrix(sparam))
         myboxcox <- boxcox(mylm, lambda = seq(-20, 100, 1/10), interp = T, eps = 1/50, 
             plotit = FALSE)
         lambda <- c(lambda, myboxcox$x[myboxcox$y == max(myboxcox$y)])

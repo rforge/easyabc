@@ -115,8 +115,32 @@ In the worked example (Section \ref{example}), the simulation code \texttt{trait
 
 \subsection{Encoding the prior distributions}
 A list encoding the prior distributions used for each model parameter must be supplied by the user.
-Each element of the list corresponds to a model parameter. The list element must be a vector whose first argument determines the type of prior distribution: possible values are "unif" for a uniform distribution on a segment, "normal" for a normal distribution, "lognormal" for a lognormal distribution or "exponential" for an exponential distribution.
-The following arguments of the list elements contain the characteritiscs of the prior distribution chosen: for "unif", two numbers must be given: the minimum and maximum values of the uniform distribution; for "normal", two numbers must be given: the mean and standard deviation of the normal distribution; for "lognormal", two numbers must be given: the mean and standard deviation on the log scale of the lognormal distribution; for "exponential", one number must be given: the rate of the exponential distribution.
+Each element of the list corresponds to a model parameter and can be defined by two ways:
+\begin{enumerate}
+  \item By using predefined prior definition. The list element must be a vector whose first argument determines the type of prior distribution followed by the argument of the distribution function, possible values are:
+    \begin{itemize}
+    \item "unif" for a uniform distribution on a segment, followed by two numbers the minimum and maximum values of the uniform distribution
+    \item "normal" for a normal distribution, followed by two numbers the mean and standard deviation of the normal distribution
+    \item "lognormal" for a lognormal distribution, followed by two numbers: the mean and standard deviation on the log scale of the lognormal distribution
+    \item "exponential" for an exponential distribution, followed by one number: the rate of the exponential distribution
+
+<<simple_prior>>=
+my_prior=list(c("unif",0,1),c("normal",1,2))
+@
+
+    \end{itemize}
+  \item By providing the sampling function and the density function. It means that you're free to provide your own methods. The providen data must be a list of two elements : the sampling function and the density function. For example, you can define a uniform distribution like that (equivalent to \texttt{my\_prior=list(c("unif",0,1))}):
+<<custom_prior>>=
+my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))
+@
+  Note that we should specify the first argument of "runif" to "1" (number of sampling).
+  You can now add your custom method, like that:
+<<custom_prior2,eval=FALSE>>=
+my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)),
+list(c("mysample",arg1), c("mydensity", arg2, arg3)))
+@
+  
+\end{enumerate}
 
 \textit{NB:} Note that a fixed variable can be passed to the simulation code by choosing for this fixed variable a uniform prior distribution and a trivial range (with equal lower and upper bounds). 
 The \texttt{EasyABC} methods will not work properly if these fixed variables are passed with other types of prior distributions (like a normal distribution with a standard deviation equal to zero).
@@ -149,7 +173,7 @@ In short, this can be done by:
   \begin{verbatim}
   $ R CMD SHLIB trait_model_rc.cpp
   g++ -I/usr/share/R/include -DNDEBUG -fpic -O2 -pipe -g -c trait_model_rc.cpp
-  -o trait_model_rc.o
+    -o trait_model_rc.o
   g++ -shared -o trait_model_rc.so trait_model_rc.o -L/usr/lib/R/lib -lR
   \end{verbatim} 
   \item Load the builded library in your session with the \texttt{dyn.load} function.
@@ -158,10 +182,12 @@ In short, this can be done by:
   \end{verbatim} 
   \item Use the \texttt{.C} function for calling your program, like we've done in our \texttt{trait\_model} function:
   \begin{verbatim}
-  trait_model <- function(input=c(1,500,1,1,1,1)) {
-    .C("trait_model",input=input,stat_to_return=array(0,4))$stat_to_return
+  trait_model <- function(input=c(1,1,1,1,1,1)) {
+    .C("trait_model",input=c(input[1], 500, input[2:3], 1, input[4:5]),
+      stat_to_return=array(0,4))$stat_to_return
   }
-  \end{verbatim} 
+  \end{verbatim}
+  You can also notice how we have fixed the parameter of the model.
 \end{itemize}
 
 \section{A first worked example}
@@ -208,6 +234,7 @@ ABC_rej<-ABC_rejection(model=toy_model, prior=toy_prior, nb_simul=n)
 # Install if needed the "abc" package
 install.packages("abc")
 @
+
 <<abc>>=
 # Post-process the simulations outputs
 library(abc)
@@ -269,11 +296,12 @@ prior=toy_prior2, nb_simul=10, summary_stat_target=sum_stat_obs,
 p_acc_min=pacc)
 @
 
-
 \subsection{Performing a ABC-MCMC scheme}
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_rec$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, a vector $tab\_normalization$ precising the scale of each summary statistics, and a vector $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
 All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
-<<ABC_Marjoram_original>>=
+
+FIXME: disabled example
+<<ABC_Marjoram_original,eval=FALSE>>=
 n=10
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=toy_model,
 prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
@@ -291,7 +319,7 @@ prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
 
 To perform the algorithm of Wegmann et al. (2009a), one needs to specify four arguments: the number $n\_calibration$ of simulations to perform at the calibration step, the tolerance quantile $tolerance\_quantile$ to be used for the determination of $dist\_max$, the scale factor $proposal\_phi$ to determine the proposal range and the number of components $numcomp$ to be used in PLS regressions.
 The arguments are set by default to: $n\_calibration=10000$, $tolerance\_quantile=0.01$, $proposal\_phi=1$ and $numcomp=0$, this last default value encodes a choice of a number of PLS components equal to the number of summary statistics.
-<<#ABC_Wegmann>>=
+<<ABC_Wegmann>>=
 n=10
 ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=toy_model,
 prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
@@ -318,7 +346,6 @@ nb_simul=n, summary_stat_target=sum_stat_obs, tol=p, n_cluster=2,
 use_seed=TRUE)
 @
 
-
 \section{A second worked example}
 \label{example}
 \subsection{The trait model}
@@ -334,11 +361,10 @@ The simulation code \texttt{trait\_model} therefore takes an exponential transfo
 
 In the following, we will use the values $J=500$ and $n\_t=1$, and uniform prior distributions for $ln(I)$ in $[3;5]$, $h$ in [-25;125], $ln(A)$ in $[ln(0.1);ln(5)]$ and $ln(\sigma)$ in $[ln(0.5);ln(25)]$. The simulation code \texttt{trait\_model} reads sequentially $J$, $I$, $A$, $n\_t$, $h$ and $\sigma$.
 
-\textit{NB:} Note that the fixed variables $J$ and $n\_t$ are included in the prior list (elements 1 and 4) using uniform distributions with a trivial ranges:
+\textit{NB:} Note that the fixed variables $J$ and $n\_t$ have been fixed (see section RClink) into the function \texttt{trait\_model} (in versions previous to 1.3, they was included in the prior list using uniform distributions with a trivial ranges)
   
 <<trait_prior>>=
-trait_prior=list(c("unif",500,500), c("unif",3,5),
-c("unif",-2.3,1.6), c("unif",1,1),
+trait_prior=list(c("unif",3,5),c("unif",-2.3,1.6),
 c("unif",-25,125), c("unif",-0.7,3.2))
 @
 
@@ -370,7 +396,7 @@ set.seed(1)
 n=10
 p=0.2
 ABC_rej<-ABC_rejection(model=trait_model, prior=trait_prior, nb_simul=n, use_seed=TRUE)
-rej<-abc(sum_stat_obs, ABC_rej$param[,c(2,3,5,6)], ABC_rej$stats,
+rej<-abc(sum_stat_obs, ABC_rej$param, ABC_rej$stats,
 tol=0.2, method="rejection")
 # simulations selected:
 rej$unadj.values
@@ -439,7 +465,9 @@ p_acc_min=pacc, use_seed=TRUE)
 \subsection{Performing a ABC-MCMC scheme}
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_obs$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, a vector $tab\_normalization$ precising the scale of each summary statistics, and a vector $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
 All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
-<<ABC_Marjoram_original>>=
+
+FIXME: disabled example
+<<ABC_Marjoram_original,eval=FALSE>>=
 n=10
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model,
 prior=trait_prior, summary_stat_target=sum_stat_obs, n_rec=n, use_seed=TRUE)

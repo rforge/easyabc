@@ -6,23 +6,7 @@ ABC_rejection <- function(model, prior, nb_simul, summary_stat_target = NULL, to
         stop("'model' is missing")
     if (missing(prior)) 
         stop("'prior' is missing")
-    if (!is.list(prior)) 
-        stop("'prior' has to be a list")
-    l = length(prior)
-    for (i in 1:l) {
-        if (!any(prior[[i]][1] == c("unif", "normal", "lognormal", "exponential"))) {
-            stop("Prior distribution type must be unif, normal, lognormal or exponential")
-        }
-        if (prior[[i]][1] == "exponential") {
-            if (length(prior[[i]]) < 2) {
-                stop(paste("Incomplete prior information for parameter ", i, sep = ""))
-            }
-        } else {
-            if (length(prior[[i]]) < 3) {
-                stop(paste("Incomplete prior information for parameter ", i, sep = ""))
-            }
-        }
-    }
+    prior = .process_prior(prior)
     if (missing(nb_simul)) 
         stop("'nb_simul' is missing")
     if (nb_simul < 1) 

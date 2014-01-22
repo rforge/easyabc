@@ -227,8 +227,7 @@
     # 'use_seed' must be turned to TRUE.
     n=10
     ## define prior information
-    trait_prior=list(c("unif",500,500),c("unif",3,5),c("unif",-2.3,1.6),c("unif",1,1),
-      c("unif",-25,125),c("unif",-0.7,3.2))
+    trait_prior=list(c("unif",3,5),c("unif",-2.3,1.6),c("unif",-25,125),c("unif",-0.7,3.2))
     trait_prior
 
     ## define the targeted summary statistics

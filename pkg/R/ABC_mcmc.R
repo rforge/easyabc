@@ -9,23 +9,7 @@ ABC_mcmc <- function(method, model, prior, summary_stat_target, n_rec = 100, n_b
         stop("'model' is missing")
     if (missing(prior)) 
         stop("'prior' is missing")
-    if (!is.list(prior)) 
-        stop("'prior' has to be a list")
-    l = length(prior)
-    for (i in 1:l) {
-        if (!any(prior[[i]][1] == c("unif", "normal", "lognormal", "exponential"))) {
-            stop("Prior distribution type must be unif, normal, lognormal or exponential")
-        }
-        if (prior[[i]][1] == "exponential") {
-            if (length(prior[[i]]) < 2) {
-                stop(paste("Incomplete prior information for parameter ", i, sep = ""))
-            }
-        } else {
-            if (length(prior[[i]]) < 3) {
-                stop(paste("Incomplete prior information for parameter ", i, sep = ""))
-            }
-        }
-    }
+    prior = .process_prior(prior)
     if (missing(summary_stat_target)) 
         stop("'summary_stat_target' is missing")
     if (!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))) {
