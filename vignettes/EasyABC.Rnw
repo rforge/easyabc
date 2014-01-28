@@ -139,11 +139,18 @@ my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))
 my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)),
 list(c("mysample",arg1), c("mydensity", arg2, arg3)))
 @
-  
+
+  This scheme can be used to define discrete prior function. Let consider that you have a model parameter with n modalities from "1" to "n". You can define your uniform prior as follow:
+<<custom_prior_3>>=
+nbModalities=3
+mysample = function() { min(which(runif(1,0,nbModalities)<(1:nbModalities))) }
+mydensity = function(x) { 1/nbModalities }
+my_prior=list(list(c("mysample"), c("mydensity")))
+@
+
 \end{enumerate}
 
-\textit{NB:} Note that a fixed variable can be passed to the simulation code by choosing for this fixed variable a uniform prior distribution and a trivial range (with equal lower and upper bounds). 
-The \texttt{EasyABC} methods will not work properly if these fixed variables are passed with other types of prior distributions (like a normal distribution with a standard deviation equal to zero).
+
 
 \subsection{The target summary statistics}
 A vector containing the summary statistics of the data must be supplied. The statistics must be in the same order as in the simulation outputs.
