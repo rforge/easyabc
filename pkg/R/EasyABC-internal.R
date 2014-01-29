@@ -1839,21 +1839,13 @@
 }
 
 .make_proposal_range <- function(prior) {
-    stop("FIXME not yet implemented for the new scheme of prior specification")
     res = NULL
-    for (i in 1:length(prior)) {
-        if (prior[[i]][1] == "unif") {
-            res[i] = (as.numeric(prior[[i]][3]) - as.numeric(prior[[i]][2]))/50
-        }
-        if (prior[[i]][1] == "normal") {
-            res[i] = as.numeric(prior[[i]][3])/20
-        }
-        if (prior[[i]][1] == "lognormal") {
-            res[i] = exp(as.numeric(prior[[i]][3]) * as.numeric(prior[[i]][3]))/20
-        }
-        if (prior[[i]][1] == "exponential") {
-            res[i] = 1/(20 * as.numeric(prior[[i]][2]))
-        }
+    sample_range=array(0,100)
+    for (i in 1:length(prior)) { 
+	  for (j in 1:100){
+		sample_range[j]=prior[i]$sampling()
+	  }
+	  res[i]=sd(sample_range)/10
     }
     res
 }
