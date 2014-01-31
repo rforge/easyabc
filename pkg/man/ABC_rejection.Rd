@@ -66,7 +66,6 @@
   \code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_sequential}}, \code{\link{ABC_mcmc}}
 }
 \examples{
- \dontrun{
     ##### EXAMPLE 1 #####
     #####################
     set.seed(1)
@@ -93,6 +92,7 @@
 
     ## NB: see the package's vignette to see how to pipeline 'ABC_rejection' with the function
     # 'abc' of the package 'abc' to perform other rejection schemes.
+ \dontrun{
 
     ##### EXAMPLE 2 #####
     #####################

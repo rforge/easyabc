@@ -1843,7 +1843,7 @@
     sample_range=array(0,100)
     for (i in 1:length(prior)) { 
 	  for (j in 1:100){
-		sample_range[j]=prior[i]$sampling()
+		sample_range[j]=prior[[i]]$sampling()
 	  }
 	  res[i]=sd(sample_range)/10
     }
@@ -1971,18 +1971,11 @@
             }
             dist_simul = .compute_dist(summary_stat_target, as.numeric(simul_summary_stat), 
                 tab_normalization)
-            print(proposal_range)
-            print(param)
-            print(simul_summary_stat)
-            print(dist_simul)
-            print(dist_max)
-            print("start")
             if (dist_simul < dist_max) {
                 param_ini = param
                 tab_simul_ini = as.numeric(simul_summary_stat)
                 dist_ini = dist_simul
             }
-            print("end")
             seed_count = seed_count + 1
         }
         tab_simul_summary_stat = rbind(tab_simul_summary_stat, tab_simul_ini)

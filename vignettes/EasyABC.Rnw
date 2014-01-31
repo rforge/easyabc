@@ -307,8 +307,7 @@ p_acc_min=pacc)
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_rec$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, a vector $tab\_normalization$ precising the scale of each summary statistics, and a vector $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
 All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
 
-FIXME: disabled example
-<<ABC_Marjoram_original,eval=FALSE>>=
+<<ABC_Marjoram_original>>=
 n=10
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=toy_model,
 prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
@@ -473,8 +472,7 @@ p_acc_min=pacc, use_seed=TRUE)
 To perform the algorithm of Marjoram et al. (2003), one needs to specify five arguments: the number of sampled points $n\_obs$ in the Markov Chain, the number of chain points between two sampled points $n\_between\_sampling$, the maximal distance accepted between simulations and data $dist\_max$, a vector $tab\_normalization$ precising the scale of each summary statistics, and a vector $proposal\_range$ precising the maximal distances in each dimension of the parameter space for a jump of the MCMC.
 All these arguments have default values (see the package help for the function \texttt{ABC\_mcmc}), so that \texttt{ABC\_mcmc} will work without user-defined values.
 
-FIXME: disabled example
-<<ABC_Marjoram_original,eval=FALSE>>=
+<<ABC_Marjoram_original>>=
 n=10
 ABC_Marjoram_original<-ABC_mcmc(method="Marjoram_original", model=trait_model,
 prior=trait_prior, summary_stat_target=sum_stat_obs, n_rec=n, use_seed=TRUE)
