@@ -9,7 +9,7 @@
 }
 \usage{
 	ABC_sequential(method, model, prior, nb_simul, summary_stat_target,
-          n_cluster = 1, use_seed = FALSE, verbose = FALSE, ...)
+          prior_test=NULL, n_cluster = 1, use_seed = FALSE, verbose = FALSE, ...)
 }
 
 \arguments{
@@ -27,6 +27,11 @@
 	When \code{method} is \code{"Lenormand"}, the number of simulations below the tolerance threshold is equal to \code{nb_simul * alpha}. See the package's vignette and Lenormand et al. (2012) for details.}
   \item{summary_stat_target}{
 	a vector containing the targeted (observed) summary statistics.}
+  \item{prior_test}{
+        a string expressing the constraints between model parameters.
+        This expression will be evaluated as a logical expression, you can use all the logical operators including \code{"<"}, \code{">"}, \ldots
+        Each parameter should be designated with \code{"X1"}, \code{"X2"}, \ldots in the same order as in the prior definition.
+        If not provided, no constraints will be applyed.}
   \item{n_cluster}{
     a positive integer. If larger than 1 (the default value), \code{ABC_sequential} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
   \item{use_seed}{

@@ -170,16 +170,39 @@
     res
 }
 
-.sample_prior <- function(prior) {
+## return if the prior_test use correct parameter names, stop if there is an error
+.check_prior_test <- function(nb_parameters, prior_test) {
+    m = gregexpr("[xX]([0-9])+", prior_test)
+    result = regmatches(prior_test, m)
+    for (i in 1:length(result[[1]])) {
+        parameter_index = substring(result[[1]][i],2)
+        if (parameter_index>nb_parameters) {
+            stop(paste("Parameter out of range: ",result[[1]][i],sep=""))
+        }
+    }
+    TRUE
+}
+
+## test if the sampled parameter is passing the constraint test (if given by user)
+.is_in_parameter_constraints <- function(parameter, test) {
+    is.null(test) || eval(parse(text=gsub("[xX]([0-9]+)",'parameter[\\1]',test)))
+}
+
+## sample according to the prior definition, a test can be given as "x1 < x2"
+.sample_prior <- function(prior, test) {
     l = length(prior)
     param = NULL
-    for (i in 1:l) {
-        param[i] = prior[[i]]$sampling()
+    test_passed=FALSE
+    while (!test_passed) {
+      for (i in 1:l) {
+          param[i] = prior[[i]]$sampling()
+      }
+      test_passed = .is_in_parameter_constraints(param,test)
     }
     param
 }
 
-.ABC_rejection_internal <- function(model, prior, nb_simul, use_seed, seed_count, 
+.ABC_rejection_internal <- function(model, prior, prior_test, nb_simul, use_seed, seed_count,
     verbose = FALSE, progressbarwidth = 0) {
     options(scipen = 50)
     tab_simul_summarystat = NULL
@@ -194,7 +217,7 @@
     l = length(prior)
     start = Sys.time()
     for (i in 1:nb_simul) {
-        param = .sample_prior(prior)
+        param = .sample_prior(prior, prior_test)
         if (use_seed) {
             param = c((seed_count + i), param)
         }
@@ -435,7 +458,7 @@
 }
 
 ## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
-.ABC_rejection <- function(model, prior, nb_simul, use_seed, seed_count, verbose, 
+.ABC_rejection <- function(model, prior, prior_test, nb_simul, use_seed, seed_count, verbose, 
     progress_bar) {
     nb_simul = floor(nb_simul)
     seed_count = floor(seed_count)
@@ -443,7 +466,7 @@
     if (progress_bar) {
         pgwidth = 50
     }
-    rejection = .ABC_rejection_internal(model, prior, nb_simul, use_seed, seed_count, 
+    rejection = .ABC_rejection_internal(model, prior, prior_test, nb_simul, use_seed, seed_count, 
         verbose, progressbarwidth = pgwidth)
     sd_simul = sapply(as.data.frame(rejection$summarystat), sd)
     list(param = rejection$param, stats = as.matrix(rejection$summarystat), weights = array(1/nb_simul, 
@@ -452,7 +475,7 @@
 }
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
-.ABC_PMC <- function(model, prior, nb_simul, summary_stat_target, use_seed, verbose, 
+.ABC_PMC <- function(model, prior, prior_test, nb_simul, summary_stat_target, use_seed, verbose, 
     seed_count = 0, inside_prior = TRUE, tolerance_tab = -1, progress_bar = FALSE) {
     ## checking errors in the inputs
     if (!is.vector(seed_count)) 
@@ -494,7 +517,7 @@
     while (nb_simul_step > 0) {
         if (nb_simul_step > 1) {
             # classic ABC step
-            tab_ini = .ABC_rejection_internal(model, prior, nb_simul_step, use_seed, 
+            tab_ini = .ABC_rejection_internal(model, prior, prior_test, nb_simul_step, use_seed, 
                 seed_count)
             if (nb_simul_step == nb_simul) {
                 sd_simul = sapply(as.data.frame(tab_ini$summarystat), sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -507,7 +530,7 @@
                 nb_simul_step = nb_simul - dim(simul_below_tol)[1]
             }
         } else {
-            tab_ini = .ABC_rejection_internal(model, prior, nb_simul_step, use_seed, 
+            tab_ini = .ABC_rejection_internal(model, prior, prior_test, nb_simul_step, use_seed, 
                 seed_count)
             seed_count = seed_count + nb_simul_step
             if (.compute_dist(summary_stat_target, tab_ini$summarystat, sd_simul) < 
@@ -671,7 +694,7 @@
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a
 ## multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
-.ABC_Drovandi <- function(model, prior, nb_simul, summary_stat_target, use_seed, 
+.ABC_Drovandi <- function(model, prior, prior_test, nb_simul, summary_stat_target, use_seed, 
     verbose, tolerance_tab = -1, alpha = 0.5, c = 0.01, first_tolerance_level_auto = TRUE, 
     seed_count = 0, progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -739,7 +762,7 @@
     simul_below_tol = NULL
     if (first_tolerance_level_auto) {
         # classic ABC step
-        tab_ini = .ABC_rejection_internal(model, prior, nb_simul_step, use_seed, 
+        tab_ini = .ABC_rejection_internal(model, prior, prior_test, nb_simul_step, use_seed, 
             seed_count, progressbarwidth)
         sd_simul = sapply(as.data.frame(tab_ini$summarystat), sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
         seed_count = seed_count + nb_simul_step
@@ -752,7 +775,7 @@
         while (nb_simul_step > 0) {
             if (nb_simul_step > 1) {
                 # classic ABC step
-                tab_ini = .ABC_rejection_internal(model, prior, nb_simul_step, use_seed, 
+                tab_ini = .ABC_rejection_internal(model, prior, prior_test, nb_simul_step, use_seed, 
                   seed_count)
                 if (nb_simul_step == nb_simul) {
                   sd_simul = sapply(as.data.frame(tab_ini$summarystat), sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -765,7 +788,7 @@
                   nb_simul_step = nb_simul - dim(simul_below_tol)[1]
                 }
             } else {
-                tab_ini = .ABC_rejection_internal(model, prior, nb_simul_step, use_seed, 
+                tab_ini = .ABC_rejection_internal(model, prior, prior_test, nb_simul_step, use_seed, 
                   seed_count)
                 seed_count = seed_count + nb_simul_step
                 if (.compute_dist(summary_stat_target, tab_ini$summarystat, sd_simul) <= 
@@ -961,7 +984,7 @@
 }
 
 ## rejection algorithm with M simulations per parameter set
-.ABC_rejection_M <- function(model, prior, nb_simul, M, use_seed, seed_count) {
+.ABC_rejection_M <- function(model, prior, prior_test, nb_simul, M, use_seed, seed_count) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     l = length(prior)
@@ -969,7 +992,7 @@
         l = 1
     }
     for (i in 1:nb_simul) {
-        param = .sample_prior(prior)
+        param = .sample_prior(prior, prior_test)
         for (k in 1:M) {
             if (use_seed) {
                 param = c((seed_count + 1), param)
@@ -1069,7 +1092,7 @@
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal
 ## in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
-.ABC_Delmoral <- function(model, prior, nb_simul, summary_stat_target, use_seed, 
+.ABC_Delmoral <- function(model, prior, prior_test, nb_simul, summary_stat_target, use_seed, 
     verbose, alpha = 0.9, M = 1, nb_threshold = floor(nb_simul/2), tolerance_target = -1, 
     seed_count = 0, progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -1121,7 +1144,7 @@
     }
     nstat = length(summary_stat_target)
     # step 1 classic ABC step
-    simul_below_tol = .ABC_rejection_M(model, prior, nb_simul, M, use_seed, seed_count)
+    simul_below_tol = .ABC_rejection_M(model, prior, prior_test, nb_simul, M, use_seed, seed_count)
     seed_count = seed_count + M * nb_simul
     tab_weight = rep(1/nb_simul, nb_simul)
     ESS = nb_simul
@@ -1371,18 +1394,29 @@
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
 ## The prior is supposed to be defined with only uniform distributions
-.ABC_rejection_lhs <- function(model, prior, nb_simul, use_seed, seed_count) {
+.ABC_rejection_lhs <- function(model, prior, prior_test, nb_simul, use_seed, seed_count) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     l = length(prior)
     nparam = length(prior)
     random_tab = randomLHS(nb_simul, nparam)
+    lhs_index=1
     for (i in 1:nb_simul) {
-        param = array(0, l)
-        for (j in 1:l) {
-            param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
-                as.numeric(prior[[j]]$sampleArgs[2])) * random_tab[i, j]
+        test_passed=FALSE
+        while (!test_passed) {
+            param = array(0, l)
+            for (j in 1:l) {
+                param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
+                    as.numeric(prior[[j]]$sampleArgs[2])) * random_tab[lhs_index, j]
+            }
+            test_passed = .is_in_parameter_constraints(param, prior_test)
+            if (!test_passed) {
+                lhs_index = lhs_index + 1
+                random_tab = augmentLHS(random_tab, 1)
+            }
         }
+        # Ok, we have our particle
+        lhs_index = lhs_index + 1
         if (use_seed) {
             param = c((seed_count + i), param)
         }
@@ -1522,7 +1556,7 @@
 }
 
 ## sequential algorithm of Lenormand et al. 2012
-.ABC_Lenormand <- function(model, prior, nb_simul, summary_stat_target, use_seed, 
+.ABC_Lenormand <- function(model, prior, prior_test, nb_simul, summary_stat_target, use_seed, 
     verbose, alpha = 0.5, p_acc_min = 0.05, seed_count = 0, inside_prior = TRUE, 
     progress_bar = FALSE, store = FALSE) {
     ## checking errors in the inputs
@@ -1566,7 +1600,7 @@
         }
         n_alpha = ceiling(nb_simul * alpha)
         ## step 1 ABC rejection step with LHS
-        tab_ini = .ABC_rejection_lhs(model, prior, nb_simul, use_seed, seed_count)
+        tab_ini = .ABC_rejection_lhs(model, prior, prior_test, nb_simul, use_seed, seed_count)
         seed_count = seed_count + nb_simul
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
             sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -1681,7 +1715,7 @@
         }
         n_alpha = ceiling(nb_simul * alpha)
         ## step 1 ABC rejection step with LHS
-        tab_ini = .ABC_rejection_lhs(model, prior, nb_simul, use_seed, seed_count)
+        tab_ini = .ABC_rejection_lhs(model, prior, prior_test, nb_simul, use_seed, seed_count)
         seed_count = seed_count + nb_simul
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
             sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -1797,7 +1831,7 @@
 
 ## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi
 ## & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
-.ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
+.ABC_sequential <- function(method, model, prior, prior_test, nb_simul, summary_stat_target, 
     use_seed, verbose, ...) {
     options(scipen = 50)
     ## general function regrouping the different sequential algorithms [Beaumont et
@@ -1811,11 +1845,11 @@
     ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive
     ## approximate Bayesian computation for complex models, submitted to Comput. Stat.
     ## )
-    return(switch(EXPR = method, Beaumont = .ABC_PMC(model, prior, nb_simul, summary_stat_target, 
-        use_seed, verbose, ...), Drovandi = .ABC_Drovandi(model, prior, nb_simul, 
+    return(switch(EXPR = method, Beaumont = .ABC_PMC(model, prior, prior_test, nb_simul, summary_stat_target, 
+        use_seed, verbose, ...), Drovandi = .ABC_Drovandi(model, prior, prior_test, nb_simul, 
         summary_stat_target, use_seed, verbose, ...), Delmoral = .ABC_Delmoral(model, 
-        prior, nb_simul, summary_stat_target, use_seed, verbose, ...), Lenormand = .ABC_Lenormand(model, 
-        prior, nb_simul, summary_stat_target, use_seed, verbose, ...)))
+        prior, prior_test, nb_simul, summary_stat_target, use_seed, verbose, ...), Lenormand = .ABC_Lenormand(model, 
+        prior, prior_test, nb_simul, summary_stat_target, use_seed, verbose, ...)))
     options(scipen = 0)
 }
 
@@ -1851,7 +1885,7 @@
 }
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003
-.ABC_MCMC <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
+.ABC_MCMC <- function(model, prior, prior_test, n_obs, n_between_sampling, summary_stat_target, 
     use_seed, verbose, dist_max = 0, tab_normalization = summary_stat_target, proposal_range = vector(mode = "numeric", 
         length = length(prior)), seed_count = 0, progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -1905,7 +1939,7 @@
     test = FALSE
     dist_simul = NULL
     if (dist_max == 0) {
-        param = .sample_prior(prior)
+        param = .sample_prior(prior, prior_test)
         if (use_seed) {
             param = c((seed_count + 1), param)
         }
@@ -1918,7 +1952,7 @@
         print("Consider providing a tolerance value in the option 'dist_max' or using the method 'Marjoram' which automatically determines this value.")
     }
     while (!test) {
-        param = .sample_prior(prior)
+        param = .sample_prior(prior, prior_test)
         if (use_seed) {
             param = c((seed_count + 1), param)
         }
@@ -2027,7 +2061,7 @@
 
 ## ABC-MCMC2 algorithm of Marjoram et al. 2003 with automatic determination of the
 ## tolerance and proposal range following Wegmann et al. 2009
-.ABC_MCMC2 <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
+.ABC_MCMC2 <- function(model, prior, prior_test, n_obs, n_between_sampling, summary_stat_target, 
     use_seed, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     seed_count = 0, progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -2072,7 +2106,7 @@
     tab_simul_summary_stat = matrix(NA, n_calibration, nstat)
     # initial draw of a particle
     for (i in 1:(n_calibration)) {
-        param = .sample_prior(prior)
+        param = .sample_prior(prior, prior_test)
         if (use_seed) {
             param = c((seed_count + i), param)
         }
@@ -2196,7 +2230,7 @@
 ## ABC-MCMC3 algorithm of Wegmann et al. 2009 - the PLS step is drawn from the
 ## manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12
 ## are not implemented in the algorithm
-.ABC_MCMC3 <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
+.ABC_MCMC3 <- function(model, prior, prior_test, n_obs, n_between_sampling, summary_stat_target, 
     use_seed, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     numcomp = 0, seed_count = 0, progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -2261,7 +2295,7 @@
     }
     # initial draw of a particle
     for (i in 1:(n_calibration)) {
-        param = .sample_prior(prior)
+        param = .sample_prior(prior, prior_test)
         if (use_seed) {
             param = c((seed_count + i), param)
         }
@@ -2463,19 +2497,19 @@
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al.
 ## 2009)
-.ABC_mcmc_internal <- function(method, model, prior, n_obs, n_between_sampling, summary_stat_target, 
+.ABC_mcmc_internal <- function(method, model, prior, prior_test, n_obs, n_between_sampling, summary_stat_target, 
     use_seed, verbose, ...) {
     options(scipen = 50)
-    return(switch(EXPR = method, Marjoram_original = .ABC_MCMC(model, prior, n_obs, 
+    return(switch(EXPR = method, Marjoram_original = .ABC_MCMC(model, prior, prior_test, n_obs, 
         n_between_sampling, summary_stat_target, use_seed, verbose, ...), Marjoram = .ABC_MCMC2(model, 
-        prior, n_obs, n_between_sampling, summary_stat_target, use_seed, verbose, 
-        , ...), Wegmann = .ABC_MCMC3(model, prior, n_obs, n_between_sampling, summary_stat_target, 
+        prior, prior_test, n_obs, n_between_sampling, summary_stat_target, use_seed, verbose, 
+        , ...), Wegmann = .ABC_MCMC3(model, prior, prior_test, n_obs, n_between_sampling, summary_stat_target, 
         use_seed, verbose, ...)))
     options(scipen = 0)
 }
 
 ###################### parallel functions ###############
-.ABC_rejection_internal_cluster <- function(model, prior, nb_simul, seed_count = 0, 
+.ABC_rejection_internal_cluster <- function(model, prior, prior_test, nb_simul, seed_count = 0, 
     n_cluster = 1) {
     cl <- makeCluster(getOption("cl.cores", n_cluster))
     tab_simul_summarystat = NULL
@@ -2487,7 +2521,7 @@
         for (irun in 1:npar) {
             for (i in 1:(100 * n_cluster)) {
                 l = length(prior)
-                param = .sample_prior(prior)
+                param = .sample_prior(prior, prior_test)
                 # if (use_seed) # NB: we force the value use_seed=TRUE
                 param = c((seed_count + i), param)
                 list_param[[i]] = param
@@ -2505,7 +2539,7 @@
         list_param = list(NULL)
         for (i in 1:n_end) {
             l = length(prior)
-            param = .sample_prior(prior)
+            param = .sample_prior(prior, prior_test)
             # if (use_seed) # NB: we force the value use_seed=TRUE
             param = c((seed_count + i), param)
             list_param[[i]] = param
@@ -2524,7 +2558,7 @@
 }
 
 ## FUNCTION ABC_rejection: brute-force ABC (Pritchard et al. 1999)
-.ABC_rejection_cluster <- function(model, prior, nb_simul, seed_count = 0, n_cluster = 1, 
+.ABC_rejection_cluster <- function(model, prior, prior_test, nb_simul, seed_count = 0, n_cluster = 1, 
     verbose) {
     if (verbose) {
         write.table(NULL, file = "output", row.names = F, col.names = F, quote = F)
@@ -2544,7 +2578,7 @@
             simultemp = NULL
             for (i in 1:(100 * n_cluster)) {
                 l = length(prior)
-                param = .sample_prior(prior)
+                param = .sample_prior(prior, prior_test)
                 # if (use_seed) # NB: we force the value use_seed=TRUE
                 param = c((seed_count + i), param)
                 list_param[[i]] = param
@@ -2571,7 +2605,7 @@
         simultemp = NULL
         for (i in 1:n_end) {
             l = length(prior)[1]
-            param = .sample_prior(prior)
+            param = .sample_prior(prior, prior_test)
             # if (use_seed) # NB: we force the value use_seed=TRUE
             param = c((seed_count + i), param)
             list_param[[i]] = param
@@ -2801,7 +2835,7 @@
 }
 
 ## PMC ABC algorithm: Beaumont et al. Biometrika 2009
-.ABC_PMC_cluster <- function(model, prior, nb_simul, summary_stat_target, n_cluster, 
+.ABC_PMC_cluster <- function(model, prior, prior_test, nb_simul, summary_stat_target, n_cluster, 
     verbose, seed_count = 0, inside_prior = TRUE, tolerance_tab = -1, progress_bar = FALSE) {
     ## checking errors in the inputs
     if (!is.vector(seed_count)) 
@@ -2838,7 +2872,7 @@
     while (nb_simul_step > 0) {
         if (nb_simul_step > 1) {
             # classic ABC step
-            tab_ini = .ABC_rejection_internal_cluster(model, prior, nb_simul_step, 
+            tab_ini = .ABC_rejection_internal_cluster(model, prior, prior_test, nb_simul_step, 
                 seed_count, n_cluster)
             if (nb_simul_step == nb_simul) {
                 sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + 
@@ -2853,7 +2887,7 @@
                 nb_simul_step = nb_simul - dim(simul_below_tol)[1]
             }
         } else {
-            tab_ini = .ABC_rejection_internal_cluster(model, prior, nb_simul_step, 
+            tab_ini = .ABC_rejection_internal_cluster(model, prior, prior_test, nb_simul_step, 
                 seed_count, n_cluster)
             seed_count = seed_count + nb_simul_step
             if (.compute_dist(summary_stat_target, tab_ini[(nparam + 1):(nparam + 
@@ -3204,7 +3238,7 @@
 
 ## sequential algorithm of Drovandi & Pettitt 2011 - the proposal used is a
 ## multivariate normal (cf paragraph 2.2 - p. 227 in Drovandi & Pettitt 2011)
-.ABC_Drovandi_cluster <- function(model, prior, nb_simul, summary_stat_target, n_cluster, 
+.ABC_Drovandi_cluster <- function(model, prior, prior_test, nb_simul, summary_stat_target, n_cluster, 
     verbose, seed_count = 0, tolerance_tab = -1, alpha = 0.5, c = 0.01, first_tolerance_level_auto = TRUE, 
     progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -3257,7 +3291,7 @@
     simul_below_tol = NULL
     if (first_tolerance_level_auto) {
         # classic ABC step
-        tab_ini = .ABC_rejection_internal_cluster(model, prior, nb_simul_step, seed_count, 
+        tab_ini = .ABC_rejection_internal_cluster(model, prior, prior_test, nb_simul_step, seed_count, 
             n_cluster)
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
             sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -3272,7 +3306,7 @@
         while (nb_simul_step > 0) {
             if (nb_simul_step > 1) {
                 # classic ABC step
-                tab_ini = .ABC_rejection_internal_cluster(model, prior, nb_simul_step, 
+                tab_ini = .ABC_rejection_internal_cluster(model, prior, prior_test, nb_simul_step, 
                   seed_count, n_cluster)
                 if (nb_simul_step == nb_simul) {
                   sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + 
@@ -3287,7 +3321,7 @@
                   nb_simul_step = nb_simul - dim(simul_below_tol)[1]
                 }
             } else {
-                tab_ini = .ABC_rejection_internal_cluster(model, prior, nb_simul_step, 
+                tab_ini = .ABC_rejection_internal_cluster(model, prior, prior_test, nb_simul_step, 
                   seed_count, n_cluster)
                 seed_count = seed_count + nb_simul_step
                 if (.compute_dist(summary_stat_target, tab_ini[(nparam + 1):(nparam + 
@@ -3424,7 +3458,7 @@
 }
 
 ## rejection algorithm with M simulations per parameter set
-.ABC_rejection_M_cluster <- function(model, prior, nb_simul, M, seed_count, n_cluster) {
+.ABC_rejection_M_cluster <- function(model, prior, prior_test, nb_simul, M, seed_count, n_cluster) {
     tab_simul_summarystat = NULL
     tab_param = NULL
     list_param = list(NULL)
@@ -3438,7 +3472,7 @@
             for (irun2 in 1:(100 * n_cluster)) {
                 ii = (100 * n_cluster * (irun - 1) + irun2)%%M
                 if ((ii == 1) || (M == 1)) {
-                  param = .sample_prior(prior)
+                  param = .sample_prior(prior, prior_test)
                   param2 = c((seed_count + 1), param)
                   seed_count = seed_count + 1
                 } else {
@@ -3459,7 +3493,7 @@
         for (irun2 in 1:n_end) {
             ii = (100 * n_cluster * npar + irun2)%%M
             if ((ii == 1) || (M == 1)) {
-                param = .sample_prior(prior)
+                param = .sample_prior(prior, prior_test)
                 param2 = c((seed_count + 1), param)
                 seed_count = seed_count + 1
             } else {
@@ -3480,7 +3514,7 @@
 
 ## sequential algorithm of Del Moral et al. 2012 - the proposal used is a normal
 ## in each dimension (cf paragraph 3.2 in Del Moral et al. 2012)
-.ABC_Delmoral_cluster <- function(model, prior, nb_simul, summary_stat_target, n_cluster, 
+.ABC_Delmoral_cluster <- function(model, prior, prior_test, nb_simul, summary_stat_target, n_cluster, 
     verbose, alpha = 0.9, M = 1, nb_threshold = floor(nb_simul/2), tolerance_target = -1, 
     seed_count = 0, progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -3527,7 +3561,7 @@
     nparam = length(prior)
     nstat = length(summary_stat_target)
     # step 1 classic ABC step
-    simul_below_tol = .ABC_rejection_M_cluster(model, prior, nb_simul, M, seed_count, 
+    simul_below_tol = .ABC_rejection_M_cluster(model, prior, prior_test, nb_simul, M, seed_count, 
         n_cluster)
     seed_count = seed_count + M * nb_simul
     tab_weight = rep(1/nb_simul, nb_simul)
@@ -3794,7 +3828,7 @@
 }
 
 ## function to sample in the prior distributions using a Latin Hypercube sample
-.ABC_rejection_lhs_cluster <- function(model, prior, nb_simul, seed_count, n_cluster) {
+.ABC_rejection_lhs_cluster <- function(model, prior, prior_test, nb_simul, seed_count, n_cluster) {
     # library(lhs)
     cl <- makeCluster(getOption("cl.cores", n_cluster))
     tab_simul_summarystat = NULL
@@ -3814,7 +3848,7 @@
             for (i in 1:(100 * n_cluster)) {
                 param = array(0, l)
                 if (!all_unif_prior) {
-                  param = .sample_prior(prior)
+                  param = .sample_prior(prior, prior_test)
                 } else {
                   for (j in 1:l) {
                     param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
@@ -3840,7 +3874,7 @@
         for (i in 1:n_end) {
             param = array(0, l)
             if (!all_unif_prior) {
-                param = .sample_prior(prior)
+                param = .sample_prior(prior, prior_test)
             } else {
                 for (j in 1:l) {
                   param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
@@ -4075,7 +4109,7 @@
 }
 
 ## sequential algorithm of Lenormand et al. 2012
-.ABC_Lenormand_cluster <- function(model, prior, nb_simul, summary_stat_target, n_cluster, 
+.ABC_Lenormand_cluster <- function(model, prior, prior_test, nb_simul, summary_stat_target, n_cluster, 
     verbose, alpha = 0.5, p_acc_min = 0.05, seed_count = 0, inside_prior = TRUE, 
     progress_bar = FALSE) {
     ## checking errors in the inputs
@@ -4116,7 +4150,7 @@
     }
     n_alpha = ceiling(nb_simul * alpha)
     ## step 1 ABC rejection step with LHS
-    tab_ini = .ABC_rejection_lhs_cluster(model, prior, nb_simul, seed_count, n_cluster)
+    tab_ini = .ABC_rejection_lhs_cluster(model, prior, prior_test, nb_simul, seed_count, n_cluster)
     seed_count = seed_count + nb_simul
     sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
     # selection of the alpha quantile closest simulations
@@ -4224,7 +4258,7 @@
     final_res
 }
 
-.ABC_sequential_cluster <- function(method, model, prior, nb_simul, summary_stat_target, 
+.ABC_sequential_cluster <- function(method, model, prior, prior_test, nb_simul, summary_stat_target, 
     n_cluster, use_seed, verbose, ...) {
     if (use_seed == FALSE) {
         stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
@@ -4241,17 +4275,17 @@
     # Statistics and Computing., 22(5):1009-1020.  [Lenormand et al. 2012] Lenormand,
     # M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation
     # for complex models, submitted to Comput. Stat. )
-    return(switch(EXPR = method, Beaumont = .ABC_PMC_cluster(model, prior, nb_simul, 
+    return(switch(EXPR = method, Beaumont = .ABC_PMC_cluster(model, prior, prior_test, nb_simul, 
         summary_stat_target, n_cluster, verbose, , ...), Drovandi = .ABC_Drovandi_cluster(model, 
         prior, nb_simul, summary_stat_target, n_cluster, verbose, ...), Delmoral = .ABC_Delmoral_cluster(model, 
-        prior, nb_simul, summary_stat_target, n_cluster, verbose, ...), Lenormand = .ABC_Lenormand_cluster(model, 
-        prior, nb_simul, summary_stat_target, n_cluster, verbose, ...)))
+        prior, prior_test, nb_simul, summary_stat_target, n_cluster, verbose, ...), Lenormand = .ABC_Lenormand_cluster(model, 
+        prior, prior_test, nb_simul, summary_stat_target, n_cluster, verbose, ...)))
     options(scipen = 0)
 }
 
 ## ABC-MCMC algorithm of Marjoram et al. 2003 with automatic determination of the
 ## tolerance and proposal range following Wegmann et al. 2009
-.ABC_MCMC2_cluster <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
+.ABC_MCMC2_cluster <- function(model, prior, prior_test, n_obs, n_between_sampling, summary_stat_target, 
     n_cluster, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     seed_count = 0) {
     ## checking errors in the inputs
@@ -4293,7 +4327,7 @@
     tab_simul_summary_stat = NULL
     tab_param = NULL
     # initial draw of a particle
-    initial = .ABC_rejection_internal_cluster(model, prior, n_calibration, seed_count, 
+    initial = .ABC_rejection_internal_cluster(model, prior, prior_test, n_calibration, seed_count, 
         n_cluster)
     seed_count = seed_count + n_calibration
     tab_param = as.matrix(as.matrix(initial)[, 1:nparam])
@@ -4381,7 +4415,7 @@
 ## ABC-MCMC algorithm of Wegmann et al. 2009 - the PLS step is drawn from the
 ## manual of ABCtoolbox (figure 9) - NB: for consistency with ABCtoolbox, AM11-12
 ## are not implemented in the algorithm
-.ABC_MCMC3_cluster <- function(model, prior, n_obs, n_between_sampling, summary_stat_target, 
+.ABC_MCMC3_cluster <- function(model, prior, prior_test, n_obs, n_between_sampling, summary_stat_target, 
     n_cluster, verbose, n_calibration = 10000, tolerance_quantile = 0.01, proposal_phi = 1, 
     numcomp = 0, seed_count = 0) {
     ## checking errors in the inputs
@@ -4442,7 +4476,7 @@
         stop("A single parameter is varying, use the method 'Marjoram' instead")
     }
     # initial draw of a particle
-    initial = .ABC_rejection_internal_cluster(model, prior, nb_simul = n_calibration, 
+    initial = .ABC_rejection_internal_cluster(model, prior, prior_test, nb_simul = n_calibration, 
         seed_count, n_cluster)
     seed_count = seed_count + n_calibration
     tab_param = as.matrix(as.matrix(initial)[, 1:nparam])

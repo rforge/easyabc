@@ -6,8 +6,8 @@
   This function launches a series of \code{nb_simul} model simulations with model parameters drawn in the prior distribution specified in \code{prior_matrix}.
 }
 \usage{
-  ABC_rejection(model, prior, nb_simul, summary_stat_target=NULL, tol=NULL,
-  use_seed=FALSE, seed_count=0, n_cluster=1, verbose=FALSE, progress_bar=FALSE)
+  ABC_rejection(model, prior, nb_simul, prior_test=NULL, summary_stat_target=NULL,
+  tol=NULL, use_seed=FALSE, seed_count=0, n_cluster=1, verbose=FALSE, progress_bar=FALSE)
 }
 \arguments{
   \item{model}{
@@ -18,6 +18,11 @@
     The following arguments of the list elements contain the characteritiscs of the prior distribution chosen: for \code{"unif"}, two numbers must be given: the minimum and maximum values of the uniform distribution; for \code{"normal"}, two numbers must be given: the mean and standard deviation of the normal distribution; for \code{"lognormal"}, two numbers must be given: the mean and standard deviation on the log scale of the lognormal distribution; for \code{"exponential"}, one number must be given: the rate of the exponential distribution.}
   \item{nb_simul}{
     a positive integer equal to the desired number of simulations of the model.}
+  \item{prior_test}{
+        a string expressing the constraints between model parameters.
+        This expression will be evaluated as a logical expression, you can use all the logical operators including \code{"<"}, \code{">"}, \lots
+        Each parameter should be designated with \code{"X1"}, \code{"X2"}, \ldots in the same order as in the prior definition.
+        If not provided, no constraints will be applyed.}
   \item{summary_stat_target}{
     a vector containing the targeted (observed) summary statistics.
     If not provided, \code{ABC_rejection} only launches the simulations and outputs the simulation results.}
