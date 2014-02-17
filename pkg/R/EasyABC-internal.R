@@ -3879,7 +3879,7 @@
                 for (j in 1:l) {
                   param[j] = as.numeric(prior[[j]]$sampleArgs[2]) + (as.numeric(prior[[j]]$sampleArgs[3]) - 
                     as.numeric(prior[[j]]$sampleArgs[2])) * random_tab[(npar * 100 * n_cluster + 
-                    i), 1]
+                    i), j]
                 }
             }
             # if (use_seed) # NB: we force the value use_seed=TRUE
@@ -4258,23 +4258,23 @@
     final_res
 }
 
+## general function regrouping the different sequential
+## algorithms [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and
+## Robert, C. P.  (2009). Adaptive approximate Bayesian computation.
+## Biometrika,96(4):983-990.  [Drovandi & Pettitt 2011] Drovandi, C. C. and
+## Pettitt, A. N. (2011).  Estimation of parameters for macroparasite population
+## evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
+## [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An
+## adaptive sequential Monte Carlo method for approximate Bayesian computation,
+## Statistics and Computing., 22(5):1009-1020.  [Lenormand et al. 2012] Lenormand,
+## M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation
+## for complex models, submitted to Comput. Stat. )
 .ABC_sequential_cluster <- function(method, model, prior, prior_test, nb_simul, summary_stat_target, 
     n_cluster, use_seed, verbose, ...) {
     if (use_seed == FALSE) {
         stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
     }
     options(scipen = 50)
-    # library(parallel) general function regrouping the different sequential
-    # algorithms [Beaumont et al., 2009] Beaumont, M. A., Cornuet, J., Marin, J., and
-    # Robert, C. P.  (2009). Adaptive approximate Bayesian computation.
-    # Biometrika,96(4):983-990.  [Drovandi & Pettitt 2011] Drovandi, C. C. and
-    # Pettitt, A. N. (2011).  Estimation of parameters for macroparasite population
-    # evolution using approximate Bayesian computation. Biometrics, 67(1):225-233.
-    # [Del Moral et al. 2012] Del Moral, P., Doucet, A., and Jasra, A. (2012). An
-    # adaptive sequential Monte Carlo method for approximate Bayesian computation,
-    # Statistics and Computing., 22(5):1009-1020.  [Lenormand et al. 2012] Lenormand,
-    # M., Jabot, F., Deffuant G. (2012). Adaptive approximate Bayesian computation
-    # for complex models, submitted to Comput. Stat. )
     return(switch(EXPR = method, Beaumont = .ABC_PMC_cluster(model, prior, prior_test, nb_simul, 
         summary_stat_target, n_cluster, verbose, , ...), Drovandi = .ABC_Drovandi_cluster(model, 
         prior, nb_simul, summary_stat_target, n_cluster, verbose, ...), Delmoral = .ABC_Delmoral_cluster(model, 
