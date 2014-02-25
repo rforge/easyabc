@@ -11,7 +11,7 @@
 \date{\texttt{EasyABC} version  1.2.99, \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
-% \SweaveOpts{eval=FALSE}
+\SweaveOpts{eval=FALSE}
 
 \begin{document}
 
@@ -196,6 +196,80 @@ In short, this can be done by:
   \end{verbatim}
   You can also notice how we have fixed the parameter of the model.
 \end{itemize}
+
+\subsection{Example of integration of an external program: \texttt{fastsimcoal}}
+\label{simcoal}
+
+This example is provided by an EasyABC user Albert Min-Shan Ko (currently at Department of genetics, Max Planck Institute of Evolutionary Anthropology, Leipzig, Germany).
+The purpose is to plug a third-party software related to population genetics into the EasyaABC workflow.
+This software needs input data in a given format, so the idea is to wrap the call to the \texttt{fastsimcoal} software into a script that will make the glue between EasyABC and \texttt{fastsimcoal}.
+
+Here are the scripts as provided by courtesy of Albert Min-Shan Ko.
+  \begin{itemize}
+  \item The first one is a R script that will rewrite the sampled data into the format of a paramater for \texttt{fastsimcoal}.
+\begin{verbatim}
+r<-read.table('input',head=F)
+sink('mod.input')
+cat(paste('1','p1','unif',round(r[1,],0),round(r[1,],0),sep='\t'))
+cat('\n')
+cat(paste('1','p2','unif',round(r[2,],0),round(r[2,],0),sep='\t'))
+cat('\n')
+cat(paste('1','p3','unif',round(r[3,],0),round(r[3,],0),sep='\t'))
+sink()
+\end{verbatim}
+  \item Then a GNU Bash script that invoke this R script and integrate the well-formated parameters into a complete settings file, and run the program with this generated file (\texttt{sim.est}).
+\begin{verbatim}
+#!/bin/bash
+rm -fr sim
+Rscript mod.input.r
+cat <(sed -n 1p template.est) <(sed -n '1,3'p mod.input) \ 
+  <(sed -n '5,\$'p template.est) > sim.est
+  until [ -f sim/arl_output ]; do
+    ./fastsimcoal -t sim.tpl -e sim.est -E1 -n1 -q
+    ./arlsumstat sim/sim_1_1.arp sim/arl_output 1 0 run_silent
+  done
+cat sim/arl_output > output
+\end{verbatim}
+\end{itemize}
+
+Then, the user can invoke EasyABC like this :
+\begin{verbatim}
+prior=list(c("unif",500,1000),c("unif",100,500),c("unif",50,200))
+ABC_sim<-ABC_rejection(model=binary_model('./run_sim.sh'),prior=prior,nb_simul=3)
+\end{verbatim}
+
+\subsection{Example of integration of an java model}
+
+If your model runs with a Java Virtual Machine (can be written in Java, Scala, Groovy, …), you can of course use the \texttt{binary\_model} wrapper to run the JVM within your model.
+But, you can achieve a tigher integration that will simplify the process and save computing time.
+This section propose to use the R package \texttt{rJava}.
+
+Let's consider the toy model written in Java (in a file named Model.java):
+\begin{verbatim}
+public class Model {
+  public static double[] run(double[] x) {
+      double[] result = new double[2];
+      result[0] = x[0] + x[1];
+      result[1] = x[0] * x[1];
+      return result;
+  }
+}
+\end{verbatim}
+We can compile it with the command: \texttt{javac Model.java} and then define our wrapper in R:
+\begin{verbatim}
+mymodel <- function(x) {
+  library("rJava")
+  .jinit(classpath=".")
+  result = .jcall(J("Model"),"[D","run",.jarray(x))
+  result
+}
+\end{verbatim}
+
+Then, the user can invoke EasyABC like this :
+\begin{verbatim}
+prior=list(c("unif",0,1),c("normal",1,2))
+ABC_sim<-ABC_rejection(model=mymodel,prior=prior,nb_simul=3)
+\end{verbatim}
 
 \section{A first worked example}
 \label{example1}
