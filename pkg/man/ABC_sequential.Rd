@@ -31,7 +31,7 @@
         a string expressing the constraints between model parameters.
         This expression will be evaluated as a logical expression, you can use all the logical operators including \code{"<"}, \code{">"}, \ldots
         Each parameter should be designated with \code{"X1"}, \code{"X2"}, \ldots in the same order as in the prior definition.
-        If not provided, no constraints will be applyed.}
+        If not provided, no constraint will be applied.}
   \item{n_cluster}{
     a positive integer. If larger than 1 (the default value), \code{ABC_sequential} will launch \code{model} simulations in parallel on \code{n_cluster} cores of the computer.}
   \item{use_seed}{
