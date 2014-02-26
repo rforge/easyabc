@@ -20,7 +20,7 @@
     a positive integer equal to the desired number of simulations of the model.}
   \item{prior_test}{
         a string expressing the constraints between model parameters.
-        This expression will be evaluated as a logical expression, you can use all the logical operators including \code{"<"}, \code{">"}, \lots
+        This expression will be evaluated as a logical expression, you can use all the logical operators including \code{"<"}, \code{">"}, \ldots
         Each parameter should be designated with \code{"X1"}, \code{"X2"}, \ldots in the same order as in the prior definition.
         If not provided, no constraints will be applyed.}
   \item{summary_stat_target}{
