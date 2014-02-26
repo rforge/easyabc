@@ -11,7 +11,7 @@
 \date{\texttt{EasyABC} version  1.2.99, \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
-% \SweaveOpts{eval=FALSE}
+\SweaveOpts{eval=FALSE}
 
 \begin{document}
 
@@ -115,9 +115,9 @@ In the worked example (Section \ref{example}), the simulation code \texttt{trait
 
 \subsection{Encoding the prior distributions}
 A list encoding the prior distributions used for each model parameter must be supplied by the user.
-Each element of the list corresponds to a model parameter and can be defined by two ways:
+Each element of the list corresponds to a model parameter and can be defined in two ways:
 \begin{enumerate}
-  \item By using predefined prior definition. The list element must be a vector whose first argument determines the type of prior distribution followed by the argument of the distribution function, possible values are:
+  \item By using predefined prior distributions. In this case, the list element must be a vector whose first argument determines the type of prior distribution followed by the argument of the distribution function, possible values are:
     \begin{itemize}
     \item "unif" for a uniform distribution on a segment, followed by two numbers the minimum and maximum values of the uniform distribution
     \item "normal" for a normal distribution, followed by two numbers the mean and standard deviation of the normal distribution
@@ -129,7 +129,7 @@ my_prior=list(c("unif",0,1),c("normal",1,2))
 @
 
     \end{itemize}
-  \item By providing the sampling function and the density function. It means that you're free to provide your own methods. The providen data must be a list of two elements : the sampling function and the density function. For example, you can define a uniform distribution like that (equivalent to \texttt{my\_prior=list(c("unif",0,1))}):
+  \item By providing the user-defined sampling and density function. In this case, each list element must be itself a list of two elements: the sampling function and the density function. For example, a uniform distribution can be defined using this approach with the following code (equivalent to \texttt{my\_prior=list(c("unif",0,1))}):
 <<custom_prior>>=
 my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))
 @
@@ -150,7 +150,17 @@ my_prior=list(list(c("mysample"), c("mydensity")))
 
 \end{enumerate}
 
+\subsection{Adding constraints to prior distributions}
 
+To add constraints to prior distributions (for instance, parameter 1 < parameter 2), users need to use the parameter \texttt{prior\_test} in the ABC functions of the package (see their online documentation).
+This parameter \texttt{prior\_test} will be evaluated as a logical expression, you can use all the logical operators including \texttt{"<"}, \texttt{">"}, \ldots to define whether a parameter set respects the constraint.
+Each parameter should be designated with \texttt{"X1"}, \texttt{"X2"}, \ldots in the same order as in the prior definition.
+
+Here is an example where the second parameter should be greater than the first one:
+\begin{verbatim}
+prior = list(c("unif",0,1),c("unif",0,10))
+ABC_rejection(model=a_model,prior=prior,nb_simul=3, prior_test="X2 > X1")
+\end{verbatim}
 
 \subsection{The target summary statistics}
 A vector containing the summary statistics of the data must be supplied. The statistics must be in the same order as in the simulation outputs.
@@ -200,13 +210,13 @@ In short, this can be done by:
 \subsection{Example of integration of an external program: \texttt{fastsimcoal}}
 \label{simcoal}
 
-This example is provided by an EasyABC user Albert Min-Shan Ko (currently at Department of genetics, Max Planck Institute of Evolutionary Anthropology, Leipzig, Germany).
-The purpose is to plug a third-party software related to population genetics into the EasyaABC workflow.
-This software needs input data in a given format, so the idea is to wrap the call to the \texttt{fastsimcoal} software into a script that will make the glue between EasyABC and \texttt{fastsimcoal}.
+This example is provided by an EasyABC user Albert Min-Shan Ko (currently at the Department of genetics, Max Planck Institute of Evolutionary Anthropology, Leipzig, Germany).
+The purpose is to plug a third-party software related to population genetics into the EasyABC workflow.
+This software needs input data in a given format, so the idea is to wrap the call to the \texttt{fastsimcoal} software into a script that will link EasyABC to \texttt{fastsimcoal}.
 
 Here are the scripts as provided by courtesy of Albert Min-Shan Ko.
   \begin{itemize}
-  \item The first one is a R script that will rewrite the sampled data into the format of a paramater for \texttt{fastsimcoal}.
+  \item First, a R script reformats the parameters to be used by \texttt{fastsimcoal} (here named \texttt{mod.input.r}).
 \begin{verbatim}
 r<-read.table('input',head=F)
 sink('mod.input')
@@ -217,7 +227,7 @@ cat('\n')
 cat(paste('1','p3','unif',round(r[3,],0),round(r[3,],0),sep='\t'))
 sink()
 \end{verbatim}
-  \item Then a GNU Bash script that invoke this R script and integrate the well-formated parameters into a complete settings file, and run the program with this generated file (\texttt{sim.est}).
+  \item Second, a GNU Bash script (here names \texttt{run\_sim.sh}) invokes the latter R script and builds a parameter file for \texttt{fastsimcoal} (\texttt{sim.est}), runs \texttt{fastsimcoal} and computes some summary statistics with the arlequin program.
 \begin{verbatim}
 #!/bin/bash
 rm -fr sim
@@ -238,10 +248,10 @@ prior=list(c("unif",500,1000),c("unif",100,500),c("unif",50,200))
 ABC_sim<-ABC_rejection(model=binary_model('./run_sim.sh'),prior=prior,nb_simul=3)
 \end{verbatim}
 
-\subsection{Example of integration of an java model}
+\subsection{Example of integration of a java model}
 
 If your model runs with a Java Virtual Machine (can be written in Java, Scala, Groovy, …), you can of course use the \texttt{binary\_model} wrapper to run the JVM within your model.
-But, you can achieve a tigher integration that will simplify the process and save computing time.
+But, you can achieve a tighter integration that will simplify the process and save computing time.
 This section propose to use the R package \texttt{rJava}.
 
 Let's consider the toy model written in Java (in a file named Model.java):
@@ -598,6 +608,7 @@ The \texttt{EasyABC} package makes use of a number of \texttt{R} tools, among wh
 
 - the \texttt{R} script for the Wegmann et al. (2009a)'s algorithm drawn from the \texttt{ABCtoolbox} documentation (Wegmann et al. 2009b).
 
+We thank Sylvie Huet, Albert Ko and Matteo Fasiolo for their suggestions and inputs in the development of version 1.3.
 
 \section{References}
 Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009) Adaptive approximate Bayesian computation. \emph{Biometrika},\textbf{96}, 983--990.
