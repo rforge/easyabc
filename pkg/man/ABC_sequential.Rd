@@ -21,7 +21,7 @@
   \item{prior}{
     a list of prior information. Each element of the list corresponds to a model parameter. The list element must be a vector whose first argument determines the type of prior distribution: possible values are \code{"unif"} for a uniform distribution on a segment, \code{"normal"} for a normal distribution, \code{"lognormal"} for a lognormal distribution or \code{"exponential"} for an exponential distribution.
     The following arguments of the list elements contain the characteritiscs of the prior distribution chosen: for \code{"unif"}, two numbers must be given: the minimum and maximum values of the uniform distribution; for \code{"normal"}, two numbers must be given: the mean and standard deviation of the normal distribution; for \code{"lognormal"}, two numbers must be given: the mean and standard deviation on the log scale of the lognormal distribution; for \code{"exponential"}, one number must be given: the rate of the exponential distribution.
-    Note that when using the method "Lenormand", solely uniform prior distributions are supported.}
+    Note that when using the method "Lenormand", solely uniform prior distributions are supported. User-defined prior distributions can also be provided. See the vignette for additional information on this topic.}
   \item{nb_simul}{
     	a positive integer equal to the desired number of simulations of the model below the tolerance threshold when \code{method} is \code{"Beaumont"}, \code{"Drovandi"} and \code{"Delmoral"}.
 	When \code{method} is \code{"Lenormand"}, the number of simulations below the tolerance threshold is equal to \code{nb_simul * alpha}. See the package's vignette and Lenormand et al. (2012) for details.}
