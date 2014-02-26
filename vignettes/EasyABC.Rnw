@@ -133,20 +133,6 @@ my_prior=list(c("unif",0,1),c("normal",1,2))
 <<custom_prior>>=
 my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))
 @
-  Note that we should specify the first argument of "runif" to "1" (number of sampling).
-  You can now add your custom method, like that:
-<<custom_prior2,eval=FALSE>>=
-my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)),
-list(c("mysample",arg1), c("mydensity", arg2, arg3)))
-@
-
-  This scheme can be used to define discrete prior function. Let consider that you have a model parameter with n modalities from "1" to "n". You can define your uniform prior as follow:
-<<custom_prior_3>>=
-nbModalities=3
-mysample = function() { min(which(runif(1,0,nbModalities)<(1:nbModalities))) }
-mydensity = function(x) { 1/nbModalities }
-my_prior=list(list(c("mysample"), c("mydensity")))
-@
 
 \end{enumerate}
 
