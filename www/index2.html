@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>EasyABC</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link href="css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/libs/html5shiv/3.7.0/html5shiv.js"></script>
+      <script src="https://oss.maxcdn.com/libs/respond.js/1.4.2/respond.min.js"></script>
+    <![endif]-->
+
+  </head>
+
+  <body>
+    <div style="height:236px;background:url(img/banner.jpg) no-repeat; padding:0; margin:0;">
+      <h1 style="position:absolute; top:26px;left:26px;color:#eee;font-size:4em;">EasyABC</h1>
+      <p style="position:absolute; top:146px;left:26px;color:#ddd;font-size:1.7em;font-weight:bold;">A trekking in the parameter likehood landscape of complex models</p>
+    </div>
+    <div class="container">
+      <p style="font-size:130%;text-align:center;">Try it now! <code>> install.packages("EasyABC")</code></p>
+      <div class="row">
+        <div class="col-md-6">
+	  <h2>About EasyABC</h2>
+
+	  <p>The package EasyABC enables to perform efficient approximate bayesian computation (ABC) sampling schemes by launching a series of simulations of a computer code from the R platform, and to retrieve the simulation outputs in an appropriate format for post-processing treatments.</p>
+
+	  <p><strong>Package maintainer:</strong> <a href="mailto:nicolas.dumoulin@irstea.fr">Nicolas Dumoulin</a></p>
+	  <p><strong>Developers:</strong> <a href="mailto:franck.jabot@irstea.fr">Franck Jabot</a>, <a href="mailto:thierry.faure@irstea.fr">Thierry Faure</a>, <a href="mailto:nicolas.dumoulin@irstea.fr">Nicolas Dumoulin</a></p>
+
+	  <p>Development of EasyABC has been supported by the Irstea project DynIndic and by the French National Research Agency (ANR) within the SYSCOMM project DISCO (ANR-09-SYSC-003).</p>
+
+	  <p>Thanks to R-Forge for hosting the project. <a href="http://r-forge.r-project.org/"><img src="http://r-forge.r-project.org/themes/rforge/imagesrf/logo.png" border="0" alt="R-Forge Logo" width="100px"/></a></p>
+	</div>
+        <div class="col-md-6">
+	  <h2>News</h2>
+	  <ul>
+            <li>XX/02/2014 EasyABC 1.3 is now <a href="http://cran.r-project.org/web/packages/EasyABC/index.html">available on CRAN</a>. <a href="#" class="changelog-link">Changelog</a>
+            </li>
+            <li>04/09/2013 <a href="http://onlinelibrary.wiley.com/doi/10.1111/2041-210X.12050/abstract">"EasyABC: performing efficient approximate Bayesian computation sampling schemes using R"</a> published on Methods & Statistics in Ecology.</li>
+	    <li>11/13/2012 EasyABC is now hosted on <a href="http://r-forge.r-project.org/projects/easyabc/">R-Forge</a>.</li>
+	    <li>11/06/2012 First commit of EasyABC</li>
+	  </ul>
+	</div>
+      </div>
+      <div class="row">
+	  <h2>Current features</h2>
+	  <ul>
+	    <li>Launching of computer simulations to perform sequential or coupled-to-MCMC sampling schemes for <strong>Approximate Bayesian Computation</strong>.</li>
+	    <li>EasyABC currently implements four <strong>sequential algorithms</strong>:
+	    <ul>
+	      <li>Beaumont et al. Biometrika (2009)</li>
+	      <li>Drovandi &amp; Pettit Biometrics (2011)</li>
+	      <li>Del Moral et al. Statistics and Computing (2012)</li>
+	      <li>Lenormand et al. ArXiv (2012)</li>
+	    </ul></li>
+	    <li>EasyABC also implements three <strong>coupled-to-MCMC schemes</strong>:
+	    <ul>
+	      <li>Marjoram et al. Pnas (2003)</li>
+	      <li>Wegmann et al. Genetics (2009)</li>
+	      <li>A mix of Marjoram and Wegmann's algorithms (Marjoram with calibration step – Wegmann without PLS)</li>
+	    </ul></li>
+	    <li>EasyABC additionally enables to launch computer simulations in <strong>parallel</strong> on multiple cores of a multi-core computer.</li>
+	    <li>EasyABC also contains two R wrappers for binary codes to ease their launching from the R platform.
+	  </ul></li>
+        </div>
+      <div class="row">
+        <div id="installation" class="col-md-4">
+	  <h2>Installation</h2>
+
+	  <p>Version 1.3 is <a href="http://cran.r-project.org/web/packages/EasyABC/index.html">available on CRAN</a>. Simply type <code>install.packages("EasyABC")</code> from within R.</p>
+
+	  <p>You can also download and install manually archive (<a href="dist/EasyABC_1.3_linux.tar.gz">GNU/Linux</a> − <a href="dist/EasyABC_1.3_win.zip">Windows</a> − <a href="dist/EasyABC_1.3_mac.tgz">Mac OS</a>) with the command <code style="white-space:pre-wrap;">install.packages("EasyABCtest_1.3.tar.gz", repos=NULL, type="source")</code>
+	</div>
+        <div id="documentation" class="col-md-4">
+	  <h2>Help and Documentation</h2>
+
+	  <p>There is a <a href="http://cran.r-project.org/web/packages/EasyABC/vignettes/EasyABC.pdf">package vignette</a> with more information about EasyABC. Simply type <code>vignette("EasyABC")</code> to view within R.</p>
+
+	  <p>If you have problems or questions about the code, please read the function documentation (<code>help(EasyABC)</code>).</p>
+	</div>
+        <div class="col-md-4">
+	  <h2>Release history</h2>
+	    <ul>
+              <li>Version 1.3 released on XX/02/2014.</li>
+              <li>Version 1.2.2 released on 06/04/2013.</li>
+              <li>Version 1.2.1 released on 05/17/2013.</li>
+              <li>Version 1.2 released on 02/27/2013.</li>
+	      <li>Version 1.1 released on 01/29/2013.</li>
+	      <li>Version 1.0 released on 11/20/2012.</li>
+	    </ul>
+	    <p><a href="https://r-forge.r-project.org/scm/viewvc.php/*checkout*/pkg/CHANGELOG?root=easyabc">Changelog</a> − <a href="dist">Old versions archives</a></p>
+	</div>
+      </div>
+    </div>
+    <hr/>
+    <footer>
+      <div style="text-align:center">
+	<p><small>
+	  On the top banner, the <a href="https://en.wikipedia.org/wiki/Cha%C3%AEne_des_Puys">Chaîne des Puys</a> in Auvergne, France (near our lab ;-) )
+	</small></p>
+	<img alt="Commits_spark" height="32" src="https://www.ohloh.net/p/easyabc-r/analyses/latest/commits_spark.png" width="179">
+	<p><small>
+	  Commits chart by <a href="http://www.ohloh.net/projects/easyabc-r/">ohloh.net</a>.
+	</small></p>
+      </div>
+      <!--div id="widgetIframe" style="text-align:center">
+	<iframe width="350" height="250" src="http://trac.clermont.cemagref.fr/piwik/index.php?module=Widgetize&action=iframe&moduleToWidgetize=UserCountryMap&actionToWidgetize=worldMap&idSite=1&period=year&date=yesterday&disableLink=1&widget=1" scrolling="no" frameborder="0" marginheight="0" marginwidth="0"></iframe>
+      </div-->
+    </footer>
+    
+    <!-- Piwik --> 
+    <script type="text/javascript">
+    var pkBaseURL = (("https:" == document.location.protocol) ? "https://trac.clermont.cemagref.fr/piwik/" : "http://trac.clermont.cemagref.fr/piwik/");
+    document.write(unescape("%3Cscript src='" + pkBaseURL + "piwik.js' type='text/javascript'%3E%3C/script%3E"));
+    </script><script type="text/javascript">
+    try {
+    var piwikTracker = Piwik.getTracker(pkBaseURL + "piwik.php", 1);
+    piwikTracker.trackPageView();
+    piwikTracker.enableLinkTracking();
+    } catch( err ) {}
+    </script><noscript><p><img src="http://trac.clermont.cemagref.fr/piwik/piwik.php?idsite=1" style="border:0" alt="" /></p></noscript>
+    <!-- End Piwik Tracking Code -->
+    <div class="modal fade" id="myModal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+    <!-- changelog -->
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+          <h4 class="modal-title" id="myModalLabel">Changelog</h4>
+        </div>
+        <div class="modal-body">
+        <iframe src="https://r-forge.r-project.org/scm/viewvc.php/*checkout*/pkg/CHANGELOG?root=easyabc"></iframe>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="js/jquery.min.js"></script>
+  <script src="js/bootstrap.min.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      $.getJSON( "https://r-forge.r-project.org/scm/viewvc.php/*checkout*/pkg/CHANGELOG?root=easyabc", function(data) {
+        $(".modal-body" ).html(data);
+      });
+      $(".changelog-link").click(function() {
+        $('#myModal').modal('show');
+        return false;
+      });
+    });
+  </script>
+  </body>
+</html>
