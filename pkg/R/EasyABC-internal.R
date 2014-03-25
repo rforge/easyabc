@@ -4643,17 +4643,17 @@
 
 ## FUNCTION ABC_mcmc: ABC coupled to MCMC (Marjoram et al. 2003, Wegmann et al.
 ## 2009)
-.ABC_mcmc_cluster <- function(method, model, prior, n_obs, n_between_sampling, summary_stat_target, 
-    n_cluster = 1, use_seed, verbose, ...) {
+.ABC_mcmc_cluster <- function(method, model, prior, prior_test, n_obs, n_between_sampling,
+    summary_stat_target, n_cluster = 1, use_seed, verbose, ...) {
     if (use_seed == FALSE) {
         stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
     }
     options(scipen = 50)
     # library(parallel) Note that we do not consider the original Marjoram's
     # algortithm, which is not prone to parallel computing. (no calibration step)
-    return(switch(EXPR = method, Marjoram = .ABC_MCMC2_cluster(model, prior, n_obs, 
+    return(switch(EXPR = method, Marjoram = .ABC_MCMC2_cluster(model, prior, prior_test, n_obs, 
         n_between_sampling, summary_stat_target, n_cluster, verbose, ...), Wegmann = .ABC_MCMC3_cluster(model, 
-        prior, n_obs, n_between_sampling, summary_stat_target, n_cluster, verbose, 
+        prior, prior_test, n_obs, n_between_sampling, summary_stat_target, n_cluster, verbose, 
         ...)))
     options(scipen = 0)
 }
