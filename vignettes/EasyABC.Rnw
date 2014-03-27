@@ -437,7 +437,7 @@ The simulation code \texttt{trait\_model} therefore takes an exponential transfo
 
 In the following, we will use the values $J=500$ and $n\_t=1$, and uniform prior distributions for $ln(I)$ in $[3;5]$, $h$ in [-25;125], $ln(A)$ in $[ln(0.1);ln(5)]$ and $ln(\sigma)$ in $[ln(0.5);ln(25)]$. The simulation code \texttt{trait\_model} reads sequentially $J$, $I$, $A$, $n\_t$, $h$ and $\sigma$.
 
-\textit{NB:} Note that the fixed variables $J$ and $n\_t$ have been fixed (see section RClink) into the function \texttt{trait\_model} (in versions previous to 1.3, they was included in the prior list using uniform distributions with a trivial ranges)
+\textit{NB:} Note that the fixed variables $J$ and $n\_t$ have been fixed (see section \ref{RC_link}) into the function \texttt{trait\_model} (in versions previous to 1.3, they was included in the prior list using uniform distributions with a trivial ranges)
   
 <<trait_prior>>=
 trait_prior=list(c("unif",3,5),c("unif",-2.3,1.6),
