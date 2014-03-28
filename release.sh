@@ -22,6 +22,6 @@ sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}',/' vign
   R CMD build pkg && \
   R CMD check --as-cran "EasyABC_${VERSION}.tar.gz"
   # disable examples for CRAN
-  echo ${RDFILES} | xargs sed -i -e 's/%\\dontrun{/ \\dontrun{/g'
+  echo ${RDFILES} | xargs sed -i -e 's/%\\dontrun{/ \\dontrun{ /g'
   echo ${RDFILES} | xargs sed -i -e 's/%}%dontrun/ }%dontrun/g'
 #}
