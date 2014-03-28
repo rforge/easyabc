@@ -129,6 +129,10 @@ my_prior=list(c("unif",0,1),c("normal",1,2))
 @
 
     \end{itemize}
+    
+    \textit{NB:} Note that a fixed variable can be passed to the simulation code by choosing for this fixed variable a uniform prior distribution and a trivial range (with equal lower and upper bounds). 
+    The \texttt{EasyABC} methods will not work properly if these fixed variables are passed with other types of prior distributions (like a normal distribution with a standard deviation equal to zero).
+
   \item By providing the user-defined sampling and density function. In this case, each list element must be itself a list of two elements: the sampling function and the density function. For example, a uniform distribution can be defined using this approach with the following code (equivalent to \texttt{my\_prior=list(c("unif",0,1))}):
 <<custom_prior>>=
 my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))
@@ -186,11 +190,16 @@ In short, this can be done by:
   \item Use the \texttt{.C} function for calling your program, like we've done in our \texttt{trait\_model} function:
   \begin{verbatim}
   trait_model <- function(input=c(1,1,1,1,1,1)) {
+    .C("trait_model",input=input,stat_to_return=array(0,4))$stat_to_return
+  }
+  \end{verbatim}
+  Now, as our model will have two parameters with constant values (see \ref{example}), we can fix them as following:
+  \begin{verbatim}
+  trait_model <- function(input=c(1,1,1,1,1,1)) {
     .C("trait_model",input=c(input[1], 500, input[2:3], 1, input[4:5]),
       stat_to_return=array(0,4))$stat_to_return
   }
   \end{verbatim}
-  You can also notice how we have fixed the parameter of the model.
 \end{itemize}
 
 \subsection{Example of integration of an external program: \texttt{fastsimcoal}}
@@ -437,7 +446,7 @@ The simulation code \texttt{trait\_model} therefore takes an exponential transfo
 
 In the following, we will use the values $J=500$ and $n\_t=1$, and uniform prior distributions for $ln(I)$ in $[3;5]$, $h$ in [-25;125], $ln(A)$ in $[ln(0.1);ln(5)]$ and $ln(\sigma)$ in $[ln(0.5);ln(25)]$. The simulation code \texttt{trait\_model} reads sequentially $J$, $I$, $A$, $n\_t$, $h$ and $\sigma$.
 
-\textit{NB:} Note that the fixed variables $J$ and $n\_t$ have been fixed (see section \ref{RC_link}) into the function \texttt{trait\_model} (in versions previous to 1.3, they was included in the prior list using uniform distributions with a trivial ranges)
+\textit{NB:} Note that the fixed variables $J$ and $n\_t$ have been fixed (see section \ref{RC_link}) into the function \texttt{trait\_model}. But if it didn't, we would have included these constants in the prior list using uniform distributions with a trivial ranges, like \texttt{c("unif",500,500)} for example.
   
 <<trait_prior>>=
 trait_prior=list(c("unif",3,5),c("unif",-2.3,1.6),
