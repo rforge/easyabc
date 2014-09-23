@@ -44,7 +44,8 @@
     The file "R_step_iteration" (when using the method "Drovandi") is the parameter R used during the step "iteration" (see Drovandi and Pettitt 2011 for details).
     The file "p_acc_iteration" (when using the method "Lenormand") is the parameter p_acc computed at the end of the step "iteration" (see Lenormand et al. 2012 for details).
     The file "tolerance_step_iteration" (when using the method "Drovandi", "Delmoral" or "Lenormand") is the tolerance computed at the end of the step "iteration".
-    The file "output_step_iteration"  has a matrix format, in wich each raw is a different simulation, the first column is the weight of the simulation, the following columns are the parameters used for this simulation, and the last columns are the summary statistics of this simulation.
+    The file "output_step_iteration" gives the simulations kept after each iteration and has a matrix format, in wich each row is a different simulation, the first column is the weight of the simulation, the following columns are the parameters used for this simulation, and the last columns are the summary statistics of this simulation.
+    The file "model_step_iteration" gives the simulations performed at each iteration and has a matrix format, in which each row is a different simulation, the first column is the weight of the simulation, the following columns are the parameters used for this simulation, and the last columns are the summary statistics of this simulation.
     All these informations are further stored in a list (with the same formats) and are accessible from R - see \code{intermediary} in the value section below.}
   \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
 }

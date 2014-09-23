@@ -1621,6 +1621,11 @@
         n_alpha = ceiling(nb_simul * alpha)
         ## step 1 ABC rejection step with LHS
         tab_ini = .ABC_rejection_lhs(model, prior, prior_test, nb_simul, use_seed, seed_count)
+        # initially, weights are equal
+        tab_weight = array(1, n_alpha)
+        if (verbose == TRUE) {
+            write.table(as.matrix(cbind(tab_weight, tab_ini)), file = "model_step1", row.names = F, col.names = F, quote = F)
+        }
         seed_count = seed_count + nb_simul
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
             sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
@@ -1630,8 +1635,6 @@
             as.matrix(as.matrix(tab_ini)[, 1:nparam]), as.matrix(as.matrix(tab_ini)[, 
                 (nparam + 1):(nparam + nstat)]), sd_simul, alpha))
         simul_below_tol = simul_below_tol[1:n_alpha, ]  # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
-        # initially, weights are equal
-        tab_weight = array(1, n_alpha)
         tab_dist = .compute_dist(summary_stat_target, as.matrix(as.matrix(simul_below_tol)[, 
             (nparam + 1):(nparam + nstat)]), sd_simul)
         tol_next = max(tab_dist)
@@ -1672,6 +1675,10 @@
                 tab_weight2 = tab_inic[[2]] * (.compute_weightb(as.matrix(as.matrix(tab_ini[, 
                   1:nparam])), as.matrix(as.matrix(simul_below_tol[, 1:nparam])), 
                   tab_weight/sum(tab_weight), prior))
+            }
+            if (verbose == TRUE) {
+                write.table(as.matrix(cbind(tab_weight2, tab_ini)), file = paste("model_step", 
+                  it, sep = ""), row.names = F, col.names = F, quote = F)
             }
             simul_below_tol2 = rbind(as.matrix(simul_below_tol), as.matrix(tab_ini))
             tab_weight = c(tab_weight, tab_weight2)
@@ -4171,6 +4178,11 @@
     n_alpha = ceiling(nb_simul * alpha)
     ## step 1 ABC rejection step with LHS
     tab_ini = .ABC_rejection_lhs_cluster(model, prior, prior_test, nb_simul, seed_count, n_cluster)
+    # initially, weights are equal
+    tab_weight = array(1, n_alpha)
+    if (verbose == TRUE) {
+        write.table(as.matrix(cbind(tab_weight, tab_ini)), file = "model_step1", row.names = F, col.names = F, quote = F)
+    }
     seed_count = seed_count + nb_simul
     sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
     # selection of the alpha quantile closest simulations
@@ -4179,8 +4191,6 @@
         tab_ini[, 1:nparam], tab_ini[, (nparam + 1):(nparam + nstat)], sd_simul, 
         alpha))
     simul_below_tol = simul_below_tol[1:n_alpha, ]  # to be sure that there are not two or more simulations at a distance equal to the tolerance determined by the quantile
-    # initially, weights are equal
-    tab_weight = array(1, n_alpha)
     tab_dist = .compute_dist(summary_stat_target, as.matrix(as.matrix(simul_below_tol)[, 
         (nparam + 1):(nparam + nstat)]), sd_simul)
     tol_next = max(tab_dist)
@@ -4221,6 +4231,10 @@
             tab_weight2 = tab_inic[[2]] * (.compute_weightb(as.matrix(as.matrix(as.matrix(tab_ini)[, 
                 1:nparam])), as.matrix(as.matrix(as.matrix(simul_below_tol)[, 1:nparam])), 
                 tab_weight/sum(tab_weight), prior))
+        }
+        if (verbose == TRUE) {
+            write.table(as.matrix(cbind(tab_weight2, tab_ini)), file = paste("model_step", 
+                it, sep = ""), row.names = F, col.names = F, quote = F)
         }
         simul_below_tol2 = rbind(as.matrix(simul_below_tol), as.matrix(tab_ini))
         tab_weight = c(tab_weight, tab_weight2)
