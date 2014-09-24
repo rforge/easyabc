@@ -1691,13 +1691,16 @@
             tab_weight = tab_weight[tab_dist <= tol_next]
             tab_weight = tab_weight[1:n_alpha]
             tab_dist = tab_dist[tab_dist <= tol_next]
-            tab_dist = tab_dist[1:n_alpha]
+            odist = order(tab_dist,decreasing=FALSE)[1:n_alpha]
+            tab_dist_new = tab_dist
             simul_below_tol = matrix(0, n_alpha, (nparam + nstat))
             for (i1 in 1:n_alpha) {
+                tab_dist_new[i1] = tab_dist[odist[i1]]
                 for (i2 in 1:(nparam + nstat)) {
-                  simul_below_tol[i1, i2] = as.numeric(simul_below_tol2[i1, i2])
+                  simul_below_tol[i1, i2] = as.numeric(simul_below_tol2[odist[i1], i2])
                 }
             }
+            tab_dist = tab_dist_new[1:n_alpha]
             if (verbose == TRUE) {
                 write.table(as.matrix(cbind(tab_weight, simul_below_tol)), file = paste("output_step", 
                   it, sep = ""), row.names = F, col.names = F, quote = F)
@@ -4247,13 +4250,16 @@
         tab_weight = tab_weight[tab_dist <= tol_next]
         tab_weight = tab_weight[1:n_alpha]
         tab_dist = tab_dist[tab_dist <= tol_next]
-        tab_dist = tab_dist[1:n_alpha]
+        odist = order(tab_dist,decreasing=FALSE)[1:n_alpha]
+        tab_dist_new = tab_dist
         simul_below_tol = matrix(0, n_alpha, (nparam + nstat))
         for (i1 in 1:n_alpha) {
+            tab_dist_new[i1] = tab_dist[odist[i1]]
             for (i2 in 1:(nparam + nstat)) {
-                simul_below_tol[i1, i2] = as.numeric(simul_below_tol2[i1, i2])
+                simul_below_tol[i1, i2] = as.numeric(simul_below_tol2[odist[i1], i2])
             }
         }
+        tab_dist = tab_dist_new[1:n_alpha]
         if (verbose == TRUE) {
             write.table(as.matrix(cbind(tab_weight, simul_below_tol)), file = paste("output_step", 
                 it, sep = ""), row.names = F, col.names = F, quote = F)
