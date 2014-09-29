@@ -650,30 +650,30 @@
     dist = .compute_dist(summary_stat_target, simul, sd_simul)
     n_alpha = ceiling(alpha * length(dist))
     tol = sort(dist)[n_alpha]
-    ll = length(dist[dist < tol])
+    ll = length(dist[!is.na(dist) & dist < tol])
     if (ll == 0) {
         param2 = NULL
         simul2 = NULL
     } else {
         if (!is.null(dim(param)[1])) {
             if (ll > 1) {
-                param2 = param[dist <= tol, ]
+                param2 = param[!is.na(dist) & dist <= tol, ]
             } else {
-                param2 = as.matrix(param[dist <= tol, ])
+                param2 = as.matrix(param[!is.na(dist) & dist <= tol, ])
                 dim(param2) = c(dim(param2)[2], dim(param2)[1])
             }
         } else {
-            param2 = as.matrix(param[dist <= tol])
+            param2 = as.matrix(param[!is.na(dist) & dist <= tol])
         }
         if (!is.null(dim(simul)[1])) {
             if (ll > 1) {
-                simul2 = simul[dist <= tol, ]
+                simul2 = simul[!is.na(dist) & dist <= tol, ]
             } else {
-                simul2 = as.matrix(simul[dist <= tol, ])
+                simul2 = as.matrix(simul[!is.na(dist) & dist <= tol, ])
                 dim(simul2) = c(dim(simul2)[2], dim(simul2)[1])
             }
         } else {
-            simul2 = as.matrix(simul[dist <= tol])
+            simul2 = as.matrix(simul[!is.na(dist) & dist <= tol])
         }
     }
     cbind(param2, simul2)
@@ -1628,7 +1628,7 @@
         }
         seed_count = seed_count + nb_simul
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
-            sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+            sd, na.rm=TRUE)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
         # selection of the alpha quantile closest simulations
         simul_below_tol = NULL
         simul_below_tol = rbind(simul_below_tol, .selec_simul_alpha(summary_stat_target, 
@@ -2708,7 +2708,7 @@
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
             }
-            seed_count = seed_count + n_cluster
+            seed_count = seed_count + 100*n_cluster
             list_simul_summarystat = parLapplyLB(cl, list_param, model)
             for (i in 1:(100 * n_cluster)) {
                 tab_simul_summarystat = rbind(tab_simul_summarystat, as.numeric(list_simul_summarystat[[i]]))
@@ -2813,7 +2813,7 @@
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
             }
-            seed_count = seed_count + n_cluster
+            seed_count = seed_count + 100*n_cluster
             list_simul_summarystat = parLapplyLB(cl, list_param, model)
             for (i in 1:(100 * n_cluster)) {
                 tab_simul_summarystat = rbind(tab_simul_summarystat, as.numeric(list_simul_summarystat[[i]]))
@@ -3126,7 +3126,7 @@
                 list_param[[i]] = param
                 tab_picked = rbind(tab_picked, as.numeric(simul_picked))
             }
-            seed_count = seed_count + n_cluster
+            seed_count = seed_count + 100*n_cluster
             # perform simulations
             list_simul_summarystat = parLapplyLB(cl, list_param, model)
             for (i in 1:(100 * n_cluster)) {
@@ -3891,7 +3891,7 @@
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
             }
-            seed_count = seed_count + n_cluster
+            seed_count = seed_count + (n_cluster*100)
             list_simul_summarystat = parLapplyLB(cl, list_param, model)
             for (i in 1:(100 * n_cluster)) {
                 tab_simul_summarystat = rbind(tab_simul_summarystat, as.numeric(list_simul_summarystat[[i]]))
@@ -3977,7 +3977,7 @@
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
             }
-            seed_count = seed_count + n_cluster
+            seed_count = seed_count + n_cluster*100
             list_simul_summarystat = parLapplyLB(cl, list_param, model)
             for (i in 1:(100 * n_cluster)) {
                 tab_simul_summarystat = rbind(tab_simul_summarystat, as.numeric(list_simul_summarystat[[i]]))
@@ -4187,7 +4187,7 @@
         write.table(as.matrix(cbind(tab_weight, tab_ini)), file = "model_step1", row.names = F, col.names = F, quote = F)
     }
     seed_count = seed_count + nb_simul
-    sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+    sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd, na.rm=TRUE)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
     # selection of the alpha quantile closest simulations
     simul_below_tol = NULL
     simul_below_tol = rbind(simul_below_tol, .selec_simul_alpha(summary_stat_target, 
@@ -4243,13 +4243,13 @@
         tab_weight = c(tab_weight, tab_weight2)
         tab_dist2 = .compute_dist(summary_stat_target, as.matrix(as.matrix(tab_ini)[, 
             (nparam + 1):(nparam + nstat)]), sd_simul)
-        p_acc = length(tab_dist2[tab_dist2 <= tol_next])/nb_simul_step
+        p_acc = length(tab_dist2[!is.na(tab_dist2) & tab_dist2 <= tol_next])/nb_simul_step
         tab_dist = c(tab_dist, tab_dist2)
         tol_next = sort(tab_dist)[n_alpha]
-        simul_below_tol2 = simul_below_tol2[tab_dist <= tol_next, ]
-        tab_weight = tab_weight[tab_dist <= tol_next]
+        simul_below_tol2 = simul_below_tol2[!is.na(tab_dist) & tab_dist <= tol_next, ]
+        tab_weight = tab_weight[!is.na(tab_dist) & tab_dist <= tol_next]
         tab_weight = tab_weight[1:n_alpha]
-        tab_dist = tab_dist[tab_dist <= tol_next]
+        tab_dist = tab_dist[!is.na(tab_dist) & tab_dist <= tol_next]
         odist = order(tab_dist,decreasing=FALSE)[1:n_alpha]
         tab_dist_new = tab_dist
         simul_below_tol = matrix(0, n_alpha, (nparam + nstat))
