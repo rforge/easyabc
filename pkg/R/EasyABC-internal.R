@@ -3209,7 +3209,7 @@
                 list_param[[i]] = param
                 tab_picked = rbind(tab_picked, as.numeric(simul_picked))
             }
-            seed_count = seed_count + n_cluster
+            seed_count = seed_count + 100*n_cluster
             # perform simulations
             list_simul_summarystat = parLapplyLB(cl, list_param, model)
             for (i in 1:(100 * n_cluster)) {
@@ -4085,7 +4085,7 @@
                 list_param[[i]] = param
                 tab_param = rbind(tab_param, param[2:(l + 1)])
             }
-            seed_count = seed_count + n_cluster
+            seed_count = seed_count + 100*n_cluster
             list_simul_summarystat = parLapplyLB(cl, list_param, model)
             for (i in 1:(100 * n_cluster)) {
                 tab_simul_summarystat = rbind(tab_simul_summarystat, as.numeric(list_simul_summarystat[[i]]))
