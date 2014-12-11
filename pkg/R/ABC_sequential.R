@@ -19,8 +19,8 @@ ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
         stop("'nb_simul' is missing")
     if (missing(summary_stat_target)) 
         stop("'summary_stat_target' is missing")
-    if (!any(method == c("Beaumont", "Drovandi", "Delmoral", "Lenormand"))) {
-        stop("Method must be Beaumont, Drovandi, Delmoral or Lenormand")
+    if (!any(method == c("Beaumont", "Drovandi", "Delmoral", "Lenormand", "Emulation"))) {
+        stop("Method must be Beaumont, Drovandi, Delmoral, Lenormand or Emulation")
     }
     if (!is.vector(nb_simul)) 
         stop("'nb_simul' has to be a number.")

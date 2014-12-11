@@ -1627,8 +1627,10 @@
             write.table(as.matrix(cbind(tab_weight, tab_ini)), file = "model_step1", row.names = F, col.names = F, quote = F)
         }
         seed_count = seed_count + nb_simul
+        # determination of the normalization constants in each dimension associated to each summary statistic,
+        # this normalization will not change during all the algorithm
         sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), 
-            sd, na.rm=TRUE)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+            sd, na.rm=TRUE) 
         # selection of the alpha quantile closest simulations
         simul_below_tol = NULL
         simul_below_tol = rbind(simul_below_tol, .selec_simul_alpha(summary_stat_target, 
@@ -1859,8 +1861,262 @@
     final_res
 }
 
+## distance from a point to the design points
+.dist_compute_emulator<-function(x,design_pts) {
+  norm_design_pts=design_pts
+  norm_x=x
+  if (is.vector(design_pts)) {
+    norm_design_pts=design_pts/sd(design_pts)
+    norm_x=x/sd(design_pts)
+    dist = norm_design_pts - norm_x
+  } else {
+    nn=dim(design_pts)[2]
+    for (j in 1:nn){
+      norm_design_pts[,j]=design_pts[,j]/sd(design_pts[,j])
+      norm_x[j]=x[j]/sd(design_pts[,j])
+    }
+    dist = apply(norm_design_pts,MARGIN=1,function(d){sqrt(sum((d-norm_x)^2))})
+  }
+
+  dist
+}
+
+.tricubic_weight<-function(dist_array,span) {
+  maxdist=sort(dist_array)[ceiling(span*length(dist_array))]
+  w=(1-(dist_array/maxdist)^3)^3
+  w[w<0]=0
+  w/sum(w)
+}
+
+.predict_locreg_deg2<-function(x,design_pts,design_stats,span) {
+  d=.dist_compute_emulator(x,design_pts)
+  w=.tricubic_weight(d,span)
+  if (!is.vector(design_pts) && dim(design_pts)[2]>1){
+   centered_pts=t(apply(design_pts,MARGIN=1,function(d){d-x}))
+  } else {
+   centered_pts=design_pts-x
+  }
+  if (is.vector(centered_pts)) {
+    reg_deg2 <- as.formula(paste("design_stats ~ (centered_pts)^2"))
+  } else {
+    nparam=dim(centered_pts)[2]
+    xnam=paste0("centered_pts[,", 1:nparam)
+    reg_deg2 <- as.formula(paste("design_stats ~ (", paste(xnam, collapse= "]+"),"])^2"))
+  }
+  locreg=lm(reg_deg2,weights=w)
+  if (!is.vector(design_stats) && dim(design_stats)[2]>1){
+   mean_res=as.numeric(locreg$coefficients[1,])
+   cov_res=cov.wt(locreg$residuals,wt=w)$cov
+  }  else{
+   mean_res=as.numeric(locreg$coefficients[1])
+   cov_res=cov.wt(as.matrix(locreg$residuals),wt=w)$cov
+  }
+  list("mean"=mean_res,"covmat"=cov_res)
+}
+
+.emulator_locreg_deg2<-function(x, design_pts, design_stats, span) {
+  temp = .predict_locreg_deg2(x, design_pts, design_stats, span)
+  mvrnorm(n = 1, mu=temp$mean, Sigma=temp$covmat)
+}
+
+# FIXME the first parameter can be a seed index and should be removed
+.model_emulator_locreg_deg2_use_seed<-function(x,d=ABC_emulator_design_pts,s=ABC_emulator_design_stats,ss=ABC_emulator_span) {
+  .emulator_locreg_deg2(x[2:length(x)],d,s,ss)
+}
+
+.model_emulator_locreg_deg2<-function(x,d=ABC_emulator_design_pts,s=ABC_emulator_design_stats,ss=ABC_emulator_span) {
+  .emulator_locreg_deg2(x,d,s,ss)
+}
+
+.ABC_sequential_emulation <- function(model, prior, prior_test, nb_simul, summary_stat_target,
+    use_seed, verbose, n_step_emulation=9, emulator_span=50, alpha = 0.5, p_acc_min = 0.05,
+    seed_count = 0, inside_prior = TRUE, progress_bar = FALSE) {
+    ## checking errors in the inputs
+    if (!is.vector(alpha)) 
+        stop("'alpha' has to be a number.")
+    if (length(alpha) > 1) 
+        stop("'alpha' has to be a number.")
+    if (alpha <= 0) 
+        stop("'alpha' has to be between 0 and 1.")
+    if (alpha >= 1) 
+        stop("'alpha' has to be between 0 and 1.")
+    if (!is.vector(p_acc_min)) 
+        stop("'p_acc_min' has to be a number.")
+    if (length(p_acc_min) > 1) 
+        stop("'p_acc_min' has to be a number.")
+    if (p_acc_min <= 0) 
+        stop("'p_acc_min' has to be between 0 and 1.")
+    if (p_acc_min >= 1) 
+        stop("'p_acc_min' has to be between 0 and 1.")
+    if (!is.vector(seed_count)) 
+        stop("'seed_count' has to be a number.")
+    if (length(seed_count) > 1) 
+        stop("'seed_count' has to be a number.")
+    if (seed_count < 0) 
+        stop("'seed_count' has to be a positive number.")
+    seed_count = floor(seed_count)
+    if (!is.logical(inside_prior)) 
+        stop("'inside_prior' has to be boolean.")
+    if (!is.logical(progress_bar)) 
+        stop("'progress_bar' has to be boolean.")
+    start = Sys.time()
+    if (progress_bar) {
+        print("    ------ Jabot et al. (2015)'s algorithm ------")
+    }
+        nparam = length(prior)
+        nstat = length(summary_stat_target)
+        if (!.all_unif(prior)) {
+            stop("Prior distributions must be uniform to use the Jabot et al. (2012)'s algorithm.")
+        }
+        n_alpha = ceiling(nb_simul * alpha)
+        ## step 1 ABC rejection step with LHS
+        tab_ini = .ABC_rejection_lhs(model, prior, prior_test, nb_simul, use_seed, seed_count)
+        seed_count = seed_count + nb_simul
+        # determination of the normalization constants in each dimension associated to each summary
+        # statistic, this normalization will not change during all the algorithm
+        sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd)
+        tab_weight_end = array(1, nb_simul)
+
+        print("design 1 done")
+        for (i_step_emulation in 1:n_step_emulation){
+
+          ## step 2 use of an emulator in a sequential ABC procedure
+          ##########################################################
+          # ABC_emulator_xxx variables are globals and are removed at the end of the function
+          # TODO avoid global variables?
+          ABC_emulator_design_pts<<-tab_ini[,1:nparam]
+          ABC_emulator_design_stats<<-tab_ini[,(nparam+1):(nparam+nstat)]
+          # TODO put 50 as a parameter and add a feature for doing a cross validation
+          ABC_emulator_span<<-min(1,emulator_span/dim(tab_ini)[1])
+
+          tab_dist = .compute_dist(summary_stat_target, as.matrix(tab_ini[, 
+            (nparam + 1):(nparam + nstat)]), sd_simul)
+          tol_max=sort(tab_dist)[nb_simul]
+
+          res_emulator =.ABC_sequential_emulator(model, tab_ini[tab_dist<=tol_max,],
+            tab_weight_end[tab_dist<=tol_max], nparam, nstat,sd_simul, emulator_span, prior,
+            prior_test, nb_simul, summary_stat_target, use_seed, verbose, alpha, p_acc_min,
+            seed_count, inside_prior, progress_bar)
+          print("emulation done")
+
+          ## step 3 draw of new particles according to the result of the emulator-based fit
+          #################################################################################
+          new_particles=.ABC_sequential_emulation_follow(model,res_emulator$weights,res_emulator$simul,nparam,nstat,prior,prior_test,nb_simul,summary_stat_target,use_seed, 
+                         verbose, alpha, p_acc_min, seed_count , inside_prior, progress_bar)
+          tab_ini=rbind(tab_ini,new_particles$simul)
+          tab_weight_end=c(tab_weight_end,new_particles$weights)
+          print("sim new particles done")
+
+        }
+
+        rm(ABC_emulator_design_pts, ABC_emulator_design_stats, ABC_emulator_span)
+        final_res = list(param = as.matrix(as.matrix(tab_ini)[, 1:nparam]), 
+                  stats = as.matrix(as.matrix(tab_ini)[, (nparam + 1):(nparam + 
+                  nstat)]), weights = tab_weight_end, stats_normalization = as.numeric(sd_simul), 
+                  computime = as.numeric(difftime(Sys.time(), start, units = "secs")))
+     final_res      
+}
+
+
+.ABC_sequential_emulation_follow <- function(model, tab_weight, simul_below_tol, nparam,nstat,prior, prior_test, nb_simul, summary_stat_target, use_seed, 
+    verbose, alpha, p_acc_min, seed_count , inside_prior, progress_bar) {
+    
+        
+        # generate new particles with the original model
+        tab_inic = .ABC_launcher_not_uniformc(model, prior, as.matrix(as.matrix(simul_below_tol)[, 
+                1:nparam]), tab_weight/sum(tab_weight), nb_simul, use_seed, 
+                seed_count, inside_prior, progress_bar)
+        tab_ini = as.matrix(tab_inic[[1]])
+        tab_ini = as.numeric(tab_ini)
+        dim(tab_ini) = c(nb_simul, (nparam + nstat))
+        seed_count = seed_count + nb_simul
+        if (!inside_prior) {
+                tab_weight2 = .compute_weightb(as.matrix(as.matrix(tab_ini[, 1:nparam])), 
+                  as.matrix(as.matrix(simul_below_tol[, 1:nparam])), tab_weight/sum(tab_weight), 
+                  prior)
+         } else {
+                tab_weight2 = tab_inic[[2]] * (.compute_weightb(as.matrix(as.matrix(tab_ini[, 
+                  1:nparam])), as.matrix(as.matrix(simul_below_tol[, 1:nparam])), 
+                  tab_weight/sum(tab_weight), prior))
+         }
+
+        
+         final_res = list(simul = as.matrix(as.matrix(tab_ini)), weights = tab_weight2)
+     final_res
+}
+
+
+## step 2 use of an emulator in a sequential ABC procedure
+.ABC_sequential_emulator <- function(model, tab_ini1, tab_weight1, nparam, nstat, sd_simul,
+    emulator_span, prior, prior_test, nb_simul, summary_stat_target, use_seed, verbose, alpha,
+    p_acc_min, seed_count, inside_prior, progress_bar) {
+
+        n_alpha = ceiling(nb_simul * alpha)
+
+        design_pts=tab_ini1[,1:nparam]
+        design_stats=tab_ini1[,(nparam+1):(nparam+nstat)]
+        span=emulator_span/dim(tab_ini1)[1]
+
+        # initialize with the design particles
+        simul_below_tol = tab_ini1
+        tab_weight = tab_weight1
+        tab_dist = .compute_dist(summary_stat_target, as.matrix(as.matrix(simul_below_tol)[, 
+            (nparam + 1):(nparam + nstat)]), sd_simul)
+        tol_next = max(tab_dist)
+        intermediary_steps = list(NULL)
+        
+        # following steps
+        p_acc = p_acc_min + 1
+        nb_simul_step = nb_simul - n_alpha
+        it = 1
+        while (p_acc > p_acc_min) {
+            it = it + 1
+            simul_below_tol2 = NULL
+            if (use_seed) {
+              model_emulator = .model_emulator_locreg_deg2_use_seed
+            } else {
+              model_emulator = .model_emulator_locreg_deg2
+            }
+            tab_inic = .ABC_launcher_not_uniformc(model_emulator, prior, as.matrix(as.matrix(simul_below_tol)[, 
+                1:nparam]), tab_weight/sum(tab_weight), nb_simul_step, use_seed, seed_count, inside_prior, progress_bar)
+            tab_ini = as.matrix(tab_inic[[1]])
+            tab_ini = as.numeric(tab_ini)
+            dim(tab_ini) = c(nb_simul_step, (nparam + nstat))
+            seed_count = seed_count + nb_simul_step
+            if (!inside_prior) {
+                tab_weight2 = .compute_weightb(as.matrix(as.matrix(tab_ini[, 1:nparam])), 
+                  as.matrix(as.matrix(simul_below_tol[, 1:nparam])), tab_weight/sum(tab_weight), 
+                  prior)
+            } else {
+                tab_weight2 = tab_inic[[2]] * (.compute_weightb(as.matrix(as.matrix(tab_ini[, 
+                  1:nparam])), as.matrix(as.matrix(simul_below_tol[, 1:nparam])), 
+                  tab_weight/sum(tab_weight), prior))
+            }
+            simul_below_tol2 = rbind(as.matrix(simul_below_tol), as.matrix(tab_ini))
+            tab_weight = c(tab_weight, tab_weight2)
+            tab_dist2 = .compute_dist(summary_stat_target, as.matrix(as.matrix(tab_ini)[, 
+                (nparam + 1):(nparam + nstat)]), sd_simul)
+            p_acc = length(tab_dist2[tab_dist2 <= tol_next])/nb_simul_step
+            tab_dist = c(tab_dist, tab_dist2)
+            tol_next = sort(tab_dist)[n_alpha]
+            simul_below_tol2 = simul_below_tol2[tab_dist <= tol_next, ]
+            tab_weight = tab_weight[tab_dist <= tol_next]
+            tab_weight = tab_weight[1:n_alpha]
+            tab_dist = tab_dist[tab_dist <= tol_next]
+            tab_dist = tab_dist[1:n_alpha]
+            simul_below_tol = matrix(0, n_alpha, (nparam + nstat))
+            for (i1 in 1:n_alpha) {
+                for (i2 in 1:(nparam + nstat)) {
+                  simul_below_tol[i1, i2] = as.numeric(simul_below_tol2[i1, i2])
+                }
+            }
+        }
+        final_res = list(simul = as.matrix(as.matrix(simul_below_tol)), weights = tab_weight)
+     final_res
+}
+
 ## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi
-## & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
+## & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012, Jabot et al. 2015)
 .ABC_sequential <- function(method, model, prior, prior_test, nb_simul, summary_stat_target, 
     use_seed, verbose, ...) {
     options(scipen = 50)
@@ -1874,12 +2130,20 @@
     ## approximate Bayesian computation, Statistics and Computing., 22(5):1009-1020.
     ## [Lenormand et al. 2012] Lenormand, M., Jabot, F., Deffuant G. (2012). Adaptive
     ## approximate Bayesian computation for complex models, submitted to Comput. Stat.
+    ## [Jabot et al. 2015] Jabot, F., Lagarrigues G., Courbaud B., Dumoulin N. (2015). A
+    ## comparison of emulation methods for Approximate Bayesian Computation. To be published.
     ## )
-    return(switch(EXPR = method, Beaumont = .ABC_PMC(model, prior, prior_test, nb_simul, summary_stat_target, 
-        use_seed, verbose, ...), Drovandi = .ABC_Drovandi(model, prior, prior_test, nb_simul, 
-        summary_stat_target, use_seed, verbose, ...), Delmoral = .ABC_Delmoral(model, 
-        prior, prior_test, nb_simul, summary_stat_target, use_seed, verbose, ...), Lenormand = .ABC_Lenormand(model, 
-        prior, prior_test, nb_simul, summary_stat_target, use_seed, verbose, ...)))
+    return(switch(EXPR = method,
+        Beaumont = .ABC_PMC(model, prior, prior_test, nb_simul, summary_stat_target, 
+          use_seed, verbose, ...),
+        Drovandi = .ABC_Drovandi(model, prior, prior_test, nb_simul, summary_stat_target,
+          use_seed, verbose, ...),
+        Delmoral = .ABC_Delmoral(model, prior, prior_test, nb_simul, summary_stat_target,
+          use_seed, verbose, ...),
+        Lenormand = .ABC_Lenormand(model, prior, prior_test, nb_simul, summary_stat_target,
+          use_seed, verbose, ...),
+        Emulation = .ABC_sequential_emulation(model, prior, prior_test, nb_simul, summary_stat_target,
+          use_seed, verbose, ...)))
     options(scipen = 0)
 }
 
@@ -4187,7 +4451,9 @@
         write.table(as.matrix(cbind(tab_weight, tab_ini)), file = "model_step1", row.names = F, col.names = F, quote = F)
     }
     seed_count = seed_count + nb_simul
-    sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd, na.rm=TRUE)  # determination of the normalization constants in each dimension associated to each summary statistic, this normalization will not change during all the algorithm
+    # determination of the normalization constants in each dimension associated to each summary statistic,
+    # this normalization will not change during all the algorithm
+    sd_simul = sapply(as.data.frame(tab_ini[, (nparam + 1):(nparam + nstat)]), sd, na.rm=TRUE)
     # selection of the alpha quantile closest simulations
     simul_below_tol = NULL
     simul_below_tol = rbind(simul_below_tol, .selec_simul_alpha(summary_stat_target, 
