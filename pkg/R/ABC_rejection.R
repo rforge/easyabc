@@ -13,10 +13,7 @@ ABC_rejection <- function(model, prior, nb_simul, prior_test = NULL, summary_sta
     prior = data$new_prior
     model = data$new_model
     prior = .process_prior(prior)
-    if (missing(nb_simul)) 
-        stop("'nb_simul' is missing")
-    if (nb_simul < 1) 
-        stop("'nb_simul' must be a number larger than 1")
+    .test_param("nb_simul", missing = TRUE)
     if ((!is.null(summary_stat_target)) && (!is.vector(summary_stat_target))) {
         stop("'summary_stat_target' has to be a number")
     }
@@ -25,18 +22,8 @@ ABC_rejection <- function(model, prior, nb_simul, prior_test = NULL, summary_sta
     }
     if (!is.logical(use_seed)) 
         stop("'use_seed' has to be boolean")
-    if (!is.vector(seed_count)) 
-        stop("'seed_count' has to be a number")
-    if (length(seed_count) > 1) 
-        stop("'seed_count' has to be a number")
-    if (seed_count < 0) 
-        stop("'seed_count' has to be a positive number")
-    if (!is.vector(n_cluster)) 
-        stop("'n_cluster' has to be a number.")
-    if (length(n_cluster) > 1) 
-        stop("'n_cluster' has to be a number.")
-    if (n_cluster < 1) 
-        stop("'n_cluster' has to be a positive number.")
+    .test_param("seed_count", positive = TRUE)
+    .test_param("n_cluster", positive = TRUE)
     n_cluster = floor(n_cluster)
     if (!is.logical(verbose)) 
         stop("'verbose' has to be boolean")

@@ -16,19 +16,11 @@ ABC_mcmc <- function(method, model, prior, summary_stat_target, prior_test = NUL
     prior = data$new_prior
     model = data$new_model
     prior = .process_prior(prior)
-    if (missing(summary_stat_target)) 
-        stop("'summary_stat_target' is missing")
     if (!any(method == c("Marjoram_original", "Marjoram", "Wegmann"))) {
         stop("Method must be Marjoram_original, Marjoram or wegmann")
     }
-    if (!is.vector(summary_stat_target)) 
-        stop("'summary_stat_target' has to be a vector.")
-    if (!is.vector(n_cluster)) 
-        stop("'n_cluster' has to be a number.")
-    if (length(n_cluster) > 1) 
-        stop("'n_cluster' has to be a number.")
-    if (n_cluster < 1) 
-        stop("'n_cluster' has to be a positive number.")
+    .test_param("summary_stat_target", missing = TRUE, vector = TRUE)
+    .test_param("n_cluster", positive = TRUE)
     n_cluster = floor(n_cluster)
     if (!is.logical(use_seed)) 
         stop("'use_seed' has to be boolean")
