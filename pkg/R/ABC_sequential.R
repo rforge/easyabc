@@ -1,6 +1,6 @@
 ## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi
 ## & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
-ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, prior_test = NULL,
+ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, prior_test = NULL, 
     n_cluster = 1, use_seed = FALSE, verbose = FALSE, ...) {
     ## checking errors in the inputs
     if (missing(method)) 
@@ -13,7 +13,7 @@ ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
     prior = data$new_prior
     model = data$new_model
     prior = .process_prior(prior)
-    if (!is.null(prior_test))
+    if (!is.null(prior_test)) 
         .check_prior_test(length(prior), prior_test)
     if (missing(nb_simul)) 
         stop("'nb_simul' is missing")
@@ -44,11 +44,11 @@ ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
         stop("'verbose' has to be boolean")
     sequential = NULL
     if (n_cluster == 1) {
-        sequential = .ABC_sequential(method, model, prior, prior_test, nb_simul, summary_stat_target, 
-            use_seed, verbose, ...)
+        sequential = .ABC_sequential(method, model, prior, prior_test, nb_simul, 
+            summary_stat_target, use_seed, verbose, ...)
     } else {
-        sequential = .ABC_sequential_cluster(method, model, prior, prior_test, nb_simul, summary_stat_target, 
-            n_cluster, use_seed, verbose, ...)
+        sequential = .ABC_sequential_cluster(method, model, prior, prior_test, nb_simul, 
+            summary_stat_target, n_cluster, use_seed, verbose, ...)
     }
     sequential
 } 
