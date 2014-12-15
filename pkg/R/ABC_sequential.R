@@ -50,6 +50,9 @@ ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
         sequential = .ABC_sequential(method, model, prior, prior_test, nb_simul, 
             summary_stat_target, use_seed, verbose, dist_weights=dist_weights, ...)
     } else {
+        if (method=="Emulation") {
+            stop("'Emulation' method isn't yet available in 'cluster' mode'")
+        }
         sequential = .ABC_sequential_cluster(method, model, prior, prior_test, nb_simul, 
             summary_stat_target, n_cluster, use_seed, verbose, dist_weights=dist_weights, ...)
     }

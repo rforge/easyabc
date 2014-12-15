@@ -1938,17 +1938,6 @@
     mvrnorm(n = 1, mu = temp$mean, Sigma = temp$covmat)
 }
 
-# FIXME the first parameter can be a seed index and should be removed
-.model_emulator_locreg_deg2_use_seed <- function(x, d = ABC_emulator_design_pts, 
-    s = ABC_emulator_design_stats, ss = ABC_emulator_span) {
-    .emulator_locreg_deg2(x[2:length(x)], d, s, ss)
-}
-
-.model_emulator_locreg_deg2 <- function(x, d = ABC_emulator_design_pts, s = ABC_emulator_design_stats, 
-    ss = ABC_emulator_span) {
-    .emulator_locreg_deg2(x, d, s, ss)
-}
-
 .ABC_sequential_emulation <- function(model, prior, prior_test, nb_simul, summary_stat_target, 
     use_seed, verbose, n_step_emulation = 9, emulator_span = 50, alpha = 0.5, p_acc_min = 0.05, 
     dist_weights=NULL, seed_count = 0, inside_prior = TRUE, progress_bar = FALSE) {
@@ -2005,17 +1994,18 @@
         ## step 2 use of an emulator in a sequential ABC procedure ABC_emulator_xxx
         ## variables are globals and are removed at the end of the function TODO avoid
         ## global variables?
-        ABC_emulator_design_pts <<- tab_ini[, 1:nparam]
-        ABC_emulator_design_stats <<- tab_ini[, (nparam + 1):(nparam + nstat)]
+        emulator_design_pts = tab_ini[, 1:nparam]
+        emulator_design_stats = tab_ini[, (nparam + 1):(nparam + nstat)]
         # TODO put 50 as a parameter and add a feature for doing a cross validation
-        ABC_emulator_span <<- min(1, emulator_span/dim(tab_ini)[1])
+        span <<- min(1, emulator_span/dim(tab_ini)[1])
         
         tab_dist = .compute_dist(summary_stat_target, as.matrix(tab_ini[, (nparam + 
             1):(nparam + nstat)]), sd_simul, dist_weights=dist_weights)
         tol_max = sort(tab_dist)[nb_simul]
         
-        res_emulator = .ABC_sequential_emulator(model, tab_ini[tab_dist <= tol_max, 
-            ], tab_weight_end[tab_dist <= tol_max], nparam, nstat, sd_simul, emulator_span, 
+        res_emulator = .ABC_sequential_emulator(model, emulator_design_pts, emulator_design_stats,
+            span, tab_ini[tab_dist <= tol_max, 
+            ], tab_weight_end[tab_dist <= tol_max], nparam, nstat, sd_simul, 
             prior, prior_test, nb_simul, summary_stat_target, use_seed, verbose, 
             alpha, p_acc_min, dist_weights=dist_weights, seed_count, inside_prior, progress_bar)
         print("emulation done")
@@ -2030,7 +2020,6 @@
         
     }
     
-    rm(ABC_emulator_design_pts, ABC_emulator_design_stats, ABC_emulator_span)
     final_res = list(param = as.matrix(as.matrix(tab_ini)[, 1:nparam]), stats = as.matrix(as.matrix(tab_ini)[, 
         (nparam + 1):(nparam + nstat)]), weights = tab_weight_end, stats_normalization = as.numeric(sd_simul), 
         computime = as.numeric(difftime(Sys.time(), start, units = "secs")))
@@ -2068,15 +2057,14 @@
 
 
 ## step 2 use of an emulator in a sequential ABC procedure
-.ABC_sequential_emulator <- function(model, tab_ini1, tab_weight1, nparam, nstat, 
-    sd_simul, emulator_span, prior, prior_test, nb_simul, summary_stat_target, use_seed, 
+.ABC_sequential_emulator <- function(model, emulator_design_pts, emulator_design_stats, emulator_span, tab_ini1, tab_weight1, nparam, nstat, 
+    sd_simul, prior, prior_test, nb_simul, summary_stat_target, use_seed, 
     verbose, alpha, p_acc_min, dist_weights, seed_count, inside_prior, progress_bar) {
     
     n_alpha = ceiling(nb_simul * alpha)
     
     design_pts = tab_ini1[, 1:nparam]
     design_stats = tab_ini1[, (nparam + 1):(nparam + nstat)]
-    span = emulator_span/dim(tab_ini1)[1]
     
     # initialize with the design particles
     simul_below_tol = tab_ini1
@@ -2090,13 +2078,18 @@
     p_acc = p_acc_min + 1
     nb_simul_step = nb_simul - n_alpha
     it = 1
+
     while (p_acc > p_acc_min) {
         it = it + 1
         simul_below_tol2 = NULL
         if (use_seed) {
-            model_emulator = .model_emulator_locreg_deg2_use_seed
+            model_emulator = function(parameters) {
+                .emulator_locreg_deg2(parameters[2:length(parameters)], emulator_design_pts, emulator_design_stats, emulator_span)
+            }
         } else {
-            model_emulator = .model_emulator_locreg_deg2
+            model_emulator = function(parameters) {
+                .emulator_locreg_deg2(parameters, emulator_design_pts, emulator_design_stats, emulator_span)
+            }
         }
         tab_inic = .ABC_launcher_not_uniformc(model_emulator, prior, as.matrix(as.matrix(simul_below_tol)[, 
             1:nparam]), tab_weight/sum(tab_weight), nb_simul_step, use_seed, seed_count, 
