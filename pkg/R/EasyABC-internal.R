@@ -1997,7 +1997,7 @@
         emulator_design_pts = tab_ini[, 1:nparam]
         emulator_design_stats = tab_ini[, (nparam + 1):(nparam + nstat)]
         # TODO put 50 as a parameter and add a feature for doing a cross validation
-        span <<- min(1, emulator_span/dim(tab_ini)[1])
+        span = min(1, emulator_span/dim(tab_ini)[1])
         
         tab_dist = .compute_dist(summary_stat_target, as.matrix(tab_ini[, (nparam + 
             1):(nparam + nstat)]), sd_simul, dist_weights=dist_weights)
