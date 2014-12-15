@@ -8,7 +8,7 @@
 
 \title{\texttt{EasyABC}: a \texttt{R} package to perform efficient approximate Bayesian computation sampling schemes}
 \author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
-\date{\texttt{EasyABC} version  1.3.99, \Sexpr{Sys.Date()} }
+\date{\texttt{EasyABC} version  1.4, \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
 %\SweaveOpts{eval=FALSE}

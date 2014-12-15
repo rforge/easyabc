@@ -14,7 +14,7 @@ sed -i -e 's/^\(\ *Date:\).*$/\1 '${DATE}'/' pkg/DESCRIPTION pkg/man/EasyABC-pac
 sed -i -e 's/^\(\ *Version:\).*$/\1 '${VERSION}'/' pkg/DESCRIPTION pkg/man/EasyABC-package.Rd
 sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}',/' vignettes/EasyABC.Rnw
 
-#./updateVignette.sh && {
+./updateVignette.sh && {
   RDFILES=$(find pkg/man -name "*.Rd") && \
   # enable examples
   echo ${RDFILES} | xargs sed -i -e 's/^\s*\\dontrun{[^%]/%\\dontrun{/g' && \
@@ -24,4 +24,4 @@ sed -i -e 's/\(\\date{\\texttt{EasyABC} version \)[^,]*,/\1 '${VERSION}',/' vign
   # disable examples for CRAN
   echo ${RDFILES} | xargs sed -i -e 's/%\\dontrun{/ \\dontrun{ /g'
   echo ${RDFILES} | xargs sed -i -e 's/%}%dontrun/ }%dontrun/g'
-#}
+}
