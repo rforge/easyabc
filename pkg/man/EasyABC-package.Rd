@@ -14,7 +14,7 @@
     Package: EasyABC
     Type: Package
     Version: 1.3.99
-    Date: 2014-04-02
+    Date: 2014-12-15
     License: GPL-3
     LazyLoad: yes
   }

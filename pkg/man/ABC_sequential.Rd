@@ -9,7 +9,8 @@
 }
 \usage{
 	ABC_sequential(method, model, prior, nb_simul, summary_stat_target,
-          prior_test=NULL, n_cluster = 1, use_seed = FALSE, verbose = FALSE, ...)
+          prior_test=NULL, n_cluster = 1, use_seed = FALSE, verbose = FALSE,
+          dist_weights=NULL, ...)
 }
 
 \arguments{
@@ -47,6 +48,11 @@
     The file "output_step_iteration" gives the simulations kept after each iteration and has a matrix format, in wich each row is a different simulation, the first column is the weight of the simulation, the following columns are the parameters used for this simulation, and the last columns are the summary statistics of this simulation.
     The file "model_step_iteration" gives the simulations performed at each iteration and has a matrix format, in which each row is a different simulation, the first column is the weight of the simulation, the following columns are the parameters used for this simulation, and the last columns are the summary statistics of this simulation.
     All these informations are further stored in a list (with the same formats) and are accessible from R - see \code{intermediary} in the value section below.}
+  \item{dist_weights}{
+    a vector containing the weights to apply to the distance between the computed and the targeted statistics.
+    These weights can be used to give more importance to a summary statistisc for example. The weights will
+    be normalized before applying them. If not provided, no weights will be applied.
+  }
   \item{\dots}{Additional arguments can be passed depending on the choosen method (see below)}
 }
 

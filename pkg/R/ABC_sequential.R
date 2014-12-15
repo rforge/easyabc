@@ -1,7 +1,7 @@
 ## FUNCTION ABC_sequential: Sequential ABC methods (Beaumont et al. 2009, Drovandi
 ## & Pettitt 2011, Del Moral et al. 2011, Lenormand et al. 2012)
 ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, prior_test = NULL, 
-    n_cluster = 1, use_seed = FALSE, verbose = FALSE, ...) {
+    n_cluster = 1, use_seed = FALSE, verbose = FALSE, dist_weights=NULL, ...) {
     ## checking errors in the inputs
     if (missing(method)) 
         stop("'method' is missing")
@@ -42,13 +42,16 @@ ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
         stop("'use_seed' has to be boolean")
     if (!is.logical(verbose)) 
         stop("'verbose' has to be boolean")
+    if (!is.null(dist_weights) && length(dist_weights)!=length(summary_stat_target)) {
+        stop("'dist_weights' has to be the same length than 'summary_stat_target'")
+    }
     sequential = NULL
     if (n_cluster == 1) {
         sequential = .ABC_sequential(method, model, prior, prior_test, nb_simul, 
-            summary_stat_target, use_seed, verbose, ...)
+            summary_stat_target, use_seed, verbose, dist_weights=dist_weights, ...)
     } else {
         sequential = .ABC_sequential_cluster(method, model, prior, prior_test, nb_simul, 
-            summary_stat_target, n_cluster, use_seed, verbose, ...)
+            summary_stat_target, n_cluster, use_seed, verbose, dist_weights=dist_weights, ...)
     }
     sequential
 } 
