@@ -53,6 +53,9 @@ ABC_sequential <- function(method, model, prior, nb_simul, summary_stat_target, 
         if (method=="Emulation") {
             stop("'Emulation' method isn't yet available in 'cluster' mode'")
         }
+        if (use_seed == FALSE) {
+            stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
+        }
         sequential = .ABC_sequential_cluster(method, model, prior, prior_test, nb_simul, 
             summary_stat_target, n_cluster, use_seed, verbose, dist_weights=dist_weights, ...)
     }

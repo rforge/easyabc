@@ -42,6 +42,9 @@ ABC_mcmc <- function(method, model, prior, summary_stat_target, prior_test = NUL
         mcmc = .ABC_mcmc_internal(method, model, prior, prior_test, n_rec, n_between_sampling, 
             summary_stat_target, use_seed, verbose, dist_weights=dist_weights, ...)
     } else {
+        if (use_seed == FALSE) {
+            stop("For parallel implementations, you must specify the option 'use_seed=TRUE' and modify your model accordingly - see the package's vignette for more details.")
+        }
         mcmc = .ABC_mcmc_cluster(method, model, prior, prior_test, n_rec, n_between_sampling, 
             summary_stat_target, n_cluster, use_seed, verbose, dist_weights=dist_weights, ...)
     }
