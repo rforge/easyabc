@@ -134,7 +134,7 @@
 }
 \author{Franck Jabot, Thierry Faure and Nicolas Dumoulin}
 \seealso{
-  \code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_sequential}}
+  \code{\link{binary_model}}, \code{\link{binary_model_cluster}}, \code{\link{ABC_rejection}}, \code{\link{ABC_emulation}}, \code{\link{ABC_sequential}}
 }
 \examples{
  \dontrun{ 
