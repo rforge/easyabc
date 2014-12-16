@@ -6,8 +6,9 @@
   This function launches a series of \code{nb_design_pts} model simulations with model parameters drawn in the prior distribution specified in \code{prior_matrix}, build an emulator with these computed design points and then launches a series of \code{nb_simul} emulator simulations.
 }
 \usage{
-  ABC_emulation(model, prior,  nb_design_pts, nb_simul, prior_test=NULL, summary_stat_target=NULL,
-  emulator_span = 50, tol=NULL, use_seed=FALSE, seed_count=0, n_cluster=1, verbose=FALSE, progress_bar=FALSE)
+  ABC_emulation(model, prior,  nb_design_pts, nb_simul, prior_test=NULL,
+  summary_stat_target=NULL, emulator_span = 50, tol=NULL, use_seed=FALSE,
+  seed_count=0, n_cluster=1, verbose=FALSE, progress_bar=FALSE)
 }
 \arguments{
   \item{model}{
@@ -83,13 +84,16 @@
     trait_prior
 
     ## only launching simulations with parameters drawn in the prior distributions
-    ABC_emul = ABC_emulation(model=trait_model, prior=trait_prior, nb_design_pts=10, nb_simul=300, use_seed=TRUE, progress=TRUE)
-    ABC_sim
+    ABC_emul = ABC_emulation(model=trait_model, prior=trait_prior,
+      nb_design_pts=10, nb_simul=300, use_seed=TRUE, progress=TRUE)
+    ABC_emul
 
     ## launching simulations with parameters drawn in the prior distributions and performing
     # the rejection step
     sum_stat_obs=c(100,2.5,20,30000)
-    ABC_emul = ABC_emulation(model=trait_model, prior=trait_prior, tol=0.2, nb_design_pts=10, nb_simul=100, summary_stat_target=sum_stat_obs, use_seed=TRUE, progress=TRUE)
+    ABC_emul = ABC_emulation(model=trait_model, prior=trait_prior, tol=0.2,
+      nb_design_pts=10, nb_simul=100, summary_stat_target=sum_stat_obs, use_seed=TRUE, progress=TRUE)
+    ABC_emul
 
  }%dontrun
 }
