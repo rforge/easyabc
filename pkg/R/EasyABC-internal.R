@@ -1461,8 +1461,7 @@
 }
 
 ## function to compute particle weights without normalizing to 1
-.compute_weightb <- function(param_simulated, param_previous_step, tab_weight2, prior) {
-    tab_weight = tab_weight2/sum(tab_weight2)
+.compute_weightb <- function(param_simulated, param_previous_step, tab_weight, prior) {
     vmat = as.matrix(2 * cov.wt(as.matrix(param_previous_step), as.vector(tab_weight))$cov)
     n_particle = dim(param_previous_step)[1]
     n_new_particle = dim(param_simulated)[1]
