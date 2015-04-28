@@ -1991,8 +1991,7 @@
     for (i_step_emulation in 1:n_step_emulation) {
         
         ## step 2 use of an emulator in a sequential ABC procedure ABC_emulator_xxx
-        ## variables are globals and are removed at the end of the function TODO avoid
-        ## global variables?
+        ## variables are globals and are removed at the end of the function
         emulator_design_pts = tab_ini[, 1:nparam]
         emulator_design_stats = tab_ini[, (nparam + 1):(nparam + nstat)]
         # TODO put 50 as a parameter and add a feature for doing a cross validation
@@ -4233,7 +4232,7 @@
                   param_picked = .particle_pick(param_previous_step, tab_weight)
                   # move it
                   # only variable parameters are moved, computation of a WEIGHTED variance
-                  param_moved = .move_particle(as.numeric(param_picked), covwt)
+                  param_moved = .move_particle(as.numeric(param_picked), 2*cov.wt(as.matrix(as.matrix(param_previous_step)),as.vector(tab_weight))$cov)
                   if ((!inside_prior) || (.is_included(param_moved, prior)) || (counter >= 100)) {
                     break
                   }
