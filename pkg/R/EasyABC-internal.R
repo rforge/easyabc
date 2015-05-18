@@ -1055,7 +1055,7 @@
         }
     } else {
         vartab = min(1, 1/(sd_simul * sd_simul))  ## differences between simul and data are normalized in each dimension by the empirical variances in each dimension
-        dist = dist + vartab * (simul - summary_stat_target[i]) * (simul - summary_stat_target[i])  ## an euclidean distance is used
+        dist = dist + vartab * (simul[, 1] - summary_stat_target) * (simul[, 1] - summary_stat_target)  ## an euclidean distance is used
     }
     distb = matrix(0, nsimul/M, M)
     for (i in 1:(nsimul/M)) {
