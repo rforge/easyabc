@@ -7,13 +7,14 @@
 \usepackage{a4wide}
 
 \title{\texttt{EasyABC}: a \texttt{R} package to perform efficient approximate Bayesian computation sampling schemes}
-\author{Franck Jabot, Thierry Faure, Nicolas Dumoulin}
+\author{Franck Jabot, Thierry Faure, Nicolas Dumoulin, Carlo Albert}
 \date{\texttt{EasyABC} version  1.4.99, \Sexpr{Sys.Date()} }
 
 \SweaveOpts{echo=TRUE,print=TRUE}
 %\SweaveOpts{eval=FALSE}
 
 \begin{document}
+%\SweaveOpts{concordance=TRUE}
 
 \maketitle
 
@@ -35,7 +36,7 @@ Sections \ref{example1} and \ref{example} present two detailed worked examples.
 \texttt{EasyABC} enables to launch various ABC schemes and to retrieve the ouputs of the simulations, so as to perform post-processing treatments with the various R tools available. \texttt{EasyABC} is also able to launch the simulations on multiple cores of a multi-core computer.
 Three main types of ABC schemes are available in EasyABC: the standard rejection algorithm of Pritchard et al. (1999), sequential schemes first proposed by Sisson et al. (2007), and coupled to MCMC schemes first proposed by Marjoram et al. (2003).
 Four different sequential algorithms are available: the ones of Beaumont et al. (2009), Drovandi and Pettitt (2011), Del Moral et al. (2012) and Lenormand et al. (2012).
-Three different MCMC schemes are available: the ones of Marjoram et al. (2003), Wegmann et al. (2009a) and a modification of Marjoram et al. (2003)'s algorithm in which the tolerance and proposal range are determined by the algorithm, following the modifications of Wegmann et al. (2009a).
+Four different MCMC schemes are available: the ones of Marjoram et al. (2003), Wegmann et al. (2009a), a modification of Marjoram et al. (2003)'s algorithm in which the tolerance and proposal range are determined by the algorithm, following the modifications of Wegmann et al. (2009a) and a Simulated Annealing algorithm (SABC) suggested in Albert et al. (2014).
 Details on how to implement these various algorithms with \texttt{EasyABC} are given in the manual pages of each function and two examples are detailed in Sections \ref{example1} and \ref{example}. We provide below a short presentation of each implemented algorithm.
 
 \subsection{The standard rejection algorithm of Pritchard et al. (1999)}
@@ -54,6 +55,10 @@ The original algorithm of Marjoram et al. (2003) is implemented in the method "M
 Wegmann et al. (2009) later proposed a number of improvements to the original scheme of Marjoram et al. (2003): they proposed to perform a calibration step so that the algorithm automatically determines the tolerance threshold, the scaling of the summary statistics and the scaling of the jumps in the parameter space during the MCMC.
 These improvements have been implemented in the method "Marjoram".
 Wegmann et al. (2009) also proposed additional modifications, among which a PLS transformation of the summary statistics. The complete Wegmann et al. (2009)'s algorithm is implemented in the method "Wegmann".
+
+\subsection{Simulated annealing}
+Inspired by Simulated Annealing algorithms used for optimization, the SABC algorithm from Albert et al. (2014) uses MCMC chains to propagate an ensemble of particles in the product space of parameters and model outputs and continuously lowers the tolerance between model outputs and the data so that the parameter marginal converges to the posterior. The tolerance is lowered adaptively so as to minimize entropy production, which serves as a measure for computational waste.
+In \texttt{EasyABC}, SABC is implemented in the function \texttt{SABC}.
 
 \section{Installation and requirements}
 \label{installation}
@@ -77,7 +82,6 @@ For online help on a particular command (such as the function \texttt{ABC\_seque
 <<eval=FALSE>>=
 help(ABC_sequential)
 @
-
 
 \subsection{The simulation code - for use on a single core}
 \label{simulator_single_core}
@@ -154,7 +158,7 @@ ABC_rejection(model=a_model,prior=prior,nb_simul=3, prior_test="X2 > X1")
 
 \subsection{The target summary statistics}
 A vector containing the summary statistics of the data must be supplied. The statistics must be in the same order as in the simulation outputs.
-
+The function \texttt{SABC} allows for a semi-automatic generation of summary statistics according to Fearnhead et al. (2012).
 
 \subsection{The option verbose}
 Intermediary results can be written in output files in the working directory. Users solely need to choose the option \texttt{verbose=TRUE} when launching the \texttt{EasyABC} functions (otherwise, the default value for \texttt{verbose} is \texttt{FALSE}).
@@ -283,7 +287,7 @@ We here consider a very simple stochastic model coded in the \texttt{R} language
 
 <<toy_model>>=
 toy_model<-function(x){
-	c( x[1] + x[2] + rnorm(1,0,0.1) , x[1] * x[2] + rnorm(1,0,0.1) ) 
+  c( x[1] + x[2] + rnorm(1,0,0.1) , x[1] * x[2] + rnorm(1,0,0.1) ) 
 }
 @
 
@@ -296,7 +300,6 @@ And we will consider an imaginary dataset of two summary statistics that the toy
 <<sum_stat_obs>>=
 sum_stat_obs=c(1.5,0.5)
 @
-
 
 \subsection{Performing a standard ABC-rejection procedure}
 A standard ABC-rejection procedure can be simply performed with the function \texttt{ABC\_rejection}, in precising the number $n$ of simulations to be performed and the proportion of simulations which are to be retained $p$:
@@ -410,6 +413,35 @@ ABC_Wegmann<-ABC_mcmc(method="Wegmann", model=toy_model,
 prior=toy_prior, summary_stat_target=sum_stat_obs, n_rec=n)
 @
 
+\subsection{Performing a SABC scheme}
+For the SABC algorithm by Albert et al. (2014) we need to provide the prior in the form of a sampler and a density:
+
+<<SABCPrior>>=
+r.prior <- function()   c(runif(1,0,1),rnorm(1,1,2))
+d.prior <- function(x)  dunif(x[1],0,1)*dnorm(x[2],1,2)
+@
+
+Furthermore, we need to specify the size of the ensemble, the number of simulations and the initial tolerance
+
+<<SABCParam>>=
+n.sample <- 300
+iter.max <- n.sample * 30
+eps.init <- 2
+@
+
+Since, for this example, the prior carries relevant information, we choose the method "informative":
+
+<<SABC,print=FALSE>>=
+ABC_Albert <-SABC(r.model = toy_model,
+                  r.prior = r.prior,
+                  d.prior = d.prior,
+                  n.sample = n.sample,
+                  eps.init = eps.init,
+                  iter.max = iter.max,
+                  method = "informative",
+                  y = sum_stat_obs
+                  )
+@
 
 \subsection{Using multiple cores}
 The functions of the package \texttt{EasyABC} can launch the simulations on multiple cores of a computer: users have to indicate the number of cores they wish to use in the argument \texttt{n\_cluster} of the functions, and they have to use the option \texttt{use\_seed=TRUE}.
@@ -581,6 +613,37 @@ summary_stat_target=sum_stat_obs,
 n_rec=n, n_calibration=n_calib, tolerance_quantile=tol_quant, use_seed=TRUE)
 @
 
+\subsection{Performing a SABC scheme}
+For the SABC algorithm by Albert et al. (2014) we need to provide the prior in the form of a sampler and a density:
+
+<<SABCPrior>>=
+r.prior <- function()   c(runif(1,3,5),runif(1,-2.3,1.6),runif(1,-25,125),runif(1,-0.7,3.2),1)
+d.prior <- function(x)  dunif(x[1],3,5)*dunif(x[2],-2.3,1.6)*dunif(x[3],-25,125)*dunif(x[4],-0.7,3.2)
+@
+
+Furthermore, we need to specify the size of the ensemble, the number of simulations and the initial tolerance
+
+<<SABCParam>>=
+n.sample <- 300
+iter.max <- n.sample * 30
+eps.init <- 20
+@
+
+Since, for this example, the prior is flat, we choose the method "noninformative":
+
+<<SABC,print=FALSE>>=
+ABC_Albert <-SABC(r.model = trait_model,
+                  r.prior = r.prior,
+                  d.prior = d.prior,
+                  n.sample = n.sample,
+                  eps.init = eps.init,
+                  iter.max = iter.max,
+                  method = "noninformative",
+                  y = sum_stat_obs
+                  )
+@
+
+
 
 \subsection{Using multiple cores}
 The functions of the package \texttt{EasyABC} can launch the simulations on multiple cores of a computer: users only have to indicate the number of cores they wish to use in the argument \texttt{n\_cluster} of the functions.
@@ -606,6 +669,9 @@ The \texttt{EasyABC} package makes use of a number of \texttt{R} tools, among wh
 We thank Sylvie Huet, Albert Ko, Matteo Fasiolo and Wim Delva for their suggestions and inputs in the development of this version.
 
 \section{References}
+
+Albert C., K\"unsch HR., Scheidegger A. (2014) A Simulated Annealing Approach to Approximate Bayes Computations. \emph{Stat. Comput.}, 1--16, arXiv:1208.2157 [stat.CO].
+
 Beaumont, M. A., Cornuet, J., Marin, J., and Robert, C. P. (2009) Adaptive approximate Bayesian computation. \emph{Biometrika},\textbf{96}, 983--990.
 
 Carnell, R. (2012) lhs: Latin Hypercube Samples. R package version 0.10. http://CRAN.R-project.org/package=lhs
@@ -615,6 +681,8 @@ Csill\'ery, K., Fran\c cois, O., and Blum, M.G.B. (2012) abc: an r package for a
 Del Moral, P., Doucet, A., and Jasra, A. (2012) An adaptive sequential Monte Carlo method for approximate Bayesian computation. \emph{Statistics and Computing}, \textbf{22}, 1009--1020.
 
 Drovandi, C. C. and Pettitt, A. N. (2011) Estimation of parameters for macroparasite population evolution using approximate Bayesian computation. \emph{Biometrics}, \textbf{67}, 225--233.
+
+Fearnhead, P. and Prangle, D. (2012) Constructing summary statistics for approximate Bayesian computation: semiautomatic approximate Bayesian computation. \emph{J.Roy. Stat. Soc.: Series B} \textbf{74.3}, 419-474.
 
 Genz, A., and Azzalini, A. (2012) mnormt: The multivariate normal and t distributions. R package version 1.4-5. http://CRAN.R-project.org/package=mnormt
 
@@ -637,8 +705,3 @@ Wegmann, D., Leuenberger, C. and Excoffier, L. (2009a) Efficient approximate Bay
 Wegmann, D., Leuenberger, C. and Excoffier, L. (2009b) Using ABCtoolbox. http://cmpg.unibe.ch/software/ abctoolbox/ABCtoolbox\_manual.pdf
 
 \end{document}
-
-
-
-
-
