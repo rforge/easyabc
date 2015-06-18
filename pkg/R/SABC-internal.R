@@ -400,26 +400,41 @@ SABC.inf <- function(f.dist, d.prior, r.prior, n.sample, eps.init, iter.max,
         V.old <- V
         V <- mean.tensor(E[["alpha"=dim.par+ 2]],along="k")
 
-        # Update (u,v)-covariance:
-
-        Cov.uv <- cov(E[,(dim.par+1):(dim.par+2)])
-        Cov.uv.inv <- solve(Cov.uv)
-
-
-        ## update epsilons:
-
-        repeat
-        {
-          eps.new <- c(1/eps.1,eps.2) - Cov.uv.inv %*% (c(U,V)-c(U.old,V.old))
-          eps.1 <- 1/eps.new[1]
-          eps.2 <- eps.new[2]
-          X.soll <- X(eps.1,eps.2)
-          error <- abs(c(U,V)-X.soll)/c(U,V)
-          if (error[1] <= 0.01 & error[2] <= 0.01) break
-          else
+        if (U == 0){ 
+          eps.1 <- 0
+          varV  <- var(E[,(dim.par+2)])
+          repeat
           {
-            U.old <- X.soll[1]
-            V.old <- X.soll[2]
+            eps.2  <- eps.2 - ( V - V.old ) / varV
+            X.soll <- X(eps.1,eps.2)[2]
+            error  <- abs((V-X.soll)/V)
+            if ( error <= 0.01 ) break
+            else
+            {
+              V.old <- X.soll
+            }
+          }
+        }
+        else
+        {
+          Cov.uv <- cov(E[,(dim.par+1):(dim.par+2)])
+          Cov.uv.inv <- solve(Cov.uv)
+  
+          ## update epsilons:
+  
+          repeat
+          {
+            eps.new <- c(1/eps.1,eps.2) - Cov.uv.inv %*% (c(U,V)-c(U.old,V.old))
+            eps.1 <- 1/eps.new[1]
+            eps.2 <- eps.new[2]
+            X.soll <- X(eps.1,eps.2)
+            error <- abs(c(U,V)-X.soll)/c(U,V)
+            if (error[1] <= 0.01 & error[2] <= 0.01) break
+            else
+            {
+              U.old <- X.soll[1]
+              V.old <- X.soll[2]
+            }
           }
         }
 
@@ -479,7 +494,7 @@ SABC.inf <- function(f.dist, d.prior, r.prior, n.sample, eps.init, iter.max,
 
     ## 2.5 resampling
 
-    if(a == resample)
+    if(a == resample && eps.1 > 1e-100)
     {
       ## weighted resampling
       w         <- exp(-E[,dim.par+1]*delta/eps.1 + eps.2*E[,dim.par+2])
@@ -596,8 +611,8 @@ SABC.noninf <- function (f.dist, d.prior, r.prior,
 
   ## Define schedule:
   Schedule <- function(rho)
-      return( uniroot(function(epsilon) epsilon^2 + v * epsilon^(3 / 2) - rho^2,
-                      c(0,rho))$root ) #  This v is const*v in (32)
+      return( ifelse( rho < 1e-100, 0 ,uniroot(function(epsilon) epsilon^2 + v * epsilon^(3 / 2) - rho^2,
+                      c(0,rho))$root )) #  This v is const*v in (32)
 
   ## Redefinition of metric:
   Phi <- function(rho)
@@ -780,7 +795,7 @@ SABC.noninf <- function (f.dist, d.prior, r.prior,
         'u.mean'  , U, '\n')
 
     ## Resampling
-    if(accept >= resample){
+    if((accept >= resample) && (U > 1e-100)){
       ## Weighted resampling:
       w <- exp(-E[,dim.par + 1] * delta / U)
       w <- w/sum(w)
