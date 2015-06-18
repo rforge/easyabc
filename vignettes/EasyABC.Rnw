@@ -57,7 +57,7 @@ These improvements have been implemented in the method "Marjoram".
 Wegmann et al. (2009) also proposed additional modifications, among which a PLS transformation of the summary statistics. The complete Wegmann et al. (2009)'s algorithm is implemented in the method "Wegmann".
 
 \subsection{Simulated annealing}
-Inspired by Simulated Annealing algorithms used for optimization, the SABC algorithm from Albert et al. (2014) uses MCMC chains to propagate an ensemble of particles in the product space of parameters and model outputs and continuously lowers the tolerance between model outputs and the data so that the parameter marginal converges to the posterior. The tolerance is lowered adaptively so as to minimize entropy production, which serves as a measure for computational waste.
+Inspired by Simulated Annealing algorithms used for optimization, the SABC algorithm from Albert et al. (2014) propagates an ensemble of particles in the product space of parameters and model outputs and continuously lowers the tolerance between model outputs and the data so that the parameter marginal converges to the posterior. The tolerance is lowered adaptively so as to minimize entropy production, which serves as a measure for computational waste.
 In \texttt{EasyABC}, SABC is implemented in the function \texttt{SABC}.
 
 \section{Installation and requirements}
@@ -94,6 +94,8 @@ If the code is a binary executable file, a wrapper \texttt{R} function named 'bi
 
 Alternatively, users may prefer building a \texttt{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \texttt{C/C++} program.
 
+\textit{NB:} For instance, SABC ignores the \texttt{use\_seed} option and requires a function, whose first argument is the parameter vector.
+
 \subsection{The simulation code - for use with multiple cores}
 \label{simulator_several_cores}
 Users need to develop a simulation code with minimal compatibility constraints. The code can either be a \texttt{R} function or a binary executable file.
@@ -105,6 +107,8 @@ This construction avoids multiple cores to read/write in the same files.
 If the code is a binary executable file, a wrapper \texttt{R} function named 'binary\_model\_cluster' is available to interface the executable file with the \texttt{R} functions of the \texttt{EasyABC} package (see section \ref{example} below).
 
 Alternatively, users may prefer building a \texttt{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \texttt{C/C++} program.
+
+\textit{NB:} For instance, SABC does currently not support the usage of multiple cores.
 
 \subsection{Management of pseudo-random number generators}
 To insure that stochastic simulations are independent, the simulation code must either possess an internal way of initializing the seeds of its pseudo-random number generators each time the simulation code is launched.
@@ -143,6 +147,8 @@ my_prior=list(list(c("runif",1,0,1), c("dunif",0,1)))
 @
 
 \end{enumerate}
+
+\textit{NB:} SABC requires the prior to be specified as a sampler and as a density (see the examples below).
 
 \subsection{Adding constraints to prior distributions}
 
@@ -443,6 +449,12 @@ ABC_Albert <-SABC(r.model = toy_model,
                   )
 @
 
+An approximate posterior parameter sample is contained in $ABC_Albert\$E[,1:2]$, e.g.
+
+<<SABCPlot,print=FALSE,fig=TRUE>>=
+plot(ABC_Albert$E[,1:2])
+@
+
 \subsection{Using multiple cores}
 The functions of the package \texttt{EasyABC} can launch the simulations on multiple cores of a computer: users have to indicate the number of cores they wish to use in the argument \texttt{n\_cluster} of the functions, and they have to use the option \texttt{use\_seed=TRUE}.
 Users also need to design their code in a slightly different way so that it is compatible with the option \texttt{use\_seed=TRUE} (see Section \ref{simulator_several_cores} for additional details).
@@ -617,8 +629,10 @@ n_rec=n, n_calibration=n_calib, tolerance_quantile=tol_quant, use_seed=TRUE)
 For the SABC algorithm by Albert et al. (2014) we need to provide the prior in the form of a sampler and a density:
 
 <<SABCPrior>>=
-r.prior <- function()   c(runif(1,3,5),runif(1,-2.3,1.6),runif(1,-25,125),runif(1,-0.7,3.2),1)
-d.prior <- function(x)  dunif(x[1],3,5)*dunif(x[2],-2.3,1.6)*dunif(x[3],-25,125)*dunif(x[4],-0.7,3.2)
+r.prior <- function() c(runif(1,3,5), runif(1,-2.3,1.6),
+  runif(1,-25,125),runif(1,-0.7,3.2),1)
+d.prior <- function(x) dunif(x[1],3,5) * dunif(x[2],-2.3,1.6) *
+  dunif(x[3],-25,125) * dunif(x[4],-0.7,3.2)
 @
 
 Furthermore, we need to specify the size of the ensemble, the number of simulations and the initial tolerance
@@ -643,7 +657,11 @@ ABC_Albert <-SABC(r.model = trait_model,
                   )
 @
 
+We may plot the marginals of the posterior, using, e.g.,
 
+<<SABCPlot,print=FALSE,fig=TRUE>>=
+hist(ABC_Albert$E[,3],breaks=100)
+@
 
 \subsection{Using multiple cores}
 The functions of the package \texttt{EasyABC} can launch the simulations on multiple cores of a computer: users only have to indicate the number of cores they wish to use in the argument \texttt{n\_cluster} of the functions.
