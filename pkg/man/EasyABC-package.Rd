@@ -13,8 +13,8 @@ EasyABC further enables to launch the simulations in parallel on multiple cores 
 \tabular{ll}{
 Package: EasyABC
 Type: Package
-Version: 1.4.99
-Date: 2015-04-28
+Version: 1.5
+Date: 2015-06-30
 License: GPL-3
 LazyLoad: yes
 }

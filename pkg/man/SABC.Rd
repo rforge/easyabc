@@ -86,8 +86,10 @@ f.dist <- function(par)
 
 # Run algorithm ("noninformative" case)
 res <- SABC(f.dist,r.prior,d.prior,n.sample=500,eps.init=2,iter.max=50000)
+ }%dontrun
 
+ \dontrun{%
 # Histogram of results
 hist(res$E[,1],breaks=200)
- }%dontrun
+ }
 }
