@@ -1083,8 +1083,12 @@
     for (i in 1:n_particle) {
         new_weight[i] = length(particle_dist_mat[i, ][particle_dist_mat[i, ] < tolerance])
     }
-    new_weight = new_weight/sum(new_weight)
-    1/(sum(new_weight * new_weight))
+    if (sum(new_weight)==0){
+      return(0)
+    } else {
+      new_weight = new_weight/sum(new_weight)
+      1/(sum(new_weight * new_weight))
+    }
 }
 
 ## function to compute the number of simul below a new tolerance value
@@ -1239,7 +1243,7 @@
                   simul_below_tol[i1, i2] = as.numeric(particles[i1, i2])
                 }
             }
-            particles = as.matrix(particles[uu, 1:nparam])
+            particles = as.matrix(particles[, 1:nparam])
             if (M > 1) {
                 particle_dist_mat = .compute_dist_M(M, summary_stat_target, as.matrix(as.matrix(simul_below_tol)[, 
                   (nparam + 1):(nparam + nstat)]), sd_simul, dist_weights=dist_weights)
