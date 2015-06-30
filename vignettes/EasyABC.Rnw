@@ -34,9 +34,9 @@ Sections \ref{example1} and \ref{example} present two detailed worked examples.
 \section{Overview of the package EasyABC}
 \label{algorithms}
 \texttt{EasyABC} enables to launch various ABC schemes and to retrieve the ouputs of the simulations, so as to perform post-processing treatments with the various R tools available. \texttt{EasyABC} is also able to launch the simulations on multiple cores of a multi-core computer.
-Three main types of ABC schemes are available in EasyABC: the standard rejection algorithm of Pritchard et al. (1999), sequential schemes first proposed by Sisson et al. (2007), and coupled to MCMC schemes first proposed by Marjoram et al. (2003).
+Four main types of ABC schemes are available in EasyABC: the standard rejection algorithm of Pritchard et al. (1999), sequential schemes first proposed by Sisson et al. (2007), coupled to MCMC sequential schemes first proposed by Marjoram et al. (2003), and a Simulated Annealing algorithm (SABC) suggested in Albert et al. (2014).
 Four different sequential algorithms are available: the ones of Beaumont et al. (2009), Drovandi and Pettitt (2011), Del Moral et al. (2012) and Lenormand et al. (2012).
-Four different MCMC schemes are available: the ones of Marjoram et al. (2003), Wegmann et al. (2009a), a modification of Marjoram et al. (2003)'s algorithm in which the tolerance and proposal range are determined by the algorithm, following the modifications of Wegmann et al. (2009a) and a Simulated Annealing algorithm (SABC) suggested in Albert et al. (2014).
+Four different MCMC schemes are available: the ones of Marjoram et al. (2003), Wegmann et al. (2009a), a modification of Marjoram et al. (2003)'s algorithm in which the tolerance and proposal range are determined by the algorithm, following the modifications of Wegmann et al. (2009a).
 Details on how to implement these various algorithms with \texttt{EasyABC} are given in the manual pages of each function and two examples are detailed in Sections \ref{example1} and \ref{example}. We provide below a short presentation of each implemented algorithm.
 
 \subsection{The standard rejection algorithm of Pritchard et al. (1999)}
@@ -94,7 +94,7 @@ If the code is a binary executable file, a wrapper \texttt{R} function named 'bi
 
 Alternatively, users may prefer building a \texttt{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \texttt{C/C++} program.
 
-\textit{NB:} For instance, SABC ignores the \texttt{use\_seed} option and requires a function, whose first argument is the parameter vector.
+\textit{NB:} Currently, SABC ignores the \texttt{use\_seed} option and requires a function, whose first argument is the parameter vector.
 
 \subsection{The simulation code - for use with multiple cores}
 \label{simulator_several_cores}
@@ -108,7 +108,7 @@ If the code is a binary executable file, a wrapper \texttt{R} function named 'bi
 
 Alternatively, users may prefer building a \texttt{R} function calling their binary executable file. A short tutorial is provided in section \ref{RC_link} to call a \texttt{C/C++} program.
 
-\textit{NB:} For instance, SABC does currently not support the usage of multiple cores.
+\textit{NB:} Currently, SABC does currently not support the usage of multiple cores.
 
 \subsection{Management of pseudo-random number generators}
 To insure that stochastic simulations are independent, the simulation code must either possess an internal way of initializing the seeds of its pseudo-random number generators each time the simulation code is launched.
@@ -449,9 +449,9 @@ ABC_Albert <-SABC(r.model = toy_model,
                   )
 @
 
-An approximate posterior parameter sample is contained in $ABC_Albert\$E[,1:2]$, e.g.
+An approximate posterior parameter sample is contained in \texttt{ABC\_Albert\$E[,1:2]}, e.g.
 
-<<SABCPlot,print=FALSE,fig=TRUE>>=
+<<SABCPlot1,print=FALSE,fig=TRUE>>=
 plot(ABC_Albert$E[,1:2])
 @
 
@@ -659,7 +659,7 @@ ABC_Albert <-SABC(r.model = trait_model,
 
 We may plot the marginals of the posterior, using, e.g.,
 
-<<SABCPlot,print=FALSE,fig=TRUE>>=
+<<SABCPlot2,print=FALSE,fig=TRUE>>=
 hist(ABC_Albert$E[,3],breaks=100)
 @
 
