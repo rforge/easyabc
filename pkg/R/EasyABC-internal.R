@@ -4605,7 +4605,7 @@
 ## tolerance and proposal range following Wegmann et al. 2009
 .ABC_MCMC2_cluster <- function(model, prior, prior_test, n_obs, n_between_sampling, 
     summary_stat_target, n_cluster, verbose, n_calibration = 10000, tolerance_quantile = 0.01, 
-    proposal_phi = 1, dist_weights=NULL, seed_count = 0) {
+    proposal_phi = 1, dist_weights=NULL, seed_count = 0, max_pick=100000) {
     ## checking errors in the inputs
     if (!is.vector(n_calibration)) 
         stop("'n_calibration' has to be a number.")
@@ -4735,7 +4735,7 @@
 ## are not implemented in the algorithm
 .ABC_MCMC3_cluster <- function(model, prior, prior_test, n_obs, n_between_sampling, 
     summary_stat_target, n_cluster, verbose, n_calibration = 10000, tolerance_quantile = 0.01, 
-    proposal_phi = 1, numcomp = 0, dist_weights=NULL, seed_count = 0) {
+    proposal_phi = 1, numcomp = 0, dist_weights=NULL, seed_count = 0, max_pick=100000) {
     ## checking errors in the inputs
     if (!is.vector(n_calibration)) 
         stop("'n_calibration' has to be a number.")
